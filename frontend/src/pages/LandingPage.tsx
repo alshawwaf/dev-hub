@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AppCard from '../components/AppCard';
 import Sidebar from '../components/Sidebar';
 import api from '../services/api';
+import { Sparkles, AlertTriangle, SearchX } from 'lucide-react';
 
 interface App {
   id: number;
@@ -56,26 +57,35 @@ const LandingPage: React.FC = () => {
         categories={categories}
       />
       
-      <main className="main-content px-6 py-12">
-        <header className="text-center mb-16">
-          <h1 className="text-5xl md:text-7xl font-extrabold mb-4 text-gradient">AI Dev-Hub</h1>
-          <p className="text-text-muted text-lg max-w-2xl mx-auto">
-            Explore and manage our ecosystem of secure, intelligent, and scalable applications.
+      <main className="main-content px-6 lg:px-8">
+        {/* Hero Section */}
+        <header className="hero">
+          <h1 className="text-gradient">AI Dev-Hub</h1>
+          <p className="subtitle">
+            Explore and manage our ecosystem of secure, intelligent, and scalable applications 
+            powered by cutting-edge AI technology.
           </p>
         </header>
 
+        {/* Content */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-text-dim">Loading AI Ecosystem...</p>
+            <div className="spinner mb-6"></div>
+            <p className="text-text-muted flex items-center gap-2">
+              <Sparkles size={16} className="text-primary" />
+              Loading AI Ecosystem...
+            </p>
           </div>
         ) : error ? (
-          <div className="text-center py-20 bg-red-500/10 rounded-3xl border border-red-500/20">
-            <h3 className="text-2xl font-bold text-red-400 mb-2">Error</h3>
+          <div className="text-center py-16 px-8 glass rounded-2xl max-w-lg mx-auto">
+            <div className="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle size={28} className="text-error" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Connection Error</h3>
             <p className="text-text-muted">{error}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredApps.length > 0 ? (
               filteredApps.map(app => (
                 <AppCard 
@@ -91,7 +101,9 @@ const LandingPage: React.FC = () => {
               ))
             ) : (
               <div className="col-span-full py-20 text-center">
-                <div className="text-6xl mb-4">🔍</div>
+                <div className="w-20 h-20 rounded-full bg-glass-bg-strong flex items-center justify-center mx-auto mb-6">
+                  <SearchX size={36} className="text-text-dim" />
+                </div>
                 <h3 className="text-2xl font-bold mb-2">No apps found</h3>
                 <p className="text-text-muted">Try adjusting your search or category filters.</p>
               </div>
