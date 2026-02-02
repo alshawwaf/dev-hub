@@ -50,6 +50,15 @@ def seed():
                     category="AI Security",
                     icon="🛡️",
                     is_live=True
+                ),
+                models.Application(
+                    name="Agentic Playground",
+                    description="An experimental playground for agentic workflows.",
+                    url="https://chat.alshawwaf.ca",
+                    github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
+                    category="AI Agents",
+                    icon="🤖",
+                    is_live=True
                 )
             ]
             db.add_all(apps)
