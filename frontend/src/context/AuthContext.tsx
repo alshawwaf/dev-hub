@@ -3,14 +3,14 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 interface User {
   id: number;
   email: string;
-  is_admin: bool;
+  is_admin: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (token: string, userData: User) => void;
   logout: () => void;
-  isLoading: bool;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

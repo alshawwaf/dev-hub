@@ -6,7 +6,7 @@ import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import './App.css';
 
-const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: bool }) => {
+const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
