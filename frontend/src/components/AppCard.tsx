@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, Github, ArrowUpRight } from 'lucide-react';
+import { ExternalLink, Github } from 'lucide-react';
 
 interface AppCardProps {
   name: string;
