@@ -206,6 +206,137 @@ h1, h2, h3, h4 {
   border-color: var(--text-dim);
 }
 
+/* Layout */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+}
+
+.main-content {
+  flex: 1;
+  transition: var(--transition);
+  padding-bottom: 3rem;
+  z-index: 10;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 280px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  transition: var(--transition);
+  border-right: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar.collapsed {
+  width: 80px;
+}
+
+.sidebar-content {
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.sidebar.collapsed .sidebar-hide {
+  display: none;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  right: -12px;
+  top: 2rem;
+  width: 24px;
+  height: 24px;
+  background: var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  z-index: 60;
+  border: none;
+}
+
+/* Sidebar Filter Groups */
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.filter-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+}
+
+.filter-button {
+  width: 100%;
+  text-align: left;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.filter-button:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+}
+
+.filter-button.active {
+  background: var(--bg-card-hover);
+  color: var(--primary);
+  border-color: var(--primary-glow);
+}
+
+/* Sizing & Components */
+.search-container {
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+}
+
+.search-input {
+  width: 100%;
+  background: var(--bg-dark);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.75rem 0.6rem 2.5rem;
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
 /* Fix for icons */
 svg {
   display: block;
@@ -216,5 +347,5 @@ svg {
   position: fixed;
   inset: 0;
   background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0a0b10 100%);
-  pointer-events: none;
+  z-index: 0;
 }
