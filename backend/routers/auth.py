@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from ..db import models
-from ..db.database import get_db
-from .. import schemas
+from db import models
+from db.database import get_db
+import schemas
 import os
 
 router = APIRouter()
