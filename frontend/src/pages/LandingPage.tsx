@@ -71,7 +71,7 @@ const LandingPage: React.FC = () => {
       
       <main className="main-content px-6 py-12">
         <header className="text-center mb-16">
-          <h1 className="text-5xl md:text-7xl font-extrabold mb-4 text-gradient">Dev-Hub</h1>
+          <h1 className="text-5xl md:text-7xl font-extrabold mb-4 text-gradient">AI Dev-Hub</h1>
           <p className="text-text-muted text-lg max-w-2xl mx-auto">
             Explore and manage our ecosystem of secure, intelligent, and scalable applications.
           </p>
