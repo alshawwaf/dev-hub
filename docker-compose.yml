@@ -25,7 +25,6 @@ services:
       - dev-hub-db-service
     networks:
       - dev-hub-net
-      - dokploy-network
 
   dev-hub-frontend:
     build: ./frontend
