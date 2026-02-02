@@ -19,7 +19,7 @@ services:
     container_name: dev_hub_backend
     restart: always
     environment:
-      - DATABASE_URL=postgresql://admin:password@dev-hub-db-service:5432/dev_hub
+      - DATABASE_URL=postgresql://admin:password@dev_hub_db:5432/dev_hub
       - SECRET_KEY=dev_hub_secret_key_12345
     depends_on:
       - dev-hub-db-service
