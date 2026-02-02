@@ -1,27 +1,36 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
-    // Mock login for demonstration
-    if (email === "admin@alshawwaf.ca" && password === "Cpwins!1@2026") {
-      login("mock_token", { id: 1, email, is_admin: true });
+    try {
+      const formData = new FormData();
+      formData.append('username', email);
+      formData.append('password', password);
+
+      const response = await api.post('/auth/token', formData);
+      const { access_token, user } = response.data;
+      
+      login(access_token, user);
       navigate("/");
-    } else if (email && password) {
-      login("mock_token", { id: 2, email, is_admin: false });
-      navigate("/");
-    } else {
-      setError("Invalid credentials");
+    } catch (err: any) {
+      console.error("Login failed:", err);
+      setError(err.response?.data?.detail || "Invalid email or password");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -30,10 +39,10 @@ const LoginPage: React.FC = () => {
       <div className="glass p-10 rounded-3xl w-full max-w-md border border-glass-border">
         <div className="text-center mb-10">
           <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center font-bold text-white text-3xl shadow-2xl mx-auto mb-4">
-            D
+            A
           </div>
           <h2 className="text-3xl font-extrabold text-gradient mb-2">Welcome Back</h2>
-          <p className="text-text-muted">Sign in to access the Dev-Hub</p>
+          <p className="text-text-muted">Sign in to access the AI Dev-Hub</p>
         </div>
 
         {error && (
@@ -48,7 +57,8 @@ const LoginPage: React.FC = () => {
             <input 
               type="email" 
               required
-              className="w-full bg-bg-dark border border-glass-border rounded-xl py-3 px-4 text-text-main focus:outline-none focus:border-primary transition-all"
+              disabled={isLoading}
+              className="w-full bg-bg-dark border border-glass-border rounded-xl py-3 px-4 text-text-main focus:outline-none focus:border-primary transition-all disabled:opacity-50"
               placeholder="name@alshawwaf.ca"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -60,7 +70,8 @@ const LoginPage: React.FC = () => {
             <input 
               type="password" 
               required
-              className="w-full bg-bg-dark border border-glass-border rounded-xl py-3 px-4 text-text-main focus:outline-none focus:border-primary transition-all"
+              disabled={isLoading}
+              className="w-full bg-bg-dark border border-glass-border rounded-xl py-3 px-4 text-text-main focus:outline-none focus:border-primary transition-all disabled:opacity-50"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -69,9 +80,15 @@ const LoginPage: React.FC = () => {
 
           <button 
             type="submit"
-            className="btn btn-primary w-full py-4 text-base mt-4"
+            disabled={isLoading}
+            className="btn btn-primary w-full py-4 text-base mt-4 transition-all"
           >
-            Authorize Access
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Authenticating...
+              </div>
+            ) : 'Authorize Access'}
           </button>
         </form>
 

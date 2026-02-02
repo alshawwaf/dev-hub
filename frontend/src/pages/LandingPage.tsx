@@ -1,58 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppCard from '../components/AppCard';
 import Sidebar from '../components/Sidebar';
+import api from '../services/api';
 
-const MOCK_APPS = [
-  // ... existing apps
-  {
-    id: 1,
-    name: "Training Portal",
-    description: "Enterprise blueprint for virtualized hands-on learning and class orchestration.",
-    url: "https://training.alshawwaf.ca",
-    githubUrl: "https://github.com/alshawwaf/training-portal",
-    category: "Infrastructure",
-    icon: "🏗️",
-    isLive: true
-  },
-  {
-    id: 2,
-    name: "Lakera Demo",
-    description: "Interactive playground for testing LLM guardrails and prompt injection security.",
-    url: "https://lakera.alshawwaf.ca",
-    githubUrl: "https://github.com/alshawwaf/Lakera-Demo",
-    category: "AI Security",
-    icon: "🛡️",
-    isLive: true
-  },
-  {
-    id: 3,
-    name: "n8n Automation",
-    description: "Self-hosted workflow automation tool for connecting apps and APIs.",
-    url: "https://n8n.alshawwaf.ca",
-    githubUrl: "https://github.com/alshawwaf/cp-agentic-mcp-playground",
-    category: "Automation",
-    icon: "⚙️",
-    isLive: true
-  },
-  {
-    id: 4,
-    name: "Open WebUI",
-    description: "Full-featured chat interface for Ollama and other LLM backends.",
-    url: "https://chat.alshawwaf.ca",
-    githubUrl: "https://github.com/alshawwaf/cp-agentic-mcp-playground",
-    category: "AI",
-    icon: "💬",
-    isLive: true
-  }
-];
+interface App {
+  id: number;
+  name: string;
+  description: string;
+  url: string;
+  github_url: string;
+  category: string;
+  icon: string;
+  is_live: boolean;
+}
 
 const LandingPage: React.FC = () => {
+  const [apps, setApps] = useState<App[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
 
-  const categories = ["All", ...new Set(MOCK_APPS.map(app => app.category))];
+  useEffect(() => {
+    const fetchApps = async () => {
+      try {
+        const response = await api.get('/apps/');
+        setApps(response.data);
+      } catch (err) {
+        console.error("Failed to fetch apps:", err);
+        setError("Unable to load applications. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredApps = MOCK_APPS.filter(app => {
+    fetchApps();
+  }, []);
+
+  const categories = ["All", ...new Set(apps.map(app => app.category))];
+
+  const filteredApps = apps.filter(app => {
     const matchesSearch = app.name.toLowerCase().includes(search.toLowerCase()) || 
                           app.description.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = activeCategory === "All" || app.category === activeCategory;
@@ -77,19 +64,40 @@ const LandingPage: React.FC = () => {
           </p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {filteredApps.length > 0 ? (
-            filteredApps.map(app => (
-              <AppCard key={app.id} {...app} />
-            ))
-          ) : (
-            <div className="col-span-full py-20 text-center">
-              <div className="text-6xl mb-4">🔍</div>
-              <h3 className="text-2xl font-bold mb-2">No apps found</h3>
-              <p className="text-text-muted">Try adjusting your search or category filters.</p>
-            </div>
-          )}
-        </div>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-text-dim">Loading AI Ecosystem...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-20 bg-red-500/10 rounded-3xl border border-red-500/20">
+            <h3 className="text-2xl font-bold text-red-400 mb-2">Error</h3>
+            <p className="text-text-muted">{error}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {filteredApps.length > 0 ? (
+              filteredApps.map(app => (
+                <AppCard 
+                  key={app.id} 
+                  name={app.name}
+                  description={app.description}
+                  url={app.url}
+                  githubUrl={app.github_url}
+                  category={app.category}
+                  icon={app.icon}
+                  isLive={app.is_live}
+                />
+              ))
+            ) : (
+              <div className="col-span-full py-20 text-center">
+                <div className="text-6xl mb-4">🔍</div>
+                <h3 className="text-2xl font-bold mb-2">No apps found</h3>
+                <p className="text-text-muted">Try adjusting your search or category filters.</p>
+              </div>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );
