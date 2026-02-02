@@ -6,4 +6,5 @@ python-dotenv
 python-multipart
 python-jose[cryptography]
 passlib[bcrypt]
+bcrypt==3.1.7
 pydantic[email]
