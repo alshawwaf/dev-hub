@@ -24,7 +24,7 @@ const LandingPage: React.FC = () => {
   useEffect(() => {
     const fetchApps = async () => {
       try {
-        const response = await api.get('/apps/');
+        const response = await api.get('apps/');
         setApps(response.data);
       } catch (err) {
         console.error("Failed to fetch apps:", err);

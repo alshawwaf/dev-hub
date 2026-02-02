@@ -29,7 +29,7 @@ const AdminDashboard: React.FC = () => {
   const fetchApps = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get('/apps/');
+      const response = await api.get('apps/');
       setApps(response.data);
     } catch (err) {
       console.error("Failed to fetch apps:", err);
@@ -45,7 +45,7 @@ const AdminDashboard: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/apps/', formData);
+      await api.post('apps/', formData);
       setShowForm(false);
       setFormData({
         name: "",
@@ -66,7 +66,7 @@ const AdminDashboard: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!window.confirm("Are you sure you want to delete this application?")) return;
     try {
-      await api.delete(`/apps/${id}`);
+      await api.delete(`apps/${id}`);
       fetchApps();
     } catch (err) {
       console.error("Failed to delete app:", err);
