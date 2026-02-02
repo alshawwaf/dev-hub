@@ -7,7 +7,7 @@ interface AppCardProps {
   githubUrl: string;
   category: string;
   icon: string;
-  isLive: bool;
+  isLive: boolean;
 }
 
 const AppCard: React.FC<AppCardProps> = ({ name, description, url, githubUrl, category, icon, isLive }) => {
