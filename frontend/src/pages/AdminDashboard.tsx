@@ -1,41 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../services/api';
+
+interface App {
+  id: number;
+  name: string;
+  description: string;
+  url: string;
+  github_url: string;
+  category: string;
+  icon: string;
+  is_live: boolean;
+}
 
 const AdminDashboard: React.FC = () => {
-  const [apps, setApps] = useState([
-    { id: 1, name: "Training Portal", category: "Infrastructure", is_live: true },
-    { id: 2, name: "Lakera Demo", category: "AI Security", is_live: true },
-  ]);
-
+  const [apps, setApps] = useState<App[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     url: "",
-    githubUrl: "",
+    github_url: "",
     category: "AI",
     icon: "🚀",
-    isLive: true
+    is_live: true
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const fetchApps = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.get('/apps/');
+      setApps(response.data);
+    } catch (err) {
+      console.error("Failed to fetch apps:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchApps();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newApp = { 
-      id: Date.now(), 
-      name: formData.name, 
-      category: formData.category, 
-      is_live: formData.isLive 
-    };
-    setApps([...apps, newApp]);
-    setShowForm(false);
-    setFormData({
-      name: "",
-      description: "",
-      url: "",
-      githubUrl: "",
-      category: "AI",
-      icon: "🚀",
-      isLive: true
-    });
+    try {
+      await api.post('/apps/', formData);
+      setShowForm(false);
+      setFormData({
+        name: "",
+        description: "",
+        url: "",
+        github_url: "",
+        category: "AI",
+        icon: "🚀",
+        is_live: true
+      });
+      fetchApps();
+    } catch (err) {
+      console.error("Failed to create app:", err);
+      alert("Failed to create application");
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this application?")) return;
+    try {
+      await api.delete(`/apps/${id}`);
+      fetchApps();
+    } catch (err) {
+      console.error("Failed to delete app:", err);
+    }
   };
 
   return (
@@ -76,7 +111,7 @@ const AdminDashboard: React.FC = () => {
                   onChange={e => setFormData({...formData, category: e.target.value})}
                 >
                   <option>AI</option>
-                  <option>Security</option>
+                  <option>AI Security</option>
                   <option>Infrastructure</option>
                   <option>Automation</option>
                 </select>
@@ -107,8 +142,8 @@ const AdminDashboard: React.FC = () => {
                 <label className="block text-xs font-bold text-text-dim uppercase mb-2">GitHub URL</label>
                 <input 
                   className="w-full bg-bg-dark border border-glass-border rounded-xl py-3 px-4 text-text-main focus:outline-none focus:border-primary"
-                  value={formData.githubUrl}
-                  onChange={e => setFormData({...formData, githubUrl: e.target.value})}
+                  value={formData.github_url}
+                  onChange={e => setFormData({...formData, github_url: e.target.value})}
                   placeholder="https://github.com/..."
                 />
               </div>
@@ -117,12 +152,12 @@ const AdminDashboard: React.FC = () => {
             <div className="flex items-center gap-2 pt-2">
               <input 
                 type="checkbox"
-                checked={formData.isLive}
-                onChange={e => setFormData({...formData, isLive: e.target.checked})}
-                id="isLive"
+                checked={formData.is_live}
+                onChange={e => setFormData({...formData, is_live: e.target.checked})}
+                id="is_live"
                 className="w-4 h-4 rounded border-glass-border bg-bg-dark text-primary"
               />
-              <label htmlFor="isLive" className="text-sm text-text-muted">Is this application live?</label>
+              <label htmlFor="is_live" className="text-sm text-text-muted">Is this application live?</label>
             </div>
 
             <button type="submit" className="btn btn-primary w-full mt-4">Save Application</button>
@@ -130,35 +165,38 @@ const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      <div className="glass rounded-2xl overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-bg-card border-b border-glass-border">
-            <tr>
-              <th className="px-6 py-4 text-xs font-bold text-text-dim uppercase">App Name</th>
-              <th className="px-6 py-4 text-xs font-bold text-text-dim uppercase">Category</th>
-              <th className="px-6 py-4 text-xs font-bold text-text-dim uppercase">Status</th>
-              <th className="px-6 py-4 text-xs font-bold text-text-dim uppercase text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-glass-border">
-            {apps.map(app => (
-              <tr key={app.id} className="hover:bg-bg-card-hover transition-colors">
-                <td className="px-6 py-4 font-bold">{app.name}</td>
-                <td className="px-6 py-4"><span className="text-xs bg-glass-border px-2 py-1 rounded-md text-text-muted">{app.category}</span></td>
-                <td className="px-6 py-4">
-                  <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full ${app.is_live ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                    {app.is_live ? 'Live' : 'Dev'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button className="text-primary hover:text-white mr-4 text-sm font-bold">Edit</button>
-                  <button className="text-red-400 hover:text-red-300 text-sm font-bold" onClick={() => setApps(apps.filter(a => a.id !== app.id))}>Delete</button>
-                </td>
+      {isLoading ? (
+        <div className="text-center py-12">Loading applications...</div>
+      ) : (
+        <div className="glass rounded-2xl overflow-hidden">
+          <table className="w-full text-left">
+            <thead className="bg-bg-card border-b border-glass-border">
+              <tr>
+                <th className="px-6 py-4 text-xs font-bold text-text-dim uppercase">App Name</th>
+                <th className="px-6 py-4 text-xs font-bold text-text-dim uppercase">Category</th>
+                <th className="px-6 py-4 text-xs font-bold text-text-dim uppercase">Status</th>
+                <th className="px-6 py-4 text-xs font-bold text-text-dim uppercase text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-glass-border">
+              {apps.map(app => (
+                <tr key={app.id} className="hover:bg-bg-card-hover transition-colors">
+                  <td className="px-6 py-4 font-bold">{app.name}</td>
+                  <td className="px-6 py-4"><span className="text-xs bg-glass-border px-2 py-1 rounded-md text-text-muted">{app.category}</span></td>
+                  <td className="px-6 py-4">
+                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full ${app.is_live ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                      {app.is_live ? 'Live' : 'Dev'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button className="text-red-400 hover:text-red-300 text-sm font-bold" onClick={() => handleDelete(app.id)}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
