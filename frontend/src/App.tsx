@@ -4,7 +4,6 @@ import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
-import './App.css';
 
 const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) => {
   const { user, isLoading } = useAuth();
@@ -21,7 +20,7 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="min-h-screen relative">
-          <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,_#1e1b4b_0%,_#0a0b10_100%)] pointer-events-none"></div>
+          <div className="landing-bg"></div>
           
           <Navbar />
           
