@@ -40,7 +40,7 @@ function App() {
           </div>
           
           <footer className="relative z-10 py-12 text-center text-text-dim text-sm">
-            <p>&copy; 2026 AI Dev-Hub • Crafted for AI by AI - Khalid Alshawwaf</p>
+            <p>&copy; 2026 AI Dev-Hub • Crafted for AI by AI</p>
           </footer>
         </div>
       </Router>
