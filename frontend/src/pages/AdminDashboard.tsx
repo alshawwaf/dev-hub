@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { Plus, X, Trash2, ExternalLink, Github, Loader2, Package } from 'lucide-react';
 
 interface App {
   id: number;
@@ -73,40 +74,49 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const emojiOptions = ['🚀', '🤖', '🔒', '⚡', '🌐', '💻', '📊', '🧠', '🛡️', '🔮'];
+
   return (
-    <div className="container mx-auto px-6 py-12">
-      <div className="flex justify-between items-center mb-12">
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-4xl font-extrabold text-gradient mb-2">Admin Dashboard</h1>
-          <p className="text-text-muted">Manage the applications in the ecosystem.</p>
+          <h1 className="text-3xl font-extrabold text-gradient mb-1">Admin Dashboard</h1>
+          <p className="text-text-muted text-sm">Manage the applications in the AI ecosystem.</p>
         </div>
         <button 
           onClick={() => setShowForm(!showForm)}
           className="btn btn-primary"
         >
-          {showForm ? 'Close Form' : 'Add New Application'}
+          {showForm ? <><X size={16} /> Close</> : <><Plus size={16} /> Add Application</>}
         </button>
       </div>
 
+      {/* Create Form Modal */}
       {showForm && (
-        <div className="glass p-8 rounded-2xl mb-12 max-w-2xl mx-auto border border-primary/20">
-          <h3 className="text-xl font-bold mb-6">Create New Application</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+        <div className="glass-strong p-8 rounded-2xl mb-8" style={{ maxWidth: '640px', margin: '0 auto 2rem' }}>
+          <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+            <Package size={20} className="text-primary" />
+            Create New Application
+          </h3>
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div>
-                <label className="block text-xs font-bold text-text-dim uppercase mb-2">App Name</label>
+                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">App Name</label>
                 <input 
-                  className="w-full bg-bg-dark border border-glass-border rounded-xl py-3 px-4 text-text-main focus:outline-none focus:border-primary"
+                  className="search-input"
+                  style={{ paddingLeft: '1rem' }}
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
-                  placeholder="e.g. My New AI App"
+                  placeholder="e.g. My AI App"
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-text-dim uppercase mb-2">Category</label>
+                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Category</label>
                 <select 
-                  className="w-full bg-bg-dark border border-glass-border rounded-xl py-3 px-4 text-text-main focus:outline-none focus:border-primary"
+                  className="search-input"
+                  style={{ paddingLeft: '1rem' }}
                   value={formData.category}
                   onChange={e => setFormData({...formData, category: e.target.value})}
                 >
@@ -114,34 +124,39 @@ const AdminDashboard: React.FC = () => {
                   <option>AI Security</option>
                   <option>Infrastructure</option>
                   <option>Automation</option>
+                  <option>Productivity</option>
+                  <option>Data</option>
                 </select>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-text-dim uppercase mb-2">Description</label>
+            <div style={{ marginBottom: '1rem' }}>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Description</label>
               <textarea 
-                className="w-full bg-bg-dark border border-glass-border rounded-xl py-3 px-4 text-text-main focus:outline-none focus:border-primary h-24"
+                className="search-input"
+                style={{ paddingLeft: '1rem', height: '80px', resize: 'vertical' }}
                 value={formData.description}
                 onChange={e => setFormData({...formData, description: e.target.value})}
                 placeholder="Briefly describe what this app does..."
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div>
-                <label className="block text-xs font-bold text-text-dim uppercase mb-2">App URL</label>
+                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">App URL</label>
                 <input 
-                  className="w-full bg-bg-dark border border-glass-border rounded-xl py-3 px-4 text-text-main focus:outline-none focus:border-primary"
+                  className="search-input"
+                  style={{ paddingLeft: '1rem' }}
                   value={formData.url}
                   onChange={e => setFormData({...formData, url: e.target.value})}
                   placeholder="https://app.example.com"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-text-dim uppercase mb-2">GitHub URL</label>
+                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">GitHub URL</label>
                 <input 
-                  className="w-full bg-bg-dark border border-glass-border rounded-xl py-3 px-4 text-text-main focus:outline-none focus:border-primary"
+                  className="search-input"
+                  style={{ paddingLeft: '1rem' }}
                   value={formData.github_url}
                   onChange={e => setFormData({...formData, github_url: e.target.value})}
                   placeholder="https://github.com/..."
@@ -149,47 +164,120 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pt-2">
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Icon</label>
+              <div className="flex gap-2 flex-wrap">
+                {emojiOptions.map(emoji => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => setFormData({...formData, icon: emoji})}
+                    className={`w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-all ${formData.icon === emoji ? 'bg-primary text-white' : 'bg-glass-bg-strong hover:bg-glass-border'}`}
+                    style={{ border: formData.icon === emoji ? '2px solid var(--primary)' : '1px solid var(--glass-border)' }}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 mb-6">
               <input 
                 type="checkbox"
                 checked={formData.is_live}
                 onChange={e => setFormData({...formData, is_live: e.target.checked})}
                 id="is_live"
-                className="w-4 h-4 rounded border-glass-border bg-bg-dark text-primary"
+                style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }}
               />
-              <label htmlFor="is_live" className="text-sm text-text-muted">Is this application live?</label>
+              <label htmlFor="is_live" className="text-sm text-text-secondary">Application is live and production-ready</label>
             </div>
 
-            <button type="submit" className="btn btn-primary w-full mt-4">Save Application</button>
+            <button type="submit" className="btn btn-primary w-full py-3">
+              <Plus size={16} />
+              Save Application
+            </button>
           </form>
         </div>
       )}
 
+      {/* Apps Table */}
       {isLoading ? (
-        <div className="text-center py-12">Loading applications...</div>
+        <div className="text-center py-16">
+          <Loader2 size={32} className="animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-text-muted">Loading applications...</p>
+        </div>
+      ) : apps.length === 0 ? (
+        <div className="text-center py-16 glass rounded-2xl">
+          <Package size={48} className="mx-auto mb-4 text-text-dim" />
+          <h3 className="text-xl font-bold mb-2">No Applications Yet</h3>
+          <p className="text-text-muted mb-6">Get started by adding your first application.</p>
+          <button onClick={() => setShowForm(true)} className="btn btn-primary">
+            <Plus size={16} />
+            Add Application
+          </button>
+        </div>
       ) : (
         <div className="glass rounded-2xl overflow-hidden">
-          <table className="w-full text-left">
-            <thead className="bg-bg-card border-b border-glass-border">
-              <tr>
-                <th className="px-6 py-4 text-xs font-bold text-text-dim uppercase">App Name</th>
-                <th className="px-6 py-4 text-xs font-bold text-text-dim uppercase">Category</th>
-                <th className="px-6 py-4 text-xs font-bold text-text-dim uppercase">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-text-dim uppercase text-right">Actions</th>
+          <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--glass-border)' }}>
+                <th style={{ padding: '1rem 1.5rem', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Icon</th>
+                <th style={{ padding: '1rem 1.5rem', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>App Name</th>
+                <th style={{ padding: '1rem 1.5rem', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Category</th>
+                <th style={{ padding: '1rem 1.5rem', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Status</th>
+                <th style={{ padding: '1rem 1.5rem', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Links</th>
+                <th style={{ padding: '1rem 1.5rem', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-glass-border">
+            <tbody>
               {apps.map(app => (
-                <tr key={app.id} className="hover:bg-bg-card-hover transition-colors">
-                  <td className="px-6 py-4 font-bold">{app.name}</td>
-                  <td className="px-6 py-4"><span className="text-xs bg-glass-border px-2 py-1 rounded-md text-text-muted">{app.category}</span></td>
-                  <td className="px-6 py-4">
-                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full ${app.is_live ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                      {app.is_live ? 'Live' : 'Dev'}
+                <tr key={app.id} style={{ borderBottom: '1px solid var(--glass-border)', transition: 'background 150ms' }} className="hover:bg-glass-bg-strong">
+                  <td style={{ padding: '1rem 1.5rem', fontSize: '1.5rem' }}>{app.icon}</td>
+                  <td style={{ padding: '1rem 1.5rem' }}>
+                    <span style={{ fontWeight: 600 }}>{app.name}</span>
+                  </td>
+                  <td style={{ padding: '1rem 1.5rem' }}>
+                    <span style={{ 
+                      fontSize: '0.7rem', 
+                      fontWeight: 600, 
+                      textTransform: 'uppercase', 
+                      letterSpacing: '0.05em',
+                      padding: '0.25rem 0.75rem', 
+                      borderRadius: '100px', 
+                      background: 'var(--glass-bg-strong)',
+                      color: 'var(--text-muted)'
+                    }}>
+                      {app.category}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-red-400 hover:text-red-300 text-sm font-bold" onClick={() => handleDelete(app.id)}>Delete</button>
+                  <td style={{ padding: '1rem 1.5rem' }}>
+                    <span className={`status-badge ${app.is_live ? 'live' : 'dev'}`} style={{ position: 'static' }}>
+                      {app.is_live ? '● Live' : '◐ Dev'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '1rem 1.5rem' }}>
+                    <div className="flex items-center gap-3">
+                      {app.url && (
+                        <a href={app.url} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-primary transition-colors" title="Open App">
+                          <ExternalLink size={16} />
+                        </a>
+                      )}
+                      {app.github_url && (
+                        <a href={app.github_url} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-primary transition-colors" title="Source Code">
+                          <Github size={16} />
+                        </a>
+                      )}
+                    </div>
+                  </td>
+                  <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
+                    <button 
+                      onClick={() => handleDelete(app.id)}
+                      className="btn btn-ghost py-2 px-3 text-xs"
+                      style={{ color: 'var(--error)' }}
+                    >
+                      <Trash2 size={14} />
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}

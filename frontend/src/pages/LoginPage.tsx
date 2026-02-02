@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { Mail, Lock, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -35,64 +36,71 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4">
-      <div className="glass p-10 rounded-3xl w-full max-w-md border border-glass-border">
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center font-bold text-white text-3xl shadow-2xl mx-auto mb-4">
-            A
-          </div>
-          <h2 className="text-3xl font-extrabold text-gradient mb-2">Welcome Back</h2>
-          <p className="text-text-muted">Sign in to access the AI Dev-Hub</p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="login-card">
+        {/* Logo */}
+        <div className="logo-icon">A</div>
+        
+        {/* Header */}
+        <h2 className="text-gradient">Welcome Back</h2>
+        <p className="subtitle">Sign in to access the AI Dev-Hub</p>
 
+        {/* Error Message */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-6 text-sm">
+          <div className="error-message flex items-center gap-2">
+            <AlertCircle size={16} />
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-text-muted mb-2 ml-1">Email Address</label>
-            <input 
-              type="email" 
-              required
-              disabled={isLoading}
-              className="w-full bg-bg-dark border border-glass-border rounded-xl py-3 px-4 text-text-main focus:outline-none focus:border-primary transition-all disabled:opacity-50"
-              placeholder="name@alshawwaf.ca"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          <label>
+            <Mail size={12} style={{ display: 'inline', marginRight: '6px', opacity: 0.7 }} />
+            Email Address
+          </label>
+          <input 
+            type="email" 
+            required
+            disabled={isLoading}
+            placeholder="name@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-text-muted mb-2 ml-1">Password</label>
-            <input 
-              type="password" 
-              required
-              disabled={isLoading}
-              className="w-full bg-bg-dark border border-glass-border rounded-xl py-3 px-4 text-text-main focus:outline-none focus:border-primary transition-all disabled:opacity-50"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+          <label>
+            <Lock size={12} style={{ display: 'inline', marginRight: '6px', opacity: 0.7 }} />
+            Password
+          </label>
+          <input 
+            type="password" 
+            required
+            disabled={isLoading}
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
           <button 
             type="submit"
             disabled={isLoading}
-            className="btn btn-primary w-full py-4 text-base mt-4 transition-all"
+            className="btn btn-primary w-full py-3.5 text-sm mt-2"
           >
             {isLoading ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <>
+                <Loader2 size={16} className="animate-spin" />
                 Authenticating...
-              </div>
-            ) : 'Authorize Access'}
+              </>
+            ) : (
+              <>
+                Authorize Access
+                <ArrowRight size={16} />
+              </>
+            )}
           </button>
         </form>
 
-        <p className="mt-8 text-center text-text-dim text-xs">
+        <p className="disclaimer">
           Internal system. Unauthorized access is monitored and logged.
         </p>
       </div>
