@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  db:
+  dev-hub-db-service:
     image: postgres:15-alpine
     container_name: dev_hub_db
     restart: always
@@ -14,25 +14,25 @@ services:
     networks:
       - dev-hub-net
 
-  backend:
+  dev-hub-backend:
     build: ./backend
     container_name: dev_hub_backend
     restart: always
     environment:
-      - DATABASE_URL=postgresql://admin:password@dev_hub_db:5432/dev_hub
+      - DATABASE_URL=postgresql://admin:password@dev-hub-db-service:5432/dev_hub
       - SECRET_KEY=dev_hub_secret_key_12345
     depends_on:
-      - db
+      - dev-hub-db-service
     networks:
       - dev-hub-net
       - dokploy-network
 
-  frontend:
+  dev-hub-frontend:
     build: ./frontend
     container_name: dev_hub_frontend
     restart: always
     depends_on:
-      - backend
+      - dev-hub-backend
     networks:
       - dev-hub-net
       - dokploy-network
