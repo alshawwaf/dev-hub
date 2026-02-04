@@ -4,6 +4,7 @@ from typing import List
 from db import models
 from db.database import get_db
 import schemas
+from .auth import read_users_me
 
 router = APIRouter()
 
@@ -12,7 +13,7 @@ def get_apps(db: Session = Depends(get_db)):
     return db.query(models.Application).all()
 
 @router.post("/", response_model=schemas.App)
-def create_app(app: schemas.AppCreate, db: Session = Depends(get_db)):
+def create_app(app: schemas.AppCreate, db: Session = Depends(get_db), current_user: schemas.User = Depends(read_users_me)):
     db_app = models.Application(**app.dict())
     db.add(db_app)
     db.commit()

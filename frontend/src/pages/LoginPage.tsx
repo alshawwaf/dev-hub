@@ -43,7 +43,7 @@ const LoginPage: React.FC = () => {
         
         {/* Header */}
         <h2 className="text-gradient">Welcome Back</h2>
-        <p className="subtitle">Sign in to access the AI Dev-Hub</p>
+        <p className="subtitle">Sign in to access the AI DevHub</p>
 
         {/* Error Message */}
         {error && (

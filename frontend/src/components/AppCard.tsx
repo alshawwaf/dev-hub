@@ -20,8 +20,15 @@ const AppCard: React.FC<AppCardProps> = ({ name, description, url, githubUrl, ca
       </span>
       
       {/* Icon Container */}
-      <div className="icon-container">
-        {icon}
+      <div className="icon-container flex items-center justify-center">
+        {(icon.startsWith('http') || icon.startsWith('/')) ? (
+          <img 
+            src={icon} 
+            alt={`${name} icon`} 
+          />
+        ) : (
+          <span className="text-2xl">{icon}</span>
+        )}
       </div>
       
       {/* Content */}

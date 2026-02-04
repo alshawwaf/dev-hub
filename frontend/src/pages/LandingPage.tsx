@@ -22,6 +22,7 @@ const LandingPage: React.FC = () => {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
 
+
   useEffect(() => {
     const fetchApps = async () => {
       try {
@@ -59,11 +60,19 @@ const LandingPage: React.FC = () => {
       
       <main className="main-content px-6 lg:px-8">
         {/* Hero Section */}
-        <header className="hero">
-          <h1 className="text-gradient">AI Dev-Hub</h1>
-          <p className="subtitle">
-            Explore and manage our ecosystem of secure, intelligent, and scalable applications 
-            powered by cutting-edge AI technology.
+        <header className="hero pt-12 pb-8">
+          <div className="flex justify-center mb-6">
+            <span className="glass px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest text-primary-light border-primary-glow/30 flex items-center gap-2">
+              <Sparkles size={14} />
+              The Future of Development
+            </span>
+          </div>
+          <h1 className="text-gradient mb-4" style={{ fontSize: 'clamp(2.5rem, 6vw, 4rem)', lineHeight: 1.1 }}>
+            AI <span className="text-white">DevHub</span>
+          </h1>
+          <p className="subtitle text-base md:text-lg max-w-2xl mx-auto opacity-80 mb-10 px-4">
+            A premium ecosystem for secure, intelligent, and scalable AI applications. 
+            Accelerate your workflow with our curated collection of tools.
           </p>
         </header>
 
