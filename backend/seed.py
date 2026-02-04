@@ -39,7 +39,7 @@ def seed():
                     url="https://training.alshawwaf.ca",
                     github_url="https://github.com/alshawwaf/training-portal",
                     category="Infrastructure",
-                    icon="🏗️",
+                    icon="https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/canvas-lms.png",
                     is_live=True
                 ),
                 models.Application(
@@ -48,16 +48,52 @@ def seed():
                     url="https://lakera.alshawwaf.ca",
                     github_url="https://github.com/alshawwaf/Lakera-Demo",
                     category="AI Security",
-                    icon="🛡️",
+                    icon="/logos/lakera.png",
                     is_live=True
                 ),
                 models.Application(
-                    name="Agentic Playground",
-                    description="An experimental playground for agentic workflows.",
+                    name="n8n Automation",
+                    description="Workflow automation platform for AI agents.",
+                    url="https://n8n.alshawwaf.ca",
+                    github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
+                    category="AI Agents",
+                    icon="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/n8n.png",
+                    is_live=True
+                ),
+                models.Application(
+                    name="Open WebUI",
+                    description="Chat interface for LLMs and AI models.",
                     url="https://chat.alshawwaf.ca",
                     github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
                     category="AI Agents",
-                    icon="🤖",
+                    icon="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/open-webui.png",
+                    is_live=True
+                ),
+                models.Application(
+                    name="Flowise",
+                    description="Visual builder for LLM flows and chains.",
+                    url="https://flowise.alshawwaf.ca",
+                    github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
+                    category="AI Agents",
+                    icon="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/flowise.png",
+                    is_live=True
+                ),
+                models.Application(
+                    name="Langflow",
+                    description="Visual designer for LangChain pipelines.",
+                    url="https://langflow.alshawwaf.ca",
+                    github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
+                    category="AI Agents",
+                    icon="/logos/langflow.png",
+                    is_live=True
+                ),
+                models.Application(
+                    name="Qdrant Vector DB",
+                    description="Vector database for semantic search and embeddings.",
+                    url="https://qdrant.alshawwaf.ca",
+                    github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
+                    category="AI Agents",
+                    icon="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/qdrant.png",
                     is_live=True
                 )
             ]
