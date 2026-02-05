@@ -66,19 +66,18 @@ const LandingPage: React.FC = () => {
       
       <main className="main-content px-6 lg:px-8">
         {/* Hero Section */}
-        <header className="hero pt-12 pb-8">
-          <div className="flex justify-center mb-6">
-            <span className="glass px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest text-primary-light border-primary-glow/30 flex items-center gap-2">
-              <Sparkles size={14} />
-              The Future of Development
+        <header className="hero pt-6 pb-6">
+          <div className="flex items-center justify-center gap-4">
+            <h1 className="text-gradient text-3xl md:text-4xl font-black">
+              AI <span className="text-white font-bold">Dev Hub</span>
+            </h1>
+            <span className="hidden sm:inline-flex glass px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider text-primary-light/80 border-primary-glow/20">
+              <Sparkles size={10} className="mr-1.5" />
+              Premium Tools
             </span>
           </div>
-          <h1 className="text-gradient mb-4" style={{ fontSize: 'clamp(2.5rem, 6vw, 4rem)', lineHeight: 1.1 }}>
-            AI <span className="text-white">Dev Hub</span>
-          </h1>
-          <p className="subtitle text-base md:text-lg max-w-2xl mx-auto opacity-80 mb-10 px-4">
-            A premium ecosystem for secure, intelligent, and scalable AI applications. 
-            Accelerate your workflow with our curated collection of tools.
+          <p className="text-text-muted text-sm mt-2 text-center">
+            Secure, intelligent, and scalable AI applications
           </p>
         </header>
 
