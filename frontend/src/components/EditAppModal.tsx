@@ -47,6 +47,7 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
     }
   }, [app]);
 
+  // Early return MUST be after all hooks
   if (!isOpen || !app) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,21 +58,18 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
     try {
       const token = localStorage.getItem('token');
       await api.put(`apps/${app.id}`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
       onAppUpdated();
       onClose();
     } catch (err: any) {
-      console.error('Failed to update app:', err);
-      setError(err.response?.data?.detail || 'Failed to update application. Please try again.');
+      setError(err.response?.data?.detail || 'Failed to update application.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     setFormData(prev => ({ 
       ...prev, 
@@ -80,142 +78,70 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
   };
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center p-6 bg-bg-deep/95 backdrop-blur-xl">
-      <div className="login-card w-full max-w-2xl relative animate-in fade-in zoom-in duration-500 border-white/5 shadow-[0_0_80px_rgba(0,0,0,0.6)] !p-10">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}
+      onClick={onClose}
+    >
+      <div 
+        className="bg-bg-card w-full max-w-2xl relative rounded-2xl border border-white/10 p-10"
+        onClick={e => e.stopPropagation()}
+      >
         <button 
           onClick={onClose}
-          className="absolute top-8 right-8 text-text-muted hover:text-white hover:scale-110 transition-all duration-300 bg-white/5 p-2 rounded-full"
+          className="absolute top-6 right-6 text-text-muted hover:text-white p-2 rounded-full bg-white/5 hover:bg-white/10"
         >
           <X size={20} />
         </button>
 
-        <div className="flex items-center gap-5 mb-10">
-          <div className="logo-icon w-14 h-14 text-2xl shadow-xl shadow-primary/20">
-            <Save size={32} />
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+            <Save size={24} className="text-primary-light" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold mb-1 text-left tracking-tight">Edit Application</h2>
-            <p className="text-sm text-text-muted font-medium">Update {app.name} details</p>
+            <h2 className="text-xl font-bold">Edit Application</h2>
+            <p className="text-sm text-text-muted">Update {app.name}</p>
           </div>
         </div>
 
-        {error && (
-          <div className="error-message mb-8 animate-shake">
-            {error}
-          </div>
-        )}
+        {error && <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-lg mb-6 text-sm">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-2.5">
-              <label htmlFor="name" className="flex items-center gap-2.5 text-[0.7rem] font-bold uppercase tracking-widest text-primary-light/80 ml-1">
-                <Type size={14} /> Application Name
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                value={formData.name}
-                onChange={handleChange}
-                className="!mb-0"
-              />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Name</label>
+              <input name="name" type="text" required value={formData.name} onChange={handleChange} className="w-full bg-bg-surface border border-glass-border rounded-lg p-3 text-sm" />
             </div>
-            <div className="space-y-2.5">
-              <label htmlFor="category" className="flex items-center gap-2.5 text-[0.7rem] font-bold uppercase tracking-widest text-primary-light/80 ml-1">
-                <Tag size={14} /> Category
-              </label>
-              <input
-                id="category"
-                name="category"
-                type="text"
-                required
-                value={formData.category}
-                onChange={handleChange}
-                className="!mb-0"
-              />
+            <div>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Category</label>
+              <input name="category" type="text" required value={formData.category} onChange={handleChange} className="w-full bg-bg-surface border border-glass-border rounded-lg p-3 text-sm" />
             </div>
           </div>
 
-          <div className="space-y-2.5">
-            <label htmlFor="description" className="flex items-center gap-2.5 text-[0.7rem] font-bold uppercase tracking-widest text-primary-light/80 ml-1">
-              <AlignLeft size={14} /> Description
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              rows={3}
-              required
-              className="w-full bg-bg-surface border border-glass-border rounded-xl p-4 text-text-primary text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-text-dim/50 resize-none"
-              value={formData.description}
-              onChange={handleChange}
-            />
+          <div>
+            <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Description</label>
+            <textarea name="description" rows={2} required value={formData.description} onChange={handleChange} className="w-full bg-bg-surface border border-glass-border rounded-lg p-3 text-sm resize-none" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-2.5">
-              <label htmlFor="url" className="flex items-center gap-2.5 text-[0.7rem] font-bold uppercase tracking-widest text-primary-light/80 ml-1">
-                <ExternalLink size={14} /> Live Application URL
-              </label>
-              <input
-                id="url"
-                name="url"
-                type="url"
-                required
-                value={formData.url}
-                onChange={handleChange}
-                className="!mb-0"
-              />
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">URL</label>
+              <input name="url" type="url" required value={formData.url} onChange={handleChange} className="w-full bg-bg-surface border border-glass-border rounded-lg p-3 text-sm" />
             </div>
-            <div className="space-y-2.5">
-              <label htmlFor="github_url" className="flex items-center gap-2.5 text-[0.7rem] font-bold uppercase tracking-widest text-primary-light/80 ml-1">
-                <Github size={14} /> GitHub Repository
-              </label>
-              <input
-                id="github_url"
-                name="github_url"
-                type="url"
-                required
-                value={formData.github_url}
-                onChange={handleChange}
-                className="!mb-0"
-              />
+            <div>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">GitHub URL</label>
+              <input name="github_url" type="url" required value={formData.github_url} onChange={handleChange} className="w-full bg-bg-surface border border-glass-border rounded-lg p-3 text-sm" />
             </div>
           </div>
 
-          <div className="flex items-center gap-3 pt-2">
-            <input
-              id="is_live"
-              name="is_live"
-              type="checkbox"
-              checked={formData.is_live}
-              onChange={handleChange}
-              className="w-5 h-5 rounded bg-bg-surface border-glass-border text-primary focus:ring-primary/20"
-            />
-            <label htmlFor="is_live" className="text-sm text-text-secondary cursor-pointer">
-              Application is live and deployed
-            </label>
+          <div className="flex items-center gap-3">
+            <input id="is_live" name="is_live" type="checkbox" checked={formData.is_live} onChange={handleChange} className="w-4 h-4" />
+            <label htmlFor="is_live" className="text-sm text-text-secondary">Application is live</label>
           </div>
 
-          <div className="pt-4">
-            <button 
-              type="submit" 
-              className="btn btn-primary w-full py-4 text-base rounded-xl font-bold uppercase tracking-[0.15em] shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-[0.98] transition-all"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <div className="spinner w-5 h-5 border-3 mr-3 !border-t-white"></div>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save size={20} />
-                  Save Changes
-                </>
-              )}
-            </button>
-          </div>
+          <button type="submit" disabled={loading} className="w-full btn btn-primary py-3 rounded-xl font-semibold">
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
         </form>
       </div>
     </div>
