@@ -42,22 +42,22 @@ const AppCard: React.FC<AppCardProps> = ({
 
   return (
     <div className="card group relative">
-      {/* Admin Controls */}
+      {/* Admin Controls - Always visible when logged in */}
       {user && (
-        <div className="absolute top-3 right-14 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+        <div className="absolute top-3 left-3 flex gap-1 z-10">
           <button
-            onClick={() => onEdit?.(id)}
-            className="p-1.5 rounded-lg bg-white/10 hover:bg-primary/20 text-text-muted hover:text-primary-light transition-all"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit?.(id); }}
+            className="p-2 rounded-lg bg-primary/20 hover:bg-primary/40 text-primary-light transition-all"
             title="Edit application"
           >
-            <Pencil size={14} />
+            <Pencil size={16} />
           </button>
           <button
-            onClick={() => onDelete?.(id)}
-            className="p-1.5 rounded-lg bg-white/10 hover:bg-red-500/20 text-text-muted hover:text-red-400 transition-all"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete?.(id); }}
+            className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-400 transition-all"
             title="Delete application"
           >
-            <Trash2 size={14} />
+            <Trash2 size={16} />
           </button>
         </div>
       )}
