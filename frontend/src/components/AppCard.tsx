@@ -12,6 +12,17 @@ interface AppCardProps {
 }
 
 const AppCard: React.FC<AppCardProps> = ({ name, description, url, githubUrl, category, icon, isLive }) => {
+  const isCurrentApp = React.useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const currentHostname = window.location.hostname;
+      const appHostname = new URL(url).hostname;
+      return currentHostname === appHostname;
+    } catch (e) {
+      return false;
+    }
+  }, [url]);
+
   return (
     <div className="card group">
       {/* Status Badge */}
@@ -38,13 +49,14 @@ const AppCard: React.FC<AppCardProps> = ({ name, description, url, githubUrl, ca
       {/* Actions */}
       <div className="actions">
         <a 
-          href={url} 
-          target="_blank" 
+          href={isCurrentApp ? "#" : url} 
+          target={isCurrentApp ? undefined : "_blank"} 
           rel="noopener noreferrer"
-          className="btn btn-primary text-sm py-2 px-5"
+          className={`btn btn-primary text-sm py-2 px-5 ${isCurrentApp ? 'opacity-50 pointer-events-none cursor-default' : ''}`}
+          onClick={isCurrentApp ? (e) => e.preventDefault() : undefined}
         >
           <ExternalLink size={14} />
-          Open App
+          {isCurrentApp ? 'This Application' : 'Open App'}
         </a>
         
         <a 

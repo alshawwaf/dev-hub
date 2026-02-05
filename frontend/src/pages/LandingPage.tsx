@@ -68,7 +68,7 @@ const LandingPage: React.FC = () => {
             </span>
           </div>
           <h1 className="text-gradient mb-4" style={{ fontSize: 'clamp(2.5rem, 6vw, 4rem)', lineHeight: 1.1 }}>
-            AI <span className="text-white">DevHub</span>
+            AI <span className="text-white">Dev Hub</span>
           </h1>
           <p className="subtitle text-base md:text-lg max-w-2xl mx-auto opacity-80 mb-10 px-4">
             A premium ecosystem for secure, intelligent, and scalable AI applications. 

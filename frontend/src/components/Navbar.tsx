@@ -12,8 +12,22 @@ const Navbar: React.FC = () => {
       <nav className="glass sticky top-4 z-100 mx-4 mt-4 px-8 py-4 rounded-2xl flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-4">
-          <div className="logo-icon w-10 h-10">
-            <span style={{ fontFamily: 'Outfit, sans-serif' }}>A</span>
+          <div className="logo-icon w-10 h-10 overflow-hidden">
+            <img 
+              src="/logo.png" 
+              alt="Logo" 
+              className="w-full h-full object-cover" 
+              onError={(e) => {
+                const target = e.currentTarget;
+                target.style.display = 'none';
+                const parent = target.parentElement;
+                if (parent) {
+                  const span = parent.querySelector('span');
+                  if (span) span.style.display = 'flex';
+                }
+              }}
+            />
+            <span style={{ fontFamily: 'Outfit, sans-serif', display: 'none' }}>A</span>
           </div>
           <span style={{ 
             fontFamily: 'Outfit, sans-serif', 
@@ -21,7 +35,7 @@ const Navbar: React.FC = () => {
             fontWeight: 800,
             letterSpacing: '-0.03em'
           }}>
-            AI <span className="text-text-muted font-semibold">DevHub</span>
+            AI <span className="text-text-muted font-semibold">Dev Hub</span>
           </span>
         </div>
 

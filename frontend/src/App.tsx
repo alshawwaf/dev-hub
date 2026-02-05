@@ -53,7 +53,7 @@ function App() {
           
           {/* Footer */}
           <footer>
-            <p>© 2026 AI DevHub • Crafted for AI by AI</p>
+            <p>© 2026 AI Dev Hub • Crafted for AI by AI</p>
           </footer>
         </div>
       </Router>
