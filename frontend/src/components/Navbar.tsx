@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Shield, Plus } from 'lucide-react';
+import { LogOut, Shield, Plus, Github } from 'lucide-react';
 import AddAppModal from './AddAppModal';
 
 const Navbar: React.FC = () => {
@@ -54,6 +54,15 @@ const Navbar: React.FC = () => {
             )}
 
             <div className="hidden lg:flex items-center gap-8 text-sm font-semibold tracking-wide">
+              <a 
+                href="https://github.com/alshawwaf/dev-hub" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-text-secondary hover:text-primary-light transition-all duration-300"
+              >
+                <Github size={18} />
+                Source
+              </a>
               {user?.is_admin && (
                 <a 
                   href="/admin" 
