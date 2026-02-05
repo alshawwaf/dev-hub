@@ -10,7 +10,7 @@ const Navbar: React.FC = () => {
   return (
     <>
       <nav className="glass sticky top-4 z-100 mx-4 mt-4 px-8 py-4 rounded-2xl flex items-center justify-between">
-        {/* Logo */}
+        {/* Logo and GitHub */}
         <div className="flex items-center gap-4">
           <div className="logo-icon w-10 h-10 overflow-hidden">
             <img 
@@ -37,6 +37,15 @@ const Navbar: React.FC = () => {
           }}>
             AI <span className="text-text-muted font-semibold">Dev Hub</span>
           </span>
+          <a 
+            href="https://github.com/alshawwaf/dev-hub" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary-light/30 transition-all duration-300 group"
+            title="View on GitHub"
+          >
+            <Github size={18} className="text-text-muted group-hover:text-primary-light transition-colors" />
+          </a>
         </div>
 
         {/* Navigation */}
@@ -53,17 +62,8 @@ const Navbar: React.FC = () => {
               </button>
             )}
 
-            <div className="hidden lg:flex items-center gap-8 text-sm font-semibold tracking-wide">
-              <a 
-                href="https://github.com/alshawwaf/dev-hub" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-text-secondary hover:text-primary-light transition-all duration-300"
-              >
-                <Github size={18} />
-                Source
-              </a>
-              {user?.is_admin && (
+            {user?.is_admin && (
+              <div className="hidden lg:flex items-center gap-8 text-sm font-semibold tracking-wide">
                 <a 
                   href="/admin" 
                   className="flex items-center gap-2 text-text-secondary hover:text-primary-light transition-all duration-300"
@@ -71,8 +71,8 @@ const Navbar: React.FC = () => {
                   <Shield size={18} />
                   Admin
                 </a>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Divider */}
