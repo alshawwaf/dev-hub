@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import AppCard from '../components/AppCard';
 import Sidebar from '../components/Sidebar';
+import EditAppModal from '../components/EditAppModal';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import api from '../services/api';
 import { Sparkles, AlertTriangle, SearchX, Layers } from 'lucide-react';
 
@@ -23,23 +25,36 @@ const LandingPage: React.FC = () => {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
+  
+  // Modal states
+  const [editingApp, setEditingApp] = useState<App | null>(null);
+  const [deletingApp, setDeletingApp] = useState<{ id: number; name: string } | null>(null);
 
+  const fetchApps = async () => {
+    try {
+      const response = await api.get('apps/');
+      setApps(response.data);
+    } catch (err) {
+      console.error("Failed to fetch apps:", err);
+      setError("Unable to load applications. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchApps = async () => {
-      try {
-        const response = await api.get('apps/');
-        setApps(response.data);
-      } catch (err) {
-        console.error("Failed to fetch apps:", err);
-        setError("Unable to load applications. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchApps();
   }, []);
+
+  const handleEdit = (id: number) => {
+    const app = apps.find(a => a.id === id);
+    if (app) setEditingApp(app);
+  };
+
+  const handleDelete = (id: number) => {
+    const app = apps.find(a => a.id === id);
+    if (app) setDeletingApp({ id: app.id, name: app.name });
+  };
 
   const categories = ["All", ...new Set(apps.map(app => app.category))];
 
@@ -118,7 +133,8 @@ const LandingPage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {standaloneApps.map(app => (
                     <AppCard 
-                      key={app.id} 
+                      key={app.id}
+                      id={app.id}
                       name={app.name}
                       description={app.description}
                       url={app.url}
@@ -126,6 +142,8 @@ const LandingPage: React.FC = () => {
                       category={app.category}
                       icon={app.icon}
                       isLive={app.is_live}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
                     />
                   ))}
                 </div>
@@ -145,7 +163,8 @@ const LandingPage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {agenticApps.map(app => (
                     <AppCard 
-                      key={app.id} 
+                      key={app.id}
+                      id={app.id}
                       name={app.name}
                       description={app.description}
                       url={app.url}
@@ -153,6 +172,8 @@ const LandingPage: React.FC = () => {
                       category={app.category}
                       icon={app.icon}
                       isLive={app.is_live}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
                     />
                   ))}
                 </div>
@@ -161,6 +182,22 @@ const LandingPage: React.FC = () => {
           </>
         )}
       </main>
+
+      {/* Modals */}
+      <EditAppModal
+        isOpen={!!editingApp}
+        app={editingApp}
+        onClose={() => setEditingApp(null)}
+        onAppUpdated={fetchApps}
+      />
+
+      <DeleteConfirmModal
+        isOpen={!!deletingApp}
+        appId={deletingApp?.id ?? null}
+        appName={deletingApp?.name ?? ''}
+        onClose={() => setDeletingApp(null)}
+        onDeleted={fetchApps}
+      />
     </div>
   );
 };
