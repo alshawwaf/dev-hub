@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AppCard from '../components/AppCard';
 import Sidebar from '../components/Sidebar';
 import api from '../services/api';
-import { Sparkles, AlertTriangle, SearchX } from 'lucide-react';
+import { Sparkles, AlertTriangle, SearchX, Layers } from 'lucide-react';
 
 interface App {
   id: number;
@@ -14,6 +14,8 @@ interface App {
   icon: string;
   is_live: boolean;
 }
+
+const AGENTIC_REPO = 'cp-agentic-mcp-playground';
 
 const LandingPage: React.FC = () => {
   const [apps, setApps] = useState<App[]>([]);
@@ -47,6 +49,10 @@ const LandingPage: React.FC = () => {
     const matchesCategory = activeCategory === "All" || app.category === activeCategory;
     return matchesSearch && matchesCategory;
   });
+
+  // Separate apps into standalone and agentic project apps
+  const standaloneApps = filteredApps.filter(app => !app.github_url.includes(AGENTIC_REPO));
+  const agenticApps = filteredApps.filter(app => app.github_url.includes(AGENTIC_REPO));
 
   return (
     <div className="flex w-full">
@@ -93,31 +99,67 @@ const LandingPage: React.FC = () => {
             <h3 className="text-xl font-bold mb-2">Connection Error</h3>
             <p className="text-text-muted">{error}</p>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredApps.length > 0 ? (
-              filteredApps.map(app => (
-                <AppCard 
-                  key={app.id} 
-                  name={app.name}
-                  description={app.description}
-                  url={app.url}
-                  githubUrl={app.github_url}
-                  category={app.category}
-                  icon={app.icon}
-                  isLive={app.is_live}
-                />
-              ))
-            ) : (
-              <div className="col-span-full py-20 text-center">
-                <div className="w-20 h-20 rounded-full bg-glass-bg-strong flex items-center justify-center mx-auto mb-6">
-                  <SearchX size={36} className="text-text-dim" />
-                </div>
-                <h3 className="text-2xl font-bold mb-2">No apps found</h3>
-                <p className="text-text-muted">Try adjusting your search or category filters.</p>
-              </div>
-            )}
+        ) : filteredApps.length === 0 ? (
+          <div className="col-span-full py-20 text-center">
+            <div className="w-20 h-20 rounded-full bg-glass-bg-strong flex items-center justify-center mx-auto mb-6">
+              <SearchX size={36} className="text-text-dim" />
+            </div>
+            <h3 className="text-2xl font-bold mb-2">No apps found</h3>
+            <p className="text-text-muted">Try adjusting your search or category filters.</p>
           </div>
+        ) : (
+          <>
+            {/* Standalone Applications */}
+            {standaloneApps.length > 0 && (
+              <section className="mb-12">
+                <h2 className="text-xl font-bold mb-6 text-text-secondary flex items-center gap-2">
+                  <Sparkles size={20} className="text-primary-light" />
+                  Standalone Applications
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {standaloneApps.map(app => (
+                    <AppCard 
+                      key={app.id} 
+                      name={app.name}
+                      description={app.description}
+                      url={app.url}
+                      githubUrl={app.github_url}
+                      category={app.category}
+                      icon={app.icon}
+                      isLive={app.is_live}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Agentic MCP Playground Applications */}
+            {agenticApps.length > 0 && (
+              <section className="mb-12">
+                <h2 className="text-xl font-bold mb-2 text-text-secondary flex items-center gap-2">
+                  <Layers size={20} className="text-cyan-400" />
+                  Agentic MCP Playground
+                </h2>
+                <p className="text-sm text-text-muted mb-6">
+                  Part of the <a href="https://github.com/alshawwaf/cp-agentic-mcp-playground" target="_blank" rel="noopener noreferrer" className="text-primary-light hover:underline">cp-agentic-mcp-playground</a> project
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {agenticApps.map(app => (
+                    <AppCard 
+                      key={app.id} 
+                      name={app.name}
+                      description={app.description}
+                      url={app.url}
+                      githubUrl={app.github_url}
+                      category={app.category}
+                      icon={app.icon}
+                      isLive={app.is_live}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
         )}
       </main>
     </div>
