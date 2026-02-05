@@ -39,11 +39,27 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="login-card">
         {/* Logo */}
-        <div className="logo-icon">A</div>
+        <div className="logo-icon overflow-hidden">
+          <img 
+            src="/logo.png" 
+            alt="Logo" 
+            className="w-full h-full object-cover" 
+            onError={(e) => {
+              const target = e.currentTarget;
+              target.style.display = 'none';
+              const parent = target.parentElement;
+              if (parent) {
+                const span = parent.querySelector('span');
+                if (span) span.style.display = 'flex';
+              }
+            }}
+          />
+          <span style={{ fontFamily: 'Outfit, sans-serif', display: 'none' }}>A</span>
+        </div>
         
         {/* Header */}
         <h2 className="text-gradient">Welcome Back</h2>
-        <p className="subtitle">Sign in to access the AI DevHub</p>
+        <p className="subtitle">Sign in to access the AI Dev Hub</p>
 
         {/* Error Message */}
         {error && (
