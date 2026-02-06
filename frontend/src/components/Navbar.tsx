@@ -14,7 +14,7 @@ const Navbar: React.FC = () => {
         <div className="flex items-center gap-4">
           <div className="logo-icon w-10 h-10 overflow-hidden">
             <img 
-              src="/logo.png" 
+              src="/logo.svg" 
               alt="Logo" 
               className="w-full h-full object-cover" 
               onError={(e) => {

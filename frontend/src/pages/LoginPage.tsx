@@ -41,7 +41,7 @@ const LoginPage: React.FC = () => {
         {/* Logo */}
         <div className="logo-icon overflow-hidden">
           <img 
-            src="/logo.png" 
+            src="/logo.svg" 
             alt="Logo" 
             className="w-full h-full object-cover" 
             onError={(e) => {
