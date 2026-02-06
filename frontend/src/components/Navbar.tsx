@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Shield, Plus, Github } from 'lucide-react';
+import { LogOut, Shield, Plus, Github, BookOpen } from 'lucide-react';
 import AddAppModal from './AddAppModal';
 
 const Navbar: React.FC = () => {
@@ -12,31 +12,33 @@ const Navbar: React.FC = () => {
       <nav className="glass sticky top-4 z-100 mx-4 mt-4 px-8 py-4 rounded-2xl flex items-center justify-between">
         {/* Logo and GitHub */}
         <div className="flex items-center gap-4">
-          <div className="logo-icon w-10 h-10 overflow-hidden">
-            <img 
-              src="/logo.svg" 
-              alt="Logo" 
-              className="w-full h-full object-cover" 
-              onError={(e) => {
-                const target = e.currentTarget;
-                target.style.display = 'none';
-                const parent = target.parentElement;
-                if (parent) {
-                  const span = parent.querySelector('span');
-                  if (span) span.style.display = 'flex';
-                }
-              }}
-            />
-            <span style={{ fontFamily: 'Outfit, sans-serif', display: 'none' }}>A</span>
-          </div>
-          <span style={{ 
-            fontFamily: 'Outfit, sans-serif', 
-            fontSize: '1.4rem', 
-            fontWeight: 800,
-            letterSpacing: '-0.03em'
-          }}>
-            AI <span className="text-text-muted font-semibold">Dev Hub</span>
-          </span>
+          <a href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
+            <div className="logo-icon w-10 h-10 overflow-hidden">
+              <img 
+                src="/logo.svg" 
+                alt="Logo" 
+                className="w-full h-full object-cover" 
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    const span = parent.querySelector('span');
+                    if (span) span.style.display = 'flex';
+                  }
+                }}
+              />
+              <span style={{ fontFamily: 'Outfit, sans-serif', display: 'none' }}>A</span>
+            </div>
+            <span style={{ 
+              fontFamily: 'Outfit, sans-serif', 
+              fontSize: '1.4rem', 
+              fontWeight: 800,
+              letterSpacing: '-0.03em'
+            }}>
+              AI <span className="text-text-muted font-semibold">Dev Hub</span>
+            </span>
+          </a>
           <a 
             href="https://github.com/alshawwaf/dev-hub" 
             target="_blank"
@@ -51,6 +53,15 @@ const Navbar: React.FC = () => {
         {/* Navigation */}
         <div className="flex items-center gap-4 sm:gap-10">
           <div className="flex items-center gap-6">
+            {/* Guide Link - Always visible */}
+            <a 
+              href="/guide" 
+              className="flex items-center gap-2 text-text-secondary hover:text-primary-light transition-all duration-300 text-sm font-semibold tracking-wide"
+            >
+              <BookOpen size={18} />
+              <span className="hidden sm:inline">Guide</span>
+            </a>
+
             {user && (
               <button 
                 onClick={() => setIsModalOpen(true)}
@@ -113,4 +124,3 @@ const Navbar: React.FC = () => {
 };
 
 export default Navbar;
-
