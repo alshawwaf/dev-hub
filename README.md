@@ -4,7 +4,7 @@ AI DevHub is a high-performance, premium dashboard designed to centralize and ma
 
 ![AI DevHub Dashboard](https://raw.githubusercontent.com/alshawwaf/dev-hub/main/frontend/public/preview.png)
 
-## 🚀 Features
+## Features
 
 - **Premium UI/UX**: Built with a "Deep Space" dark theme, rich gradients, and interactive glassmorphism components.
 - **App Catalog**: Centralized access to tools like Langflow, Flowise, n8n, Open WebUI, and more.
@@ -13,14 +13,14 @@ AI DevHub is a high-performance, premium dashboard designed to centralize and ma
 - **Responsive Design**: Optimized for desktops, tablets, and mobile devices.
 - **Dockerized Architecture**: Simple deployment using Docker Compose.
 
-## 🛠 Tech Stack
+## Tech Stack
 
 - **Frontend**: React 18, Vite, TypeScript, Lucide Icons, Vanilla CSS (Premium Glassmorphism).
 - **Backend**: FastAPI (Python 3.11), SQLAlchemy, Pydantic.
 - **Database**: PostgreSQL.
 - **Infrastructure**: Docker, Docker Compose, Nginx (Proxy).
 
-## 🚦 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -50,15 +50,14 @@ To populate the dashboard with default applications:
 docker exec dev_hub_backend python seed.py
 ```
 
-## 🔒 Security
+## Security
 
 - JWT-based authentication for the Admin panel.
 - Environment-based configuration for sensitive credentials.
 - Protected routes for sensitive API operations.
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
-*Created with ❤️ for the AI Developer Community.*
