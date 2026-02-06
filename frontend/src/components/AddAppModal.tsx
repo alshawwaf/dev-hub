@@ -8,6 +8,17 @@ interface AddAppModalProps {
   onAppAdded: () => void;
 }
 
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  background: 'rgba(10, 12, 18, 0.95)',
+  border: '1px solid rgba(255, 255, 255, 0.12)',
+  borderRadius: '12px',
+  padding: '14px 16px',
+  color: '#e2e8f0',
+  fontSize: '0.9375rem',
+  outline: 'none',
+};
+
 const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -15,7 +26,7 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
     url: '',
     github_url: '',
     category: '',
-    icon: 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/custom.png',
+    icon: 'app',
     is_live: true
   });
   const [loading, setLoading] = useState(false);
@@ -31,167 +42,111 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
     try {
       const token = localStorage.getItem('token');
       await api.post('apps/', formData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
       onAppAdded();
       onClose();
-      setFormData({
-        name: '',
-        description: '',
-        url: '',
-        github_url: '',
-        category: '',
-        icon: 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/custom.png',
-        is_live: true
-      });
+      setFormData({ name: '', description: '', url: '', github_url: '', category: '', icon: 'app', is_live: true });
     } catch (err: any) {
-      console.error('Failed to add app:', err);
-      setError(err.response?.data?.detail || 'Failed to add application. Please try again.');
+      setError(err.response?.data?.detail || 'Failed to add application.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center p-6 bg-bg-deep/95 backdrop-blur-xl">
-      <div className="login-card w-full max-w-2xl relative animate-in fade-in zoom-in duration-500 border-white/5 shadow-[0_0_80px_rgba(0,0,0,0.6)] !p-10">
-        <button 
-          onClick={onClose}
-          className="absolute top-8 right-8 text-text-muted hover:text-white hover:scale-110 transition-all duration-300 bg-white/5 p-2 rounded-full"
-        >
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)', backdropFilter: 'blur(8px)' }}
+      onClick={onClose}
+    >
+      <div 
+        className="w-full max-w-2xl relative rounded-2xl p-10"
+        style={{ 
+          background: 'linear-gradient(145deg, #14161e 0%, #0f1117 100%)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          boxShadow: '0 25px 80px rgba(0, 0, 0, 0.6)'
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-all">
           <X size={20} />
         </button>
 
-        <div className="flex items-center gap-5 mb-10">
-          <div className="logo-icon w-14 h-14 text-2xl shadow-xl shadow-primary/20">
-            <Plus size={32} />
+        <div className="flex items-center gap-5 mb-8">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #ec4899 100%)' }}>
+            <Plus size={28} className="text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold mb-1 text-left tracking-tight">Add New Application</h2>
-            <p className="text-sm text-text-muted font-medium">Connect a new service to the ecosystem</p>
+            <h2 className="text-2xl font-bold text-white">Add New Application</h2>
+            <p className="text-sm text-gray-400">Connect a new service to the ecosystem</p>
           </div>
         </div>
 
-        {error && (
-          <div className="error-message mb-8 animate-shake">
-            {error}
-          </div>
-        )}
+        {error && <div className="mb-6 p-4 rounded-lg text-red-400 text-sm" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>{error}</div>}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-2.5">
-              <label htmlFor="name" className="flex items-center gap-2.5 text-[0.7rem] font-bold uppercase tracking-widest text-primary-light/80 ml-1">
-                <Type size={14} /> Application Name
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-purple-300 mb-2">
+                <Type size={12} /> Application Name
               </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                placeholder="e.g. AI Agent Pro"
-                value={formData.name}
-                onChange={handleChange}
-                className="!mb-0"
-              />
+              <input name="name" type="text" required placeholder="e.g. AI Agent Pro" value={formData.name} onChange={handleChange} style={inputStyle} />
             </div>
-            <div className="space-y-2.5">
-              <label htmlFor="category" className="flex items-center gap-2.5 text-[0.7rem] font-bold uppercase tracking-widest text-primary-light/80 ml-1">
-                <Tag size={14} /> Category
+            <div>
+              <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-purple-300 mb-2">
+                <Tag size={12} /> Category
               </label>
-              <input
-                id="category"
-                name="category"
-                type="text"
-                required
-                placeholder="e.g. AI Security, Workflow"
-                value={formData.category}
-                onChange={handleChange}
-                className="!mb-0"
-              />
+              <input name="category" type="text" required placeholder="e.g. AI Security" value={formData.category} onChange={handleChange} style={inputStyle} />
             </div>
           </div>
 
-          <div className="space-y-2.5">
-            <label htmlFor="description" className="flex items-center gap-2.5 text-[0.7rem] font-bold uppercase tracking-widest text-primary-light/80 ml-1">
-              <AlignLeft size={14} /> Description
+          <div>
+            <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-purple-300 mb-2">
+              <AlignLeft size={12} /> Description
             </label>
-            <textarea
-              id="description"
-              name="description"
-              rows={3}
-              required
-              placeholder="Briefly describe what this application does and its primary value proposition."
-              className="w-full bg-bg-surface border border-glass-border rounded-xl p-4 text-text-primary text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-text-dim/50 resize-none"
-              value={formData.description}
-              onChange={handleChange}
+            <textarea 
+              name="description" 
+              rows={3} 
+              required 
+              placeholder="Briefly describe what this application does..." 
+              value={formData.description} 
+              onChange={handleChange} 
+              style={{ ...inputStyle, resize: 'none' as const }} 
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-2.5">
-              <label htmlFor="url" className="flex items-center gap-2.5 text-[0.7rem] font-bold uppercase tracking-widest text-primary-light/80 ml-1">
-                <ExternalLink size={14} /> Live Application URL
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-purple-300 mb-2">
+                <ExternalLink size={12} /> Live Application URL
               </label>
-              <input
-                id="url"
-                name="url"
-                type="url"
-                required
-                placeholder="https://app.example.com"
-                value={formData.url}
-                onChange={handleChange}
-                className="!mb-0"
-              />
+              <input name="url" type="url" required placeholder="https://app.example.com" value={formData.url} onChange={handleChange} style={inputStyle} />
             </div>
-            <div className="space-y-2.5">
-              <label htmlFor="github_url" className="flex items-center gap-2.5 text-[0.7rem] font-bold uppercase tracking-widest text-primary-light/80 ml-1">
-                <Github size={14} /> GitHub Repository
+            <div>
+              <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-purple-300 mb-2">
+                <Github size={12} /> GitHub Repository
               </label>
-              <input
-                id="github_url"
-                name="github_url"
-                type="url"
-                required
-                placeholder="https://github.com/org/repo"
-                value={formData.github_url}
-                onChange={handleChange}
-                className="!mb-0"
-              />
+              <input name="github_url" type="url" required placeholder="https://github.com/org/repo" value={formData.github_url} onChange={handleChange} style={inputStyle} />
             </div>
           </div>
 
-          <div className="pt-4">
-            <button 
-              type="submit" 
-              className="btn btn-primary w-full py-4 text-base rounded-xl font-bold uppercase tracking-[0.15em] shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-[0.98] transition-all"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <div className="spinner w-5 h-5 border-3 mr-3 !border-t-white"></div>
-                  Registering...
-                </>
-              ) : (
-                <>
-                  <Plus size={20} />
-                  Deploy to Hub
-                </>
-              )}
-            </button>
-          </div>
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className="w-full py-4 rounded-xl font-bold uppercase tracking-wider text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50" 
+            style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #ec4899 100%)', boxShadow: '0 10px 30px rgba(124, 58, 237, 0.3)' }}
+          >
+            {loading ? 'Deploying...' : '+ Deploy to Hub'}
+          </button>
         </form>
       </div>
     </div>
   );
-
 };
 
 export default AddAppModal;
