@@ -21,6 +21,9 @@ services:
     environment:
       - DATABASE_URL=postgresql://admin:password@dev_hub_db:5432/dev_hub
       - SECRET_KEY=dev_hub_secret_key_12345
+      - DOMAIN=${DOMAIN:-ai.alshawwaf.ca}
+      - SUPERADMIN_EMAIL=${SUPERADMIN_EMAIL:-admin@ai.alshawwaf.ca}
+      - SUPERADMIN_PASSWORD=${SUPERADMIN_PASSWORD:-ChangeThisPassword123!}
     depends_on:
       - dev-hub-db-service
     networks:
