@@ -102,7 +102,7 @@ def seed():
                 models.Application(
                     name="OpenClaw",
                     description="Personal AI assistant gateway",
-                    url=f"https://openclaw.{DOMAIN}",
+                    url=f"https://claw.{DOMAIN}",
                     github_url="https://github.com/openclaw",
                     category="Agentic AI",
                     icon="/logos/openclaw.png",
