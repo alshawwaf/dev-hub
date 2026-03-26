@@ -11,10 +11,13 @@ def get_password_hash(password):
 def seed():
     db = SessionLocal()
     try:
-        # Check if admin exists
-        admin_email = os.getenv("SUPERADMIN_EMAIL", "admin@alshawwaf.ca")
+        # Basic Configuration - use env var or default
+        DOMAIN = os.getenv("DOMAIN", "ai.alshawwaf.ca")
+
+        # Seed Superadmin
+        admin_email = os.getenv("SUPERADMIN_EMAIL", f"admin@{DOMAIN}")
         admin_password = os.getenv("SUPERADMIN_PASSWORD", "Cpwins!1@2026")
-        
+
         user = db.query(models.User).filter(models.User.email == admin_email).first()
         if not user:
             print(f"Seeding superadmin user: {admin_email}")
@@ -28,15 +31,15 @@ def seed():
             print("Superadmin seeded successfully.")
         else:
             print("Superadmin already exists.")
-            
-        # Seed some initial apps if none exist
+
+        # Seed applications if none exist
         if db.query(models.Application).count() == 0:
-            print("Seeding initial applications...")
+            print("Seeding applications...")
             apps = [
                 models.Application(
-                    name="Lakera Demo",
-                    description="Interactive playground for testing LLM guardrails.",
-                    url="https://lakera.alshawwaf.ca",
+                    name="Lakera Guard Demo",
+                    description="AI security guardrails",
+                    url=f"https://lakera.{DOMAIN}",
                     github_url="https://github.com/alshawwaf/Lakera-Demo",
                     category="AI Security",
                     icon="/logos/lakera.png",
@@ -44,8 +47,8 @@ def seed():
                 ),
                 models.Application(
                     name="Training Portal",
-                    description="Enterprise blueprint for virtualized hands-on learning.",
-                    url="https://training.alshawwaf.ca",
+                    description="AI development training platform",
+                    url=f"https://training.{DOMAIN}",
                     github_url="https://github.com/alshawwaf/training-portal",
                     category="Training",
                     icon="/logos/training.png",
@@ -53,8 +56,8 @@ def seed():
                 ),
                 models.Application(
                     name="Docs to Swagger",
-                    description="Convert API docs to OpenAPI spec.",
-                    url="https://swagger.alshawwaf.ca",
+                    description="Convert API docs to OpenAPI",
+                    url=f"https://swagger.{DOMAIN}",
                     github_url="https://github.com/alshawwaf/cp-docs-to-swagger",
                     category="Developer Tools",
                     icon="/logos/swagger.png",
@@ -62,8 +65,8 @@ def seed():
                 ),
                 models.Application(
                     name="n8n Workflow",
-                    description="Workflow automation platform for AI agents.",
-                    url="https://workflow.alshawwaf.ca",
+                    description="AI workflow automation platform",
+                    url=f"https://workflow.{DOMAIN}",
                     github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
                     category="Automation",
                     icon="/logos/n8n.png",
@@ -71,8 +74,8 @@ def seed():
                 ),
                 models.Application(
                     name="Open WebUI",
-                    description="Chat interface for LLMs and AI models.",
-                    url="https://chat.alshawwaf.ca",
+                    description="Chat interface for AI models",
+                    url=f"https://chat.{DOMAIN}",
                     github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
                     category="AI Chat",
                     icon="/logos/openwebui.png",
@@ -80,8 +83,8 @@ def seed():
                 ),
                 models.Application(
                     name="Flowise",
-                    description="Visual builder for LLM flows and chains.",
-                    url="https://flowise.alshawwaf.ca",
+                    description="Visual LLM flow builder",
+                    url=f"https://flowise.{DOMAIN}",
                     github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
                     category="AI Development",
                     icon="/logos/flowise.png",
@@ -89,8 +92,8 @@ def seed():
                 ),
                 models.Application(
                     name="Langflow",
-                    description="Visual designer for LangChain pipelines.",
-                    url="https://langflow.alshawwaf.ca",
+                    description="Visual AI pipeline designer",
+                    url=f"https://langflow.{DOMAIN}",
                     github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
                     category="AI Development",
                     icon="/logos/langflow.png",
@@ -98,8 +101,8 @@ def seed():
                 ),
                 models.Application(
                     name="OpenClaw",
-                    description="Personal AI assistant gateway.",
-                    url="https://openclaw.alshawwaf.ca",
+                    description="Personal AI assistant gateway",
+                    url=f"https://openclaw.{DOMAIN}",
                     github_url="https://github.com/openclaw",
                     category="Agentic AI",
                     icon="/logos/openclaw.png",
@@ -108,8 +111,10 @@ def seed():
             ]
             db.add_all(apps)
             db.commit()
-            print("Initial applications seeded.")
-            
+            print("Applications seeded successfully.")
+        else:
+            print("Applications already exist, skipping seed.")
+
     finally:
         db.close()
 

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { X, Plus, Github, ExternalLink, Tag, Type, AlignLeft } from 'lucide-react';
-import api from '../services/api';
+import React, { useState } from "react";
+import { X, Plus, Github, ExternalLink, Tag, Type, AlignLeft, Sparkles } from "lucide-react";
+import api from "../services/api";
 
 interface AddAppModalProps {
   isOpen: boolean;
@@ -10,188 +10,161 @@ interface AddAppModalProps {
 
 const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    url: '',
-    github_url: '',
-    category: '',
-    icon: 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/custom.png',
+    name: "",
+    description: "",
+    url: "",
+    github_url: "",
+    category: "",
+    icon: "app",
     is_live: true
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-
+    setError("");
     try {
-      const token = localStorage.getItem('token');
-      await api.post('apps/', formData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      const token = localStorage.getItem("token");
+      await api.post("apps/", formData, {
+        headers: { Authorization: "Bearer " + token }
       });
       onAppAdded();
       onClose();
-      setFormData({
-        name: '',
-        description: '',
-        url: '',
-        github_url: '',
-        category: '',
-        icon: 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/custom.png',
-        is_live: true
-      });
+      setFormData({ name: "", description: "", url: "", github_url: "", category: "", icon: "app", is_live: true });
     } catch (err: any) {
-      console.error('Failed to add app:', err);
-      setError(err.response?.data?.detail || 'Failed to add application. Please try again.');
+      setError(err.response?.data?.detail || "Failed to add application.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const getInputStyle = (fieldName: string): React.CSSProperties => ({
+    width: "100%",
+    background: focusedField === fieldName ? "rgba(124, 58, 237, 0.15)" : "rgba(45, 50, 70, 0.9)",
+    border: focusedField === fieldName ? "2px solid rgba(168, 85, 247, 0.7)" : "1px solid rgba(148, 163, 184, 0.3)",
+    borderRadius: "12px",
+    padding: "16px 18px",
+    color: "#f1f5f9",
+    fontSize: "0.95rem",
+    outline: "none",
+    transition: "all 0.2s ease",
+    boxShadow: focusedField === fieldName ? "0 0 20px rgba(168, 85, 247, 0.2)" : "none",
+  });
+
+  const labelStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    fontSize: "0.75rem",
+    fontWeight: 600,
+    textTransform: "uppercase",
+    letterSpacing: "0.1em",
+    color: "#c4b5fd",
+    marginBottom: "10px",
   };
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center p-6 bg-bg-deep/95 backdrop-blur-xl">
-      <div className="login-card w-full max-w-2xl relative animate-in fade-in zoom-in duration-500 border-white/5 shadow-[0_0_80px_rgba(0,0,0,0.6)] !p-10">
-        <button 
-          onClick={onClose}
-          className="absolute top-8 right-8 text-text-muted hover:text-white hover:scale-110 transition-all duration-300 bg-white/5 p-2 rounded-full"
-        >
-          <X size={20} />
-        </button>
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: "rgba(0, 0, 0, 0.85)", backdropFilter: "blur(12px)" }}
+      onClick={onClose}
+    >
+      <div 
+        className="w-full max-w-md relative overflow-hidden"
+        style={{ 
+          background: "linear-gradient(165deg, #1e1b4b 0%, #0f172a 50%, #0c0a1d 100%)",
+          borderRadius: "24px",
+          border: "1px solid rgba(168, 85, 247, 0.3)",
+          boxShadow: "0 25px 80px rgba(0, 0, 0, 0.7), 0 0 60px rgba(168, 85, 247, 0.15)",
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{
+          position: "absolute", top: "-100px", right: "-100px", width: "250px", height: "250px",
+          background: "radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }} />
 
-        <div className="flex items-center gap-5 mb-10">
-          <div className="logo-icon w-14 h-14 text-2xl shadow-xl shadow-primary/20">
-            <Plus size={32} />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold mb-1 text-left tracking-tight">Add New Application</h2>
-            <p className="text-sm text-text-muted font-medium">Connect a new service to the ecosystem</p>
+        <div style={{ padding: "28px 32px 24px", borderBottom: "1px solid rgba(148, 163, 184, 0.15)", position: "relative" }}>
+          <button onClick={onClose} style={{
+            position: "absolute", top: "20px", right: "20px", width: "36px", height: "36px",
+            borderRadius: "10px", border: "1px solid rgba(148, 163, 184, 0.3)", background: "rgba(30, 35, 50, 0.8)",
+            color: "#94a3b8", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+          }}>
+            <X size={18} />
+          </button>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <div style={{
+              width: "56px", height: "56px", borderRadius: "16px",
+              background: "linear-gradient(135deg, #7c3aed 0%, #ec4899 100%)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 8px 24px rgba(124, 58, 237, 0.4)",
+            }}>
+              <Sparkles size={26} className="text-white" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#f8fafc", margin: 0 }}>Add New Application</h2>
+              <p style={{ fontSize: "0.875rem", color: "#94a3b8", margin: "4px 0 0 0" }}>Connect a new service to the ecosystem</p>
+            </div>
           </div>
         </div>
 
-        {error && (
-          <div className="error-message mb-8 animate-shake">
-            {error}
-          </div>
-        )}
+        <div style={{ padding: "28px 32px 32px", position: "relative" }}>
+          {error && <div style={{ marginBottom: "20px", padding: "14px 16px", borderRadius: "12px", background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.4)", color: "#fca5a5", fontSize: "0.875rem" }}>{error}</div>}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-2.5">
-              <label htmlFor="name" className="flex items-center gap-2.5 text-[0.7rem] font-bold uppercase tracking-widest text-primary-light/80 ml-1">
-                <Type size={14} /> Application Name
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                placeholder="e.g. AI Agent Pro"
-                value={formData.name}
-                onChange={handleChange}
-                className="!mb-0"
-              />
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
+              <div>
+                <label style={labelStyle}><Type size={14} /> App Name</label>
+                <input name="name" type="text" required placeholder="AI Agent Pro" value={formData.name} onChange={handleChange} onFocus={() => setFocusedField("name")} onBlur={() => setFocusedField(null)} style={getInputStyle("name")} />
+              </div>
+              <div>
+                <label style={labelStyle}><Tag size={14} /> Category</label>
+                <input name="category" type="text" required placeholder="AI Security" value={formData.category} onChange={handleChange} onFocus={() => setFocusedField("category")} onBlur={() => setFocusedField(null)} style={getInputStyle("category")} />
+              </div>
             </div>
-            <div className="space-y-2.5">
-              <label htmlFor="category" className="flex items-center gap-2.5 text-[0.7rem] font-bold uppercase tracking-widest text-primary-light/80 ml-1">
-                <Tag size={14} /> Category
-              </label>
-              <input
-                id="category"
-                name="category"
-                type="text"
-                required
-                placeholder="e.g. AI Security, Workflow"
-                value={formData.category}
-                onChange={handleChange}
-                className="!mb-0"
-              />
-            </div>
-          </div>
 
-          <div className="space-y-2.5">
-            <label htmlFor="description" className="flex items-center gap-2.5 text-[0.7rem] font-bold uppercase tracking-widest text-primary-light/80 ml-1">
-              <AlignLeft size={14} /> Description
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              rows={3}
-              required
-              placeholder="Briefly describe what this application does and its primary value proposition."
-              className="w-full bg-bg-surface border border-glass-border rounded-xl p-4 text-text-primary text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-text-dim/50 resize-none"
-              value={formData.description}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-2.5">
-              <label htmlFor="url" className="flex items-center gap-2.5 text-[0.7rem] font-bold uppercase tracking-widest text-primary-light/80 ml-1">
-                <ExternalLink size={14} /> Live Application URL
-              </label>
-              <input
-                id="url"
-                name="url"
-                type="url"
-                required
-                placeholder="https://app.example.com"
-                value={formData.url}
-                onChange={handleChange}
-                className="!mb-0"
-              />
+            <div style={{ marginBottom: "20px" }}>
+              <label style={labelStyle}><AlignLeft size={14} /> Description</label>
+              <textarea name="description" rows={3} required placeholder="What does this application do?" value={formData.description} onChange={handleChange} onFocus={() => setFocusedField("description")} onBlur={() => setFocusedField(null)} style={{ ...getInputStyle("description"), resize: "none", fontFamily: "inherit" }} />
             </div>
-            <div className="space-y-2.5">
-              <label htmlFor="github_url" className="flex items-center gap-2.5 text-[0.7rem] font-bold uppercase tracking-widest text-primary-light/80 ml-1">
-                <Github size={14} /> GitHub Repository
-              </label>
-              <input
-                id="github_url"
-                name="github_url"
-                type="url"
-                required
-                placeholder="https://github.com/org/repo"
-                value={formData.github_url}
-                onChange={handleChange}
-                className="!mb-0"
-              />
-            </div>
-          </div>
 
-          <div className="pt-4">
-            <button 
-              type="submit" 
-              className="btn btn-primary w-full py-4 text-base rounded-xl font-bold uppercase tracking-[0.15em] shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-[0.98] transition-all"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <div className="spinner w-5 h-5 border-3 mr-3 !border-t-white"></div>
-                  Registering...
-                </>
-              ) : (
-                <>
-                  <Plus size={20} />
-                  Deploy to Hub
-                </>
-              )}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "28px" }}>
+              <div>
+                <label style={labelStyle}><ExternalLink size={14} /> Live URL</label>
+                <input name="url" type="url" required placeholder="https://app.example.com" value={formData.url} onChange={handleChange} onFocus={() => setFocusedField("url")} onBlur={() => setFocusedField(null)} style={getInputStyle("url")} />
+              </div>
+              <div>
+                <label style={labelStyle}><Github size={14} /> GitHub Repo</label>
+                <input name="github_url" type="url" required placeholder="https://github.com/org/repo" value={formData.github_url} onChange={handleChange} onFocus={() => setFocusedField("github_url")} onBlur={() => setFocusedField(null)} style={getInputStyle("github_url")} />
+              </div>
+            </div>
+
+            <button type="submit" disabled={loading} style={{
+              width: "100%", padding: "18px 24px", borderRadius: "14px", border: "none",
+              background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #ec4899 100%)",
+              color: "#ffffff", fontSize: "0.95rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em",
+              cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1,
+              boxShadow: "0 8px 32px rgba(168, 85, 247, 0.4)", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+            }}>
+              <Plus size={20} />
+              {loading ? "Deploying..." : "Deploy to Hub"}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
-
 };
 
 export default AddAppModal;

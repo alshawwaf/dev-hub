@@ -1,7 +1,9 @@
 import React from 'react';
-import { ExternalLink, Github } from 'lucide-react';
+import { ExternalLink, Github, Pencil, Trash2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface AppCardProps {
+  id: number;
   name: string;
   description: string;
   url: string;
@@ -9,9 +11,24 @@ interface AppCardProps {
   category: string;
   icon: string;
   isLive: boolean;
+  onEdit?: (id: number) => void;
+  onDelete?: (id: number) => void;
 }
 
-const AppCard: React.FC<AppCardProps> = ({ name, description, url, githubUrl, category, icon, isLive }) => {
+const AppCard: React.FC<AppCardProps> = ({ 
+  id, 
+  name, 
+  description, 
+  url, 
+  githubUrl, 
+  category, 
+  icon, 
+  isLive,
+  onEdit,
+  onDelete 
+}) => {
+  const { user } = useAuth();
+  
   const isCurrentApp = React.useMemo(() => {
     if (typeof window === 'undefined') return false;
     try {
@@ -24,7 +41,27 @@ const AppCard: React.FC<AppCardProps> = ({ name, description, url, githubUrl, ca
   }, [url]);
 
   return (
-    <div className="card group">
+    <div className="card group relative">
+      {/* Admin Controls - Always visible when logged in */}
+      {user && (
+        <div className="absolute top-3 left-3 flex gap-1 z-10">
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit?.(id); }}
+            className="p-2 rounded-lg bg-primary/20 hover:bg-primary/40 text-primary-light transition-all"
+            title="Edit application"
+          >
+            <Pencil size={16} />
+          </button>
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete?.(id); }}
+            className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-400 transition-all"
+            title="Delete application"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Status Badge */}
       <span className={`status-badge ${isLive ? 'live' : 'dev'}`}>
         {isLive ? '● Live' : '◐ Dev'}
