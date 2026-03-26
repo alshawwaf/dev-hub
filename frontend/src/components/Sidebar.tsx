@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, LayoutGrid, Shield, Server, Cpu, Activity, Zap, Database, Globe } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, LayoutGrid, Shield, Server, Cpu, Activity, Zap, Database, Globe, Bot } from 'lucide-react';
 
 interface SidebarProps {
   search: string;
@@ -29,6 +29,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       case 'productivity': return <Zap size={18} />;
       case 'data': return <Database size={18} />;
       case 'web': return <Globe size={18} />;
+      case 'agentic ai': return <Bot size={18} />;
+      case 'ai chat': return <Bot size={18} />;
       default: return <LayoutGrid size={18} />;
     }
   };

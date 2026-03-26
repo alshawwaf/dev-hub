@@ -34,15 +34,6 @@ def seed():
             print("Seeding initial applications...")
             apps = [
                 models.Application(
-                    name="Training Portal",
-                    description="Enterprise blueprint for virtualized hands-on learning.",
-                    url="https://training.alshawwaf.ca",
-                    github_url="https://github.com/alshawwaf/training-portal",
-                    category="Infrastructure",
-                    icon="https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/canvas-lms.png",
-                    is_live=True
-                ),
-                models.Application(
                     name="Lakera Demo",
                     description="Interactive playground for testing LLM guardrails.",
                     url="https://lakera.alshawwaf.ca",
@@ -52,12 +43,30 @@ def seed():
                     is_live=True
                 ),
                 models.Application(
-                    name="n8n Automation",
+                    name="Training Portal",
+                    description="Enterprise blueprint for virtualized hands-on learning.",
+                    url="https://training.alshawwaf.ca",
+                    github_url="https://github.com/alshawwaf/training-portal",
+                    category="Training",
+                    icon="/logos/training.png",
+                    is_live=True
+                ),
+                models.Application(
+                    name="Docs to Swagger",
+                    description="Convert API docs to OpenAPI spec.",
+                    url="https://swagger.alshawwaf.ca",
+                    github_url="https://github.com/alshawwaf/cp-docs-to-swagger",
+                    category="Developer Tools",
+                    icon="/logos/swagger.png",
+                    is_live=True
+                ),
+                models.Application(
+                    name="n8n Workflow",
                     description="Workflow automation platform for AI agents.",
-                    url="https://n8n.alshawwaf.ca",
+                    url="https://workflow.alshawwaf.ca",
                     github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
-                    category="AI Agents",
-                    icon="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/n8n.png",
+                    category="Automation",
+                    icon="/logos/n8n.png",
                     is_live=True
                 ),
                 models.Application(
@@ -65,8 +74,8 @@ def seed():
                     description="Chat interface for LLMs and AI models.",
                     url="https://chat.alshawwaf.ca",
                     github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
-                    category="AI Agents",
-                    icon="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/open-webui.png",
+                    category="AI Chat",
+                    icon="/logos/openwebui.png",
                     is_live=True
                 ),
                 models.Application(
@@ -74,8 +83,8 @@ def seed():
                     description="Visual builder for LLM flows and chains.",
                     url="https://flowise.alshawwaf.ca",
                     github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
-                    category="AI Agents",
-                    icon="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/flowise.png",
+                    category="AI Development",
+                    icon="/logos/flowise.png",
                     is_live=True
                 ),
                 models.Application(
@@ -83,19 +92,19 @@ def seed():
                     description="Visual designer for LangChain pipelines.",
                     url="https://langflow.alshawwaf.ca",
                     github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
-                    category="AI Agents",
+                    category="AI Development",
                     icon="/logos/langflow.png",
                     is_live=True
                 ),
                 models.Application(
-                    name="Qdrant Vector DB",
-                    description="Vector database for semantic search and embeddings.",
-                    url="https://qdrant.alshawwaf.ca",
-                    github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
-                    category="AI Agents",
-                    icon="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/qdrant.png",
+                    name="OpenClaw",
+                    description="Personal AI assistant gateway.",
+                    url="https://openclaw.alshawwaf.ca",
+                    github_url="https://github.com/openclaw",
+                    category="Agentic AI",
+                    icon="/logos/openclaw.png",
                     is_live=True
-                )
+                ),
             ]
             db.add_all(apps)
             db.commit()
