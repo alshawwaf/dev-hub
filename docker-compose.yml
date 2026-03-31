@@ -33,8 +33,6 @@ services:
     build: ./frontend
     container_name: dev_hub_frontend
     restart: always
-    ports:
-      - "3001:80"
     depends_on:
       - dev-hub-backend
     networks:
