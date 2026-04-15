@@ -32,10 +32,10 @@ def seed():
         else:
             print("Superadmin already exists.")
 
-        # Seed applications if none exist
-        if db.query(models.Application).count() == 0:
-            print("Seeding applications...")
-            apps = [
+        # Seed/upsert applications — adds any missing by name,
+        # leaves existing rows untouched so admin edits survive redeploys.
+        print("Syncing applications...")
+        apps = [
                 models.Application(
                     name="Lakera Guard Demo",
                     description="AI security guardrails",
@@ -117,12 +117,17 @@ def seed():
                     icon="/logos/ai-basic-training.png",
                     is_live=True
                 ),
-            ]
-            db.add_all(apps)
-            db.commit()
-            print("Applications seeded successfully.")
-        else:
-            print("Applications already exist, skipping seed.")
+        ]
+        added = 0
+        for app in apps:
+            existing = db.query(models.Application).filter(
+                models.Application.name == app.name
+            ).first()
+            if not existing:
+                db.add(app)
+                added += 1
+        db.commit()
+        print(f"Application sync complete. Added {added} new app(s).")
 
     finally:
         db.close()
