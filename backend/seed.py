@@ -108,6 +108,15 @@ def seed():
                     icon="/logos/openclaw.png",
                     is_live=True
                 ),
+                models.Application(
+                    name="AI Basic Training",
+                    description="AI/ML learning curriculum: Classic ML, Neural Networks, Generative AI",
+                    url=f"https://learn.{DOMAIN}",
+                    github_url="https://github.com/alshawwaf/ai-basic-training",
+                    category="Training",
+                    icon="/logos/ai-basic-training.png",
+                    is_live=True
+                ),
             ]
             db.add_all(apps)
             db.commit()
