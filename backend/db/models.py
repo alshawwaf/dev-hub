@@ -22,5 +22,7 @@ class Application(Base):
     category = Column(String) # e.g. "AI", "Tools", "Infrastructure"
     icon = Column(String)     # Emoji or URL
     is_live = Column(Boolean, default=True)
+    embeddable = Column(Boolean, default=False)  # app allows being shown inside an in-window iframe
+    placement = Column(String, default="desktop")  # baseline surface: desktop | dock | both | hidden
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -76,3 +76,11 @@ def read_users_me(token: str = Depends(oauth2_scheme), db: Session = Depends(get
     if user is None:
         raise credentials_exception
     return user
+
+def get_current_admin_user(current_user: schemas.User = Depends(read_users_me)):
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrator privileges required",
+        )
+    return current_user

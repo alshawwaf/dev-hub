@@ -16,7 +16,8 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
     github_url: "",
     category: "",
     icon: "app",
-    is_live: true
+    is_live: true,
+    embeddable: false
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -35,7 +36,7 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
       });
       onAppAdded();
       onClose();
-      setFormData({ name: "", description: "", url: "", github_url: "", category: "", icon: "app", is_live: true });
+      setFormData({ name: "", description: "", url: "", github_url: "", category: "", icon: "app", is_live: true, embeddable: false });
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to add application.");
     } finally {
@@ -149,6 +150,22 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
                 <input name="github_url" type="url" required placeholder="https://github.com/org/repo" value={formData.github_url} onChange={handleChange} onFocus={() => setFocusedField("github_url")} onBlur={() => setFocusedField(null)} style={getInputStyle("github_url")} />
               </div>
             </div>
+
+            <label style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px", cursor: "pointer" }}>
+              <input
+                name="embeddable"
+                type="checkbox"
+                checked={formData.embeddable}
+                onChange={(e) => setFormData(prev => ({ ...prev, embeddable: e.target.checked }))}
+                style={{ width: "18px", height: "18px", accentColor: "#a855f7", cursor: "pointer" }}
+              />
+              <span style={{ fontSize: "0.875rem", color: "#cbd5e1" }}>
+                Open inside a window (embeddable)
+                <span style={{ display: "block", fontSize: "0.75rem", color: "#94a3b8", marginTop: "2px" }}>
+                  Leave off if the app blocks iframes — it'll open in its own tab.
+                </span>
+              </span>
+            </label>
 
             <button type="submit" disabled={loading} style={{
               width: "100%", padding: "18px 24px", borderRadius: "14px", border: "none",
