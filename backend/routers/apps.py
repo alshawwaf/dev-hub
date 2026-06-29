@@ -4,7 +4,7 @@ from typing import List
 from db import models
 from db.database import get_db
 import schemas
-from .auth import read_users_me
+from .auth import get_current_admin_user
 
 router = APIRouter()
 
@@ -13,7 +13,7 @@ def get_apps(db: Session = Depends(get_db)):
     return db.query(models.Application).all()
 
 @router.post("/", response_model=schemas.App)
-def create_app(app: schemas.AppCreate, db: Session = Depends(get_db), current_user: schemas.User = Depends(read_users_me)):
+def create_app(app: schemas.AppCreate, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_admin_user)):
     db_app = models.Application(**app.dict())
     db.add(db_app)
     db.commit()
@@ -21,7 +21,7 @@ def create_app(app: schemas.AppCreate, db: Session = Depends(get_db), current_us
     return db_app
 
 @router.put("/{app_id}", response_model=schemas.App)
-def update_app(app_id: int, app_update: schemas.AppUpdate, db: Session = Depends(get_db)):
+def update_app(app_id: int, app_update: schemas.AppUpdate, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_admin_user)):
     db_app = db.query(models.Application).filter(models.Application.id == app_id).first()
     if not db_app:
         raise HTTPException(status_code=404, detail="Application not found")
@@ -35,7 +35,7 @@ def update_app(app_id: int, app_update: schemas.AppUpdate, db: Session = Depends
     return db_app
 
 @router.delete("/{app_id}")
-def delete_app(app_id: int, db: Session = Depends(get_db)):
+def delete_app(app_id: int, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_admin_user)):
     db_app = db.query(models.Application).filter(models.Application.id == app_id).first()
     if not db_app:
         raise HTTPException(status_code=404, detail="Application not found")

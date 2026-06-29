@@ -11,6 +11,7 @@ interface App {
   category: string;
   icon: string;
   is_live: boolean;
+  embeddable?: boolean;
 }
 
 interface EditAppModalProps {
@@ -28,7 +29,8 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
     github_url: '',
     category: '',
     icon: '',
-    is_live: true
+    is_live: true,
+    embeddable: false
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -42,7 +44,8 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
         github_url: app.github_url,
         category: app.category,
         icon: app.icon,
-        is_live: app.is_live
+        is_live: app.is_live,
+        embeddable: app.embeddable ?? false
       });
     }
   }, [app]);
@@ -137,6 +140,13 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
           <div className="flex items-center gap-3">
             <input id="is_live" name="is_live" type="checkbox" checked={formData.is_live} onChange={handleChange} className="w-4 h-4" />
             <label htmlFor="is_live" className="text-sm text-text-secondary">Application is live</label>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input id="embeddable" name="embeddable" type="checkbox" checked={formData.embeddable} onChange={handleChange} className="w-4 h-4" />
+            <label htmlFor="embeddable" className="text-sm text-text-secondary">
+              Open inside a window (embeddable) — leave off if the app blocks iframes
+            </label>
           </div>
 
           <button type="submit" disabled={loading} className="w-full btn btn-primary py-3 rounded-xl font-semibold">
