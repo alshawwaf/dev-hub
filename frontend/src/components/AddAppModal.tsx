@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, Plus, Github, ExternalLink, Tag, Type, AlignLeft, Sparkles, Image as ImageIcon } from "lucide-react";
 import api from "../services/api";
+import AppGlyph from "../os/AppGlyph";
 
 interface AddAppModalProps {
   isOpen: boolean;
@@ -145,10 +146,8 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
             <div style={{ marginBottom: "20px" }}>
               <label style={labelStyle}><ImageIcon size={14} /> Icon</label>
               <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                <div style={{ width: "52px", height: "52px", borderRadius: "14px", flexShrink: 0, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(148,163,184,0.3)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                  {formData.icon && (formData.icon.startsWith("http") || formData.icon.startsWith("/"))
-                    ? <img src={formData.icon} alt="" style={{ maxWidth: "38px", maxHeight: "38px", objectFit: "contain" }} />
-                    : <span style={{ fontSize: "1.8rem" }}>{formData.icon || "🧩"}</span>}
+                <div className="app-icon-prev" style={{ width: "52px", height: "52px", borderRadius: "14px", flexShrink: 0, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(148,163,184,0.3)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                  <AppGlyph app={{ name: formData.name, icon: formData.icon }} size={32} />
                 </div>
                 <input name="icon" type="text" placeholder="https://…/icon.png, /logos/app.svg, or an emoji" value={formData.icon} onChange={handleChange} onFocus={() => setFocusedField("icon")} onBlur={() => setFocusedField(null)} style={{ ...getInputStyle("icon"), flex: 1 }} />
               </div>

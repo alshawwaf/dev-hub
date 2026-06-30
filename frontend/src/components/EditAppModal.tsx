@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import api from '../services/api';
+import AppGlyph from '../os/AppGlyph';
 
 interface App {
   id: number;
@@ -99,8 +100,9 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
       style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-bg-card w-full max-w-2xl relative rounded-2xl border border-white/10 p-10"
+        style={{ maxHeight: '88vh', overflowY: 'auto', border: '1px solid var(--glass-border-strong)', boxShadow: 'var(--shadow-elevated)' }}
         onClick={e => e.stopPropagation()}
       >
         <button 
@@ -153,10 +155,8 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
           <div>
             <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Icon</label>
             <div className="flex items-center gap-3">
-              <div style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                {formData.icon && (formData.icon.startsWith('http') || formData.icon.startsWith('/'))
-                  ? <img src={formData.icon} alt="" style={{ maxWidth: 34, maxHeight: 34, objectFit: 'contain' }} />
-                  : <span style={{ fontSize: '1.6rem' }}>{formData.icon || '🧩'}</span>}
+              <div className="app-icon-prev" style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0, background: 'var(--bg-surface)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                <AppGlyph app={{ name: formData.name, icon: formData.icon }} size={30} />
               </div>
               <input name="icon" type="text" placeholder="https://…/icon.png, /logos/app.svg, or an emoji" value={formData.icon} onChange={handleChange} className="bg-bg-surface border border-glass-border rounded-lg p-3 text-sm" style={{ flex: 1 }} />
             </div>

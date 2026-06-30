@@ -26,7 +26,7 @@ const ImgGlyph: React.FC<{ src: string; name: string; size: number }> = ({ src, 
 // Single source of truth for rendering an app's icon: a system glyph, a
 // "lucide:Name" glyph, a logo image, or an emoji fallback. emojiClass lets
 // callers keep their own sizing.
-const AppGlyph: React.FC<{ app: AppInfo; size?: number; emojiClass?: string }> = ({
+const AppGlyph: React.FC<{ app: Pick<AppInfo, 'name' | 'icon' | 'system' | 'iconName'>; size?: number; emojiClass?: string }> = ({
   app,
   size = 24,
   emojiClass = 'os-glyph-emoji',
