@@ -26,6 +26,18 @@ export interface AppInfo {
   iconName?: string;
 }
 
+export type WidgetId = 'clock' | 'apps' | 'activity' | 'errors' | 'latency' | 'recent' | 'notifications' | 'lastapp' | 'quick';
+
+export interface WidgetData {
+  apps: { total: number; live: number; embeddable: number };
+  activity: { rate: number; spark: number[] };
+  errors: { total: number; err: number; pct: number };
+  latency: { avg: number };
+  recent: { method: string; path: string; status: number; kind: string; at: string | null }[];
+  notifications: { unread: number; latest: { text: string; kind: string; created_at: string | null } | null };
+  last_app: { name: string; category: string; is_live: boolean } | null;
+}
+
 export interface WindowState {
   id: string;
   app: AppInfo;

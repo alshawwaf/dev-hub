@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { AlertTriangle, MousePointerClick, Plus, LayoutGrid, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, MousePointerClick, Plus, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import AddAppModal from '../components/AddAppModal';
@@ -8,12 +8,14 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import { WindowManagerProvider, useWindows } from './WindowManager';
 import { LayoutProvider, useLayout } from './LayoutContext';
 import { HubProvider } from './HubContext';
-import { ContextMenuProvider, useContextMenu } from './ContextMenu';
+import { ContextMenuProvider, useContextMenu, type MenuItem } from './ContextMenu';
 import MenuBar from './MenuBar';
 import Dock from './Dock';
 import DesktopIcons from './DesktopIcons';
+import Widgets from './Widgets';
 import AppWindow from './AppWindow';
 import Launchpad from './Launchpad';
+import { buildCustomizeItems } from './widgets/customizeMenu';
 import { readDrag } from './drag';
 import { getSystemApp } from './systemApps';
 import type { AppInfo, Placement } from './types';
@@ -27,7 +29,7 @@ const DesktopSurface: React.FC<{
   onOpenLaunchpad: () => void;
 }> = ({ apps, loading, error, isAdmin, onAddApp, onOpenLaunchpad }) => {
   const { windows, openApp } = useWindows();
-  const { setPlacement, desktopApps, dockApps, resetLayout, hasLocalOverrides } = useLayout();
+  const { setPlacement, desktopApps, dockApps, resetLayout, hasLocalOverrides, widgets, toggleWidget } = useLayout();
   const { open: openMenu } = useContextMenu();
 
   const onDrop = (e: React.DragEvent) => {
@@ -39,9 +41,14 @@ const DesktopSurface: React.FC<{
   };
 
   const onDesktopContextMenu = (e: React.MouseEvent) => {
-    const items = [];
+    const items: MenuItem[] = buildCustomizeItems({
+      widgets,
+      toggleWidget,
+      railHidden: window.matchMedia('(max-width:1040px)').matches,
+      onOpenLaunchpad,
+    });
+    items.push({ separator: true, label: '' });
     if (isAdmin) items.push({ label: 'Add application', icon: <Plus size={15} />, onClick: onAddApp });
-    items.push({ label: 'Open Launchpad', icon: <LayoutGrid size={15} />, onClick: onOpenLaunchpad });
     items.push({ label: 'App placement…', icon: <SlidersHorizontal size={15} />, onClick: () => { const s = getSystemApp('settings'); if (s) openApp(s); } });
     if (hasLocalOverrides) {
       items.push({ separator: true, label: '' });
@@ -68,6 +75,7 @@ const DesktopSurface: React.FC<{
         onContextMenu={onDesktopContextMenu}
       >
         <DesktopIcons />
+        <Widgets onOpenLaunchpad={onOpenLaunchpad} />
 
         {loading && (
           <div className="os-center"><div className="spinner" /><p>Starting DevHub…</p></div>

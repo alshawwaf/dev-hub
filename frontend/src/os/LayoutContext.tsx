@@ -1,9 +1,13 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import type { AppInfo, Placement, WinGeometry, GeometryMap } from './types';
+import type { AppInfo, Placement, WinGeometry, GeometryMap, WidgetId } from './types';
 import api from '../services/api';
 
 const LS_OVERRIDES = 'devhub.layout.overrides';
 const LS_GEOMETRY = 'devhub.window.geometry';
+const LS_WIDGETS = 'devhub.layout.widgets';
+
+const DEFAULT_WIDGETS: WidgetId[] = ['clock', 'activity'];
+const VALID_WIDGETS: string[] = ['clock', 'apps', 'activity', 'errors', 'latency', 'recent', 'notifications', 'lastapp', 'quick'];
 
 type Overrides = Record<number, Placement>;
 
@@ -30,6 +34,15 @@ function cleanGeometry(parsed: unknown): GeometryMap {
   }
   return out;
 }
+function cleanWidgets(parsed: unknown): WidgetId[] {
+  const out: WidgetId[] = [];
+  if (Array.isArray(parsed)) {
+    for (const v of parsed) {
+      if (typeof v === 'string' && VALID_WIDGETS.includes(v) && !out.includes(v as WidgetId)) out.push(v as WidgetId);
+    }
+  }
+  return out;
+}
 const loadLS = <T,>(key: string, fn: (p: unknown) => T): T => {
   try { return fn(JSON.parse(localStorage.getItem(key) || '{}')); } catch { return fn({}); }
 };
@@ -47,6 +60,8 @@ interface LayoutContextType {
   hasLocalOverrides: boolean;
   getGeometry: (appId: number) => WinGeometry | undefined;
   saveGeometry: (appId: number, g: WinGeometry) => void;
+  widgets: WidgetId[];
+  toggleWidget: (id: WidgetId) => void;
 }
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
@@ -62,14 +77,21 @@ interface ProviderProps {
 export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId, persistBaseline, children }) => {
   const [overrides, setOverrides] = useState<Overrides>(() => loadLS(LS_OVERRIDES, cleanOverrides));
   const [geometry, setGeometry] = useState<GeometryMap>(() => loadLS(LS_GEOMETRY, cleanGeometry));
+  const [widgets, setWidgets] = useState<WidgetId[]>(() => {
+    try {
+      const raw = localStorage.getItem(LS_WIDGETS);
+      if (raw !== null) return cleanWidgets(JSON.parse(raw));   // [] = user disabled all
+    } catch { /* ignore */ }
+    return DEFAULT_WIDGETS;
+  });
 
   // Signed-in non-admin → server-persisted (follows across devices). Admin edits
   // the shared baseline (placement) but keeps geometry local. Anonymous → local.
   const isPersonalUser = !!userId && !isAdmin;
 
   // Latest state, read by the debounced writer at fire time.
-  const stateRef = useRef({ overrides, geometry, isPersonalUser });
-  useEffect(() => { stateRef.current = { overrides, geometry, isPersonalUser }; }, [overrides, geometry, isPersonalUser]);
+  const stateRef = useRef({ overrides, geometry, widgets, isPersonalUser });
+  useEffect(() => { stateRef.current = { overrides, geometry, widgets, isPersonalUser }; }, [overrides, geometry, widgets, isPersonalUser]);
 
   // Load server prefs on sign-in.
   useEffect(() => {
@@ -79,21 +101,24 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
       if (cancelled) return;
       setOverrides(cleanOverrides(r.data?.overrides));
       setGeometry(cleanGeometry(r.data?.geometry));
+      // null/undefined (never set) → default; [] → respected (all off).
+      setWidgets(r.data?.widgets != null ? cleanWidgets(r.data.widgets) : DEFAULT_WIDGETS);
     }).catch(() => { /* keep current */ });
     return () => { cancelled = true; };
   }, [isPersonalUser]);
 
-  // Single debounced writer for BOTH overrides + geometry (avoids a save race).
+  // Single debounced writer for overrides + geometry + widgets (avoids a save race).
   const timer = useRef<number | undefined>(undefined);
   const scheduleFlush = useCallback(() => {
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       const s = stateRef.current;
       if (s.isPersonalUser) {
-        api.put('desktop/prefs', { overrides: s.overrides, geometry: s.geometry }).catch(() => {});
+        api.put('desktop/prefs', { overrides: s.overrides, geometry: s.geometry, widgets: s.widgets }).catch(() => {});
       } else {
         saveLS(LS_OVERRIDES, s.overrides);
         saveLS(LS_GEOMETRY, s.geometry);
+        saveLS(LS_WIDGETS, s.widgets);
       }
     }, 450);
   }, []);
@@ -141,9 +166,14 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
     scheduleFlush();
   }, [scheduleFlush]);
 
+  const toggleWidget = useCallback((id: WidgetId) => {
+    setWidgets(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+    scheduleFlush();
+  }, [scheduleFlush]);
+
   const value = useMemo(
-    () => ({ getPlacement, desktopApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry, hasLocalOverrides: Object.keys(overrides).length > 0 }),
-    [getPlacement, desktopApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry, overrides],
+    () => ({ getPlacement, desktopApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry, widgets, toggleWidget, hasLocalOverrides: Object.keys(overrides).length > 0 }),
+    [getPlacement, desktopApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry, widgets, toggleWidget, overrides],
   );
 
   return <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>;
