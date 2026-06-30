@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import type { AppInfo } from './types';
 import SystemIcon from './SystemIcon';
 
-const isImageIcon = (icon?: string) => !!icon && (icon.startsWith('http') || icon.startsWith('/'));
+const isImageIcon = (icon?: string) => !!icon && (icon.startsWith('http') || icon.startsWith('/') || icon.startsWith('data:'));
 
 // Glyphs usable as an app icon via `icon: "lucide:Name"`.
 const LUCIDE: Record<string, LucideIcon> = { Server, Terminal, KeyRound, GraduationCap, Sparkles, ShieldCheck };
