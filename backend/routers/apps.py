@@ -5,6 +5,7 @@ from db import models
 from db.database import get_db
 import schemas
 from .auth import get_current_admin_user
+from .notifications import emit
 
 router = APIRouter()
 
@@ -18,6 +19,7 @@ def create_app(app: schemas.AppCreate, db: Session = Depends(get_db), current_us
     db.add(db_app)
     db.commit()
     db.refresh(db_app)
+    emit(db, f"Application “{db_app.name}” added by {current_user.email}", "success")
     return db_app
 
 @router.put("/{app_id}", response_model=schemas.App)
@@ -32,6 +34,7 @@ def update_app(app_id: int, app_update: schemas.AppUpdate, db: Session = Depends
     
     db.commit()
     db.refresh(db_app)
+    emit(db, f"Application “{db_app.name}” updated by {current_user.email}", "info")
     return db_app
 
 @router.delete("/{app_id}")
@@ -40,6 +43,8 @@ def delete_app(app_id: int, db: Session = Depends(get_db), current_user: schemas
     if not db_app:
         raise HTTPException(status_code=404, detail="Application not found")
     
+    name = db_app.name
     db.delete(db_app)
     db.commit()
+    emit(db, f"Application “{name}” deleted by {current_user.email}", "warning")
     return {"message": "Application deleted"}
