@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Plus, Github, ExternalLink, Tag, Type, AlignLeft, Sparkles } from "lucide-react";
+import { X, Plus, Github, ExternalLink, Tag, Type, AlignLeft, Sparkles, Image as ImageIcon } from "lucide-react";
 import api from "../services/api";
 
 interface AddAppModalProps {
@@ -15,7 +15,7 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
     url: "",
     github_url: "",
     category: "",
-    icon: "app",
+    icon: "",
     is_live: true,
     embeddable: false
   });
@@ -36,7 +36,7 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
       });
       onAppAdded();
       onClose();
-      setFormData({ name: "", description: "", url: "", github_url: "", category: "", icon: "app", is_live: true, embeddable: false });
+      setFormData({ name: "", description: "", url: "", github_url: "", category: "", icon: "", is_live: true, embeddable: false });
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to add application.");
     } finally {
@@ -138,6 +138,18 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
             <div style={{ marginBottom: "20px" }}>
               <label style={labelStyle}><AlignLeft size={14} /> Description</label>
               <textarea name="description" rows={3} required placeholder="What does this application do?" value={formData.description} onChange={handleChange} onFocus={() => setFocusedField("description")} onBlur={() => setFocusedField(null)} style={{ ...getInputStyle("description"), resize: "none", fontFamily: "inherit" }} />
+            </div>
+
+            <div style={{ marginBottom: "20px" }}>
+              <label style={labelStyle}><ImageIcon size={14} /> Icon</label>
+              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                <div style={{ width: "52px", height: "52px", borderRadius: "14px", flexShrink: 0, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(148,163,184,0.3)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                  {formData.icon && (formData.icon.startsWith("http") || formData.icon.startsWith("/"))
+                    ? <img src={formData.icon} alt="" style={{ maxWidth: "38px", maxHeight: "38px", objectFit: "contain" }} />
+                    : <span style={{ fontSize: "1.8rem" }}>{formData.icon || "🧩"}</span>}
+                </div>
+                <input name="icon" type="text" placeholder="https://…/icon.png, /logos/app.svg, or an emoji" value={formData.icon} onChange={handleChange} onFocus={() => setFocusedField("icon")} onBlur={() => setFocusedField(null)} style={{ ...getInputStyle("icon"), flex: 1 }} />
+              </div>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "28px" }}>
