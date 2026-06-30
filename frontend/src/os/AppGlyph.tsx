@@ -1,5 +1,5 @@
 import React from 'react';
-import { Server, Terminal, KeyRound, GraduationCap, Sparkles } from 'lucide-react';
+import { Server, Terminal, KeyRound, GraduationCap, Sparkles, ShieldCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { AppInfo } from './types';
 import SystemIcon from './SystemIcon';
@@ -7,7 +7,7 @@ import SystemIcon from './SystemIcon';
 const isImageIcon = (icon?: string) => !!icon && (icon.startsWith('http') || icon.startsWith('/'));
 
 // Glyphs usable as an app icon via `icon: "lucide:Name"`.
-const LUCIDE: Record<string, LucideIcon> = { Server, Terminal, KeyRound, GraduationCap, Sparkles };
+const LUCIDE: Record<string, LucideIcon> = { Server, Terminal, KeyRound, GraduationCap, Sparkles, ShieldCheck };
 
 // Single source of truth for rendering an app's icon: a system glyph, a
 // "lucide:Name" glyph, a logo image, or an emoji fallback. emojiClass lets

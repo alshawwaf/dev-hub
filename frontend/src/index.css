@@ -1138,7 +1138,7 @@ svg {
   margin-bottom: 0.5rem;
   overflow: hidden;
 }
-.os-launcher-icon img { max-width: 64px; max-height: 64px; object-fit: contain; }
+.os-launcher-icon img { width: 60%; height: 60%; object-fit: contain; }
 .os-launcher-icon span { font-size: 3rem; }
 .os-launcher h2 { font-size: 1.5rem; }
 .os-launcher-tags { display: flex; align-items: center; gap: 8px; margin: 0.25rem 0; }
@@ -1208,7 +1208,7 @@ svg {
   justify-content: center;
   overflow: hidden;
 }
-.os-dock-icon img { max-width: 36px; max-height: 36px; object-fit: contain; }
+.os-dock-icon img { width: 60%; height: 60%; object-fit: contain; }
 .os-dock-emoji { font-size: 1.6rem; }
 
 .os-dock-dot {
@@ -1291,7 +1291,7 @@ svg {
   justify-content: center;
   overflow: hidden;
 }
-.os-deskicon-tile img { max-width: 38px; max-height: 38px; object-fit: contain; }
+.os-deskicon-tile img { width: 60%; height: 60%; object-fit: contain; }
 .os-deskicon.running .os-deskicon-tile::after {
   content: '';
   position: absolute;
@@ -1422,7 +1422,7 @@ svg {
   justify-content: center;
   overflow: hidden;
 }
-.os-launchpad-icon img { max-width: 48px; max-height: 48px; object-fit: contain; }
+.os-launchpad-icon img { width: 60%; height: 60%; object-fit: contain; }
 .os-launchpad-label { font-size: 12.5px; color: #e7e7ef; text-align: center; }
 .os-launchpad-empty { color: var(--text-muted); grid-column: 1 / -1; text-align: center; }
 
