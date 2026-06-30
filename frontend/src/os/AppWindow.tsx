@@ -10,7 +10,7 @@ import AppGlyph from './AppGlyph';
 import api from '../services/api';
 
 const TITLEBAR_H = 40;
-const EMBED_TIMEOUT_MS = 18000;
+const EMBED_TIMEOUT_MS = 12000;
 const MIN_W = 360;
 const MIN_H = 240;
 const RESIZE_DIRS = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as const;
@@ -27,6 +27,7 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
   const [embedPhase, setEmbedPhase] = useState<'loading' | 'loaded' | 'blocked'>('loading');
   const [reloadKey, setReloadKey] = useState(0);
   const [overrideSrc, setOverrideSrc] = useState<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // Apps with an encrypted embed URL (e.g. a token-bearing dashboard) frame that
   // URL instead of app.url. It's fetched from an authenticated endpoint so the
@@ -49,7 +50,27 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
       setEmbedPhase(phase => (phase === 'loading' ? 'blocked' : phase));
     }, EMBED_TIMEOUT_MS);
     return () => window.clearTimeout(t);
-  }, [app.embeddable, app.url, reloadKey]);
+  }, [app.embeddable, app.proxy_embed, app.url, overrideSrc, reloadKey]);
+
+  // The iframe fires onLoad even for an error/blank document, so inspect what
+  // actually loaded and fall back to the launcher: (proxy is same-origin) read
+  // the branded-error marker the backend injects; (direct) detect an about:blank
+  // blocked frame. A cross-origin SecurityError means the real app loaded fine.
+  const onIframeLoad = () => {
+    setEmbedPhase(p => {
+      if (p !== 'loading') return p;
+      try {
+        const doc = iframeRef.current?.contentDocument;
+        if (doc) {
+          const marker = doc.querySelector('meta[name="x-devhub-embed-status"]')?.getAttribute('content');
+          if (marker && Number(marker) >= 400) return 'blocked';
+          const href = iframeRef.current?.contentWindow?.location?.href;
+          if (href === 'about:blank') return 'blocked';
+        }
+      } catch { /* cross-origin: the real app loaded from its own origin → OK */ }
+      return 'loaded';
+    });
+  };
 
   const onHeaderPointerDown = (e: React.PointerEvent) => {
     focusWindow(win.id);
@@ -121,6 +142,7 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
   // launcher) so the bare, unauthenticated URL is never framed first.
   const embedSrc = proxied ? `/embed/${app.id}/` : (needsOverride ? overrideSrc : safeUrl);
   const showEmbed = (!!app.embeddable || proxied) && !!embedSrc && embedPhase !== 'blocked';
+  const embedBlocked = (!!app.embeddable || proxied) && embedPhase === 'blocked';
 
   return (
     <div
@@ -151,10 +173,11 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
           <>
             <iframe
               key={reloadKey}
+              ref={iframeRef}
               src={embedSrc ?? undefined}
               title={app.name}
               className="os-iframe"
-              onLoad={() => setEmbedPhase(p => (p === 'loading' ? 'loaded' : p))}
+              onLoad={onIframeLoad}
               referrerPolicy="no-referrer-when-downgrade"
               sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
               allow="clipboard-read; clipboard-write; fullscreen"
@@ -170,7 +193,7 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
             )}
           </>
         ) : (
-          <Launcher app={app} embedBlocked={app.embeddable && embedPhase === 'blocked'} />
+          <Launcher app={app} embedBlocked={embedBlocked} />
         )}
       </div>
 

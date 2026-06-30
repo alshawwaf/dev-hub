@@ -18,9 +18,11 @@ base path (e.g. n8n: N8N_PATH=/embed/{id}). A <base href> is injected to fix
 relative URLs, but absolute-root apps still need the base-path env. Static/doc
 apps and apps that honour a base path work as-is.
 """
+import html as _html
 import re
 import httpx
 import websockets
+from urllib.parse import urlparse
 from fastapi import APIRouter, Request, Response, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 from starlette.responses import StreamingResponse
@@ -30,8 +32,13 @@ from db.database import SessionLocal
 router = APIRouter()
 
 MAX_BODY = 8 * 1024 * 1024  # 8 MB cap each way
+# Drop hop-by-hop/forwarding headers AND the browser's fetch-metadata/origin
+# headers — a strict upstream nginx rejects the proxied GET (403/405) when those
+# are present; stripping them makes the request look plain server-to-server.
 REQUEST_STRIP = {"host", "cookie", "content-length", "connection", "accept-encoding",
-                 "x-forwarded-host", "x-forwarded-proto", "x-forwarded-for", "x-real-ip"}
+                 "x-forwarded-host", "x-forwarded-proto", "x-forwarded-for", "x-real-ip",
+                 "origin", "referer", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest",
+                 "sec-fetch-user", "upgrade-insecure-requests"}
 RESPONSE_STRIP = {"x-frame-options", "content-security-policy", "content-security-policy-report-only",
                   "content-length", "connection", "transfer-encoding", "keep-alive",
                   "content-encoding", "strict-transport-security"}
@@ -62,35 +69,89 @@ def _rewrite_set_cookie(value: str, prefix: str) -> str:
     return ";".join(out)
 
 
-def get_target_base(app_id: int) -> str:
+def get_target_base(app_id: int):
     # Sync dependency: FastAPI runs it in the threadpool, so the psycopg2 lookup
     # never blocks the event loop, and it opens+closes its own session — the
     # connection is back in the pool BEFORE the async handler's slow upstream
-    # call (nothing held idle-in-transaction across the await).
+    # call (nothing held idle-in-transaction across the await). Returns (url, name).
     db = SessionLocal()
     try:
-        return _target_base(app_id, db)
+        app = db.query(models.Application).filter(models.Application.id == app_id).first()
+        if not app or not getattr(app, "proxy_embed", False) or not app.url:
+            raise HTTPException(status_code=404, detail="App not found or not proxy-embeddable")
+        url = app.url.rstrip("/")
+        if not (url.startswith("http://") or url.startswith("https://")):
+            raise HTTPException(status_code=404, detail="App URL is not http(s)")
+        return url, (app.name or "This app")
     finally:
         db.close()
 
 
+def _error_page(app_name: str, app_url: str, code: int, reason: str) -> Response:
+    """A branded, same-origin error document shown inside the window when an app
+    can't be embedded — instead of relaying a raw vendor error page. Carries an
+    x-devhub-embed-status marker the (same-origin) frontend reads to fall back to
+    the launcher card."""
+    name = _html.escape(app_name or "This app")
+    href = _html.escape(app_url or "", quote=True)
+    link = f'<a href="{href}" target="_blank" rel="noopener noreferrer">Open in new tab ↗</a>' if href else ''
+    page = (
+        '<!doctype html><html><head><meta charset="utf-8">'
+        f'<meta name="x-devhub-embed-status" content="{code}">'
+        '<style>body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;'
+        "font:15px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#15151b;color:#e6e6ea}"
+        '.c{max-width:420px;text-align:center;padding:32px}.k{font-size:12px;opacity:.5;letter-spacing:.08em;text-transform:uppercase}'
+        'h1{font-size:18px;margin:12px 0 6px}p{opacity:.72;margin:0 0 22px;line-height:1.5}'
+        'a{display:inline-block;padding:9px 18px;border-radius:9px;background:#7c3aed;color:#fff;text-decoration:none;font-weight:600}</style></head>'
+        f'<body><div class="c"><div class="k">Upstream {code}</div><h1>{name} can’t be shown here</h1>'
+        f'<p>{_html.escape(reason)}</p>{link}</div></body></html>'
+    )
+    return Response(content=page, status_code=200, media_type="text/html",
+                    headers={"content-security-policy": "frame-ancestors 'self'", "cache-control": "no-store"})
+
+
 @router.api_route("/{app_id}/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
-async def proxy(app_id: int, path: str, request: Request, base: str = Depends(get_target_base)):
+async def proxy(app_id: int, path: str, request: Request, target=Depends(get_target_base)):
+    base, app_name = target
     prefix = f"/embed/{app_id}/"
-    target = f"{base}/{path}"
+    base_host = urlparse(base).netloc
+    url = f"{base}/{path}"
     if request.url.query:
-        target += f"?{request.url.query}"
+        url += f"?{request.url.query}"
 
     body = await request.body()
     if len(body) > MAX_BODY:
         raise HTTPException(status_code=413, detail="Request too large")
     headers = {k: v for k, v in request.headers.items() if k.lower() not in REQUEST_STRIP}
+    method = request.method
 
+    # Follow SAME-HOST redirects internally (a '/'→canonical 3xx would otherwise
+    # bounce the iframe onto a path the upstream rejects → raw 405). Off-host
+    # redirects are NOT followed (SSRF guard); they fall through and get rewritten.
+    # Fast timeout so a dead upstream fails in seconds, not 30s.
     try:
-        async with httpx.AsyncClient(verify=True, follow_redirects=False, timeout=30.0) as client:
-            upstream = await client.request(request.method, target, content=body, headers=headers)
+        async with httpx.AsyncClient(verify=True, follow_redirects=False,
+                                     timeout=httpx.Timeout(9.0, connect=4.0)) as client:
+            upstream = await client.request(method, url, content=body, headers=headers)
+            for _ in range(4):
+                if upstream.status_code not in (301, 302, 303, 307, 308):
+                    break
+                loc = upstream.headers.get("location")
+                if not loc:
+                    break
+                nxt = httpx.URL(str(upstream.url)).join(loc)
+                if nxt.host != base_host or nxt.scheme not in ("http", "https"):
+                    break  # off-host → don't follow; rewrite + return below
+                if upstream.status_code in (301, 302, 303):
+                    method, body = "GET", b""
+                upstream = await client.request(method, str(nxt), content=body, headers=headers)
     except httpx.RequestError:
-        raise HTTPException(status_code=502, detail="Upstream unreachable")
+        return _error_page(app_name, base, 502, "The app could not be reached. It may be offline or still starting up.")
+
+    # Upstream error → branded page (never relay a raw vendor 4xx/5xx body).
+    if upstream.status_code >= 400:
+        return _error_page(app_name, base, upstream.status_code,
+                           "The app returned an error and may not support being shown in a window. You can still open it in a new tab.")
 
     out_headers = {}
     for k, v in upstream.headers.items():
