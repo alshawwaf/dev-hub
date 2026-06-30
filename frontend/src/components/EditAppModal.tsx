@@ -101,8 +101,8 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
       onClick={onClose}
     >
       <div
-        className="bg-bg-card w-full max-w-2xl relative rounded-2xl border border-white/10 p-10"
-        style={{ maxHeight: '88vh', overflowY: 'auto', border: '1px solid var(--glass-border-strong)', boxShadow: 'var(--shadow-elevated)' }}
+        className="bg-bg-card w-full max-w-2xl relative rounded-2xl"
+        style={{ maxHeight: '88vh', overflowY: 'auto', padding: '24px 28px', border: '1px solid var(--glass-border-strong)', boxShadow: 'var(--shadow-elevated)' }}
         onClick={e => e.stopPropagation()}
       >
         <button 
@@ -112,7 +112,7 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
           <X size={20} />
         </button>
 
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-4 mb-4">
           <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
             <Save size={24} className="text-primary-light" />
           </div>
@@ -122,10 +122,10 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
           </div>
         </div>
 
-        {error && <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-lg mb-6 text-sm">{error}</div>}
+        {error && <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-lg mb-4 text-sm">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Name</label>
               <input name="name" type="text" required value={formData.name} onChange={handleChange} className="w-full bg-bg-surface border border-glass-border rounded-lg p-3 text-sm" />
@@ -141,7 +141,7 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
             <textarea name="description" rows={2} required value={formData.description} onChange={handleChange} className="w-full bg-bg-surface border border-glass-border rounded-lg p-3 text-sm resize-none" />
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">URL</label>
               <input name="url" type="url" required value={formData.url} onChange={handleChange} className="w-full bg-bg-surface border border-glass-border rounded-lg p-3 text-sm" />
