@@ -133,9 +133,10 @@ def seed():
         db.commit()
         print(f"Application sync complete. Added {added} new app(s).")
 
-        # One-time icon overhaul: give the in-house apps a glyph icon. Only
-        # replaces an empty icon or the old "/logos/..." default, so any icon an
-        # admin sets later (via the edit form) is never clobbered.
+        # Default glyph for in-house apps. Fills ONLY an empty icon, so any icon an
+        # admin sets later (including a /logos/… path) is never reverted on redeploy.
+        # (Previously this also overwrote any "/logos/…" value, which silently undid
+        # admin icon edits every deploy.)
         bespoke_icons = {
             "Demo Server": "lucide:Server",
             "Script Builder": "lucide:Terminal",
@@ -149,7 +150,7 @@ def seed():
             row = db.query(models.Application).filter(
                 models.Application.name == app_name
             ).first()
-            if row and (not row.icon or row.icon.startswith("/logos/")):
+            if row and not row.icon:
                 row.icon = new_icon
                 changed += 1
         if changed:

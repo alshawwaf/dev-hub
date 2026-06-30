@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Server, Terminal, KeyRound, GraduationCap, Sparkles, ShieldCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { AppInfo } from './types';
@@ -13,6 +13,9 @@ const LUCIDE: Record<string, LucideIcon> = { Server, Terminal, KeyRound, Graduat
 // load, so a missing logo never renders as a blank/greyed tile.
 const ImgGlyph: React.FC<{ src: string; name: string; size: number }> = ({ src, name, size }) => {
   const [failed, setFailed] = useState(false);
+  // Retry when the icon changes — otherwise a once-failed icon stays on the letter
+  // fallback even after it's edited to a valid path (until a full reload).
+  useEffect(() => { setFailed(false); }, [src]);
   if (failed) {
     const letter = (name || '').trim().charAt(0).toUpperCase() || '?';
     return <span aria-hidden="true" style={{ fontSize: size * 0.78, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{letter}</span>;
