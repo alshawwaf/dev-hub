@@ -25,6 +25,7 @@ class PrefsIn(BaseModel):
     geometry: Optional[dict] = None   # None = leave unchanged
     widgets: Optional[list] = None    # None = leave unchanged; [] = explicitly none
     theme: Optional[str] = None       # "dark" | "light"; None = leave unchanged
+    icon_positions: Optional[dict] = None  # { appId: {x,y} }; None = leave unchanged
 
 
 class DefaultIn(BaseModel):
@@ -70,6 +71,21 @@ def _clean_geometry(raw: Optional[dict]) -> dict:
     return clean
 
 
+def _clean_icon_positions(raw) -> dict:
+    clean = {}
+    for k, v in (raw or {}).items():
+        try:
+            kid = int(k)
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(v, dict):
+            continue
+        clean[str(kid)] = {"x": _clamp(v.get("x"), 0, 12000, 0), "y": _clamp(v.get("y"), 0, 12000, 0)}
+        if len(clean) >= 128:
+            break
+    return clean
+
+
 def _clean_widgets(raw) -> list:
     if not isinstance(raw, list):
         return []
@@ -91,6 +107,7 @@ def get_prefs(db: Session = Depends(get_db), user: schemas.User = Depends(read_u
         # None (never set) -> client applies its default; [] -> user disabled all.
         "widgets": (row.widgets if row and row.widgets is not None else None),
         "theme": (row.theme if row and row.theme else "dark"),
+        "icon_positions": (row.icon_positions if row and row.icon_positions else {}),
     }
 
 
@@ -108,8 +125,11 @@ def put_prefs(body: PrefsIn, db: Session = Depends(get_db), user: schemas.User =
         row.widgets = _clean_widgets(body.widgets)
     if body.theme in ("dark", "light"):
         row.theme = body.theme
+    if body.icon_positions is not None:
+        row.icon_positions = _clean_icon_positions(body.icon_positions)
     db.commit()
-    return {"overrides": row.overrides or {}, "geometry": row.geometry or {}, "widgets": row.widgets or [], "theme": row.theme or "dark"}
+    return {"overrides": row.overrides or {}, "geometry": row.geometry or {}, "widgets": row.widgets or [],
+            "theme": row.theme or "dark", "icon_positions": row.icon_positions or {}}
 
 
 @router.post("/default")

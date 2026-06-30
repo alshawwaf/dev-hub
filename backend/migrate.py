@@ -34,6 +34,8 @@ def _add_missing_columns():
             pending.append("ALTER TABLE user_desktop_prefs ADD COLUMN widgets JSON")
         if "theme" not in upcols:
             pending.append("ALTER TABLE user_desktop_prefs ADD COLUMN theme VARCHAR DEFAULT 'dark'")
+        if "icon_positions" not in upcols:
+            pending.append("ALTER TABLE user_desktop_prefs ADD COLUMN icon_positions JSON")
 
     is_pg = engine.dialect.name != "sqlite"
     for stmt in pending:

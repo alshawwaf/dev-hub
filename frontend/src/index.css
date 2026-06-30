@@ -1310,16 +1310,13 @@ svg {
 .os-deskicons {
   position: absolute;
   inset: 16px 16px 16px 16px;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  gap: 8px 6px;
   z-index: 2;
-  /* let clicks/drops on empty desktop space fall through to the desktop drop target */
+  /* free-positioned canvas: icons are absolutely placed (see iconGrid). Empty
+     space stays click-through so the desktop right-click/drop target works. */
   pointer-events: none;
 }
 .os-deskicon {
+  position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1333,8 +1330,10 @@ svg {
   border-radius: 12px;
   cursor: pointer;
   pointer-events: auto;
+  touch-action: none;
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
+.os-deskicon.dragging { z-index: 50; opacity: 0.9; cursor: grabbing; }
 .os-deskicon:hover { background: rgba(255, 255, 255, 0.06); border-color: var(--glass-border); }
 .os-deskicon:focus-visible { outline: none; background: rgba(124, 58, 237, 0.16); border-color: var(--primary-glow); }
 .os-deskicon-tile {
