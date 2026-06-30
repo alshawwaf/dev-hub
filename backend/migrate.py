@@ -29,13 +29,23 @@ def _add_missing_columns():
         if "geometry" not in upcols:
             pending.append("ALTER TABLE user_desktop_prefs ADD COLUMN geometry JSON")
 
+    is_pg = engine.dialect.name != "sqlite"
     for stmt in pending:
         try:
             with engine.begin() as conn:
+                # DDL needs room: the engine's runtime caps (statement_timeout=8s,
+                # lock_timeout=4s) would otherwise abort an ALTER that briefly waits
+                # for ACCESS EXCLUSIVE during a busy redeploy, silently leaving a
+                # column missing -> the /apps/ SELECT then 500s. Relax for this
+                # transaction only (SET LOCAL auto-resets on commit); request
+                # handlers keep the runtime caps.
+                if is_pg:
+                    conn.execute(text("SET LOCAL statement_timeout = 0"))
+                    conn.execute(text("SET LOCAL lock_timeout = '60s'"))
                 conn.execute(text(stmt))
             print(f"Migration applied: {stmt}")
         except Exception as e:
-            print(f"Migration skipped ({stmt}): {e}")
+            print(f"ERROR: migration failed, schema may be incomplete ({stmt}): {e}")
 
 
 def init_db():

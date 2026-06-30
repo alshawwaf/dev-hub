@@ -16,12 +16,18 @@ else:
     # transaction hang forever — that would tie up a pooled connection and,
     # once the pool and the request threadpool are starved, make *every*
     # request time out (the 504-on-everything failure mode). Hard timeouts
-    # abort fast so the app self-heals; pre_ping drops dead connections; the
-    # pool is sized for request traffic + the background activity writer.
+    # abort fast so the app self-heals; pre_ping drops dead connections.
+    #
+    # Pool sizing: max connections (pool_size + max_overflow = 40) is kept >=
+    # the FastAPI/AnyIO sync threadpool (pinned to 40 in main.py). If the pool
+    # were smaller than the threadpool, connection-holders and waiters can
+    # circular-wait (a sync handler holds a connection while another blocks for
+    # one) — that is exactly what parked 15 sessions idle-in-transaction. With
+    # pool >= threadpool, every worker can always obtain a connection.
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
         pool_pre_ping=True,
-        pool_size=10,
+        pool_size=20,
         max_overflow=20,
         pool_recycle=1800,
         pool_timeout=15,
