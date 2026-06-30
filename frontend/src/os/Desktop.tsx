@@ -52,7 +52,11 @@ const DesktopSurface: React.FC<{
 
   return (
     <div className="os-root">
-      <div className="os-wallpaper" />
+      <div className="os-wallpaper">
+        <span className="os-mesh-blob m1" />
+        <span className="os-mesh-blob m2" />
+        <span className="os-mesh-blob m3" />
+      </div>
       <MenuBar onAddApp={onAddApp} onOpenLaunchpad={onOpenLaunchpad} />
 
       <div

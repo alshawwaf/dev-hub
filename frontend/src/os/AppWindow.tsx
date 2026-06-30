@@ -5,6 +5,7 @@ import { useWindows } from './WindowManager';
 import Launcher from './Launcher';
 import SystemContent from './system/SystemContent';
 import { safeHttpUrl } from './url';
+import AppGlyph from './AppGlyph';
 
 const TITLEBAR_H = 40;
 const EMBED_TIMEOUT_MS = 10000;
@@ -71,7 +72,7 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
           <button className="tl tl-min" aria-label="Minimize" onClick={() => minimizeWindow(win.id)} />
           <button className="tl tl-max" aria-label="Maximize" onClick={() => toggleMaximize(win.id)} />
         </div>
-        <span className="os-title">{app.name}{app.category ? ` — ${app.category}` : ''}</span>
+        <span className="os-title"><span className="os-title-ic"><AppGlyph app={app} size={14} /></span>{app.name}{app.category ? ` — ${app.category}` : ''}</span>
         <div className="os-titlebar-right">
           {safeUrl && (
             <a href={safeUrl} target="_blank" rel="noopener noreferrer" title="Open in new tab" onPointerDown={e => e.stopPropagation()}>
