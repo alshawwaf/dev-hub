@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Play, ExternalLink, Pin, PinOff, Pencil, Trash2 } from 'lucide-react';
+import { Search, Play, ExternalLink, Pencil, Trash2, MoreHorizontal } from 'lucide-react';
 import type { AppInfo } from './types';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
@@ -13,7 +13,7 @@ import { tintFor } from './iconStyle';
 const Launchpad: React.FC<{ apps: AppInfo[]; onClose: () => void }> = ({ apps, onClose }) => {
   const { openApp } = useWindows();
   const { getPlacement, setPlacement } = useLayout();
-  const { open: openMenu } = useContextMenu();
+  const { open: openMenu, openAt } = useContextMenu();
   const { isAdmin, openEditApp, openDeleteApp } = useHub();
   const [q, setQ] = useState('');
   const restoreFocus = useRef<HTMLElement | null>(null);
@@ -35,17 +35,18 @@ const Launchpad: React.FC<{ apps: AppInfo[]; onClose: () => void }> = ({ apps, o
 
   const launch = (app: AppInfo) => { openApp(app); onClose(); };
 
-  // Per-app right-click menu (built-in system apps only get "Open").
-  const onItemMenu = (app: AppInfo) => (e: React.MouseEvent) => {
-    if (app.system) return;
-    const placement = getPlacement(app);
-    const inDock = placement === 'dock' || placement === 'both';
+  // Shared per-app menu: live In-Dock / On-Desktop toggles (independent, mapped
+  // onto the Placement enum) + open/edit. Built-in system apps get no menu.
+  const buildItems = (app: AppInfo): MenuItem[] => {
+    const p = getPlacement(app);
+    const inDock = p === 'dock' || p === 'both';
+    const onDesk = p === 'desktop' || p === 'both';
     const items: MenuItem[] = [
       { label: 'Open', icon: <Play size={15} />, onClick: () => launch(app) },
       { separator: true, label: '' },
-      inDock
-        ? { label: 'Remove from Dock', icon: <PinOff size={15} />, onClick: () => setPlacement(app, placement === 'both' ? 'desktop' : 'hidden') }
-        : { label: 'Keep in Dock', icon: <Pin size={15} />, onClick: () => setPlacement(app, placement === 'desktop' ? 'both' : 'dock') },
+      { label: 'In Dock', checked: inDock, keepOpen: true, onClick: () => setPlacement(app, inDock ? (onDesk ? 'desktop' : 'hidden') : (onDesk ? 'both' : 'dock')) },
+      { label: 'On Desktop', checked: onDesk, keepOpen: true, onClick: () => setPlacement(app, onDesk ? (inDock ? 'dock' : 'hidden') : (inDock ? 'both' : 'desktop')) },
+      { separator: true, label: '' },
       { label: 'Open in new tab', icon: <ExternalLink size={15} />, onClick: () => openExternal(app.url) },
     ];
     if (isAdmin) {
@@ -55,7 +56,17 @@ const Launchpad: React.FC<{ apps: AppInfo[]; onClose: () => void }> = ({ apps, o
         { label: 'Delete app…', icon: <Trash2 size={15} />, danger: true, onClick: () => { onClose(); openDeleteApp(app); } },
       );
     }
-    openMenu(e, items);
+    return items;
+  };
+
+  const onItemMenu = (app: AppInfo) => (e: React.MouseEvent) => {
+    if (app.system) return;
+    openMenu(e, buildItems(app));
+  };
+  const onMore = (app: AppInfo) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    openAt(r.right - 210, r.bottom + 6, buildItems(app));
   };
 
   return (
@@ -67,7 +78,14 @@ const Launchpad: React.FC<{ apps: AppInfo[]; onClose: () => void }> = ({ apps, o
       <div className="os-launchpad-grid" onMouseDown={e => e.stopPropagation()}>
         {filtered.map(app => (
           <button key={app.id} className="os-launchpad-item" onClick={() => launch(app)} onContextMenu={onItemMenu(app)}>
-            <span className="os-launchpad-icon" style={{ background: tintFor(app) }}><AppGlyph app={app} size={40} /></span>
+            <span className="os-launchpad-icon" style={{ background: tintFor(app) }}>
+              <AppGlyph app={app} size={40} />
+              {!app.system && (
+                <span className="os-launchpad-more" role="button" tabIndex={-1} aria-label={`Options for ${app.name}`} onClick={onMore(app)}>
+                  <MoreHorizontal size={14} />
+                </span>
+              )}
+            </span>
             <span className="os-launchpad-label">{app.name}</span>
           </button>
         ))}

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Search, ChevronDown, Plus, Shield, BookOpen, LogOut, Github, LayoutGrid, Info, Bell, Trash2, SlidersHorizontal, Sun, Moon } from 'lucide-react';
+import { Search, ChevronDown, Plus, Shield, BookOpen, LogOut, Github, LayoutGrid, Info, Bell, Trash2, SlidersHorizontal, Sun, Moon, X } from 'lucide-react';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
 import { useContextMenu } from './ContextMenu';
@@ -10,6 +10,13 @@ import api from '../services/api';
 
 interface Notif { id: number; kind: string; text: string; read: boolean; created_at: string; }
 const notifTime = (s: string) => new Date(/[Z+]/.test(s) ? s : s + 'Z').toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+const ago = (s: string) => {
+  const d = Math.max(0, Math.floor((Date.now() - new Date(/[Z+]/.test(s) ? s : s + 'Z').getTime()) / 1000));
+  if (d < 60) return `${d}s ago`;
+  if (d < 3600) return `${Math.floor(d / 60)}m ago`;
+  if (d < 86400) return `${Math.floor(d / 3600)}h ago`;
+  return `${Math.floor(d / 86400)}d ago`;
+};
 
 interface MenuBarProps {
   onAddApp: () => void;
@@ -83,6 +90,9 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad }) => {
     });
   };
   const clearNotifs = () => api.delete('notifications/').then(() => setNotifs({ items: [], unread: 0 })).catch(() => {});
+  const deleteNotif = (id: number) => api.delete(`notifications/${id}`)
+    .then(() => setNotifs(n => (n ? { items: n.items.filter(i => i.id !== id), unread: n.unread } : n)))
+    .catch(() => {});
 
   const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const day = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
@@ -169,8 +179,11 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad }) => {
                 ) : (
                   notifs.items.map(n => (
                     <div key={n.id} className={`os-bell-item k-${n.kind}`}>
-                      <span>{n.text}</span>
-                      <time>{notifTime(n.created_at)}</time>
+                      <div className="os-bell-body">
+                        <span>{n.text}</span>
+                        <time title={notifTime(n.created_at)}>{ago(n.created_at)}</time>
+                      </div>
+                      <button className="os-bell-x" onClick={() => deleteNotif(n.id)} aria-label="Dismiss notification"><X size={13} /></button>
                     </div>
                   ))
                 )}
