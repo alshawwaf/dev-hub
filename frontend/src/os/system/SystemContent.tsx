@@ -1,10 +1,9 @@
-import React from 'react';
-import { RotateCcw, Shield, Plus, Layers, ExternalLink, Github, AppWindow as WindowIcon, Clock } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { RotateCcw, Shield, Plus, Layers, ExternalLink, Github, Trash2, Search, X } from 'lucide-react';
 import type { SystemKey } from '../types';
 import { useLayout } from '../LayoutContext';
-import { useWindows } from '../WindowManager';
 import { useHub } from '../HubContext';
-import { getRecents } from '../recents';
+import api from '../../services/api';
 import GuidePage from '../../pages/GuidePage';
 
 const SettingsApp: React.FC = () => {
@@ -40,40 +39,103 @@ const SettingsApp: React.FC = () => {
   );
 };
 
-const LogsApp: React.FC = () => {
-  const { windows, focusWindow } = useWindows();
-  const { apps } = useHub();
-  const recents = getRecents()
-    .map(id => apps.find(a => a.id === id))
-    .filter((a): a is NonNullable<typeof a> => Boolean(a));
+interface ActRow { id: number; at: string; kind: string; method: string; path: string; source_ip: string; actor: string; status: number; duration_ms: number; summary: string; detail?: unknown; }
+interface ActData { items: ActRow[]; total: number; errors: number; avg_ms: number; sources: number; }
+
+const KINDS = ['all', 'api', 'auth', 'admin', 'embed'];
+const fmtTime = (at: string) => new Date(/[Z+]/.test(at) ? at : at + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const statusClass = (s: number) => (s >= 500 ? 'err' : s >= 400 ? 'warn' : 'ok');
+
+const ActivityFeed: React.FC = () => {
+  const { isAdmin } = useHub();
+  const [data, setData] = useState<ActData | null>(null);
+  const [kind, setKind] = useState('all');
+  const [errorsOnly, setErrorsOnly] = useState(false);
+  const [q, setQ] = useState('');
+  const [forbidden, setForbidden] = useState(false);
+  const [detail, setDetail] = useState<ActRow | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const params: Record<string, string> = {};
+      if (kind !== 'all') params.kind = kind;
+      if (errorsOnly) params.only = 'errors';
+      if (q.trim()) params.q = q.trim();
+      const res = await api.get('activity/', { params });
+      setData(res.data);
+      setForbidden(false);
+    } catch (e: any) {
+      if (e?.response?.status === 401 || e?.response?.status === 403) setForbidden(true);
+    }
+  }, [kind, errorsOnly, q]);
+
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const t = window.setInterval(load, 5000);
+    return () => window.clearInterval(t);
+  }, [load]);
+
+  if (forbidden) {
+    return (
+      <div className="os-sys">
+        <section className="os-sys-section">
+          <h3>Activity</h3>
+          <p>Activity logs are available to administrators. Sign in as an admin to view them.</p>
+        </section>
+      </div>
+    );
+  }
+
+  const openDetail = async (id: number) => {
+    try { const r = await api.get(`activity/${id}`); setDetail(r.data); } catch { /* ignore */ }
+  };
+  const clear = async () => {
+    if (!confirm('Clear all activity logs?')) return;
+    try { await api.delete('activity/'); setDetail(null); load(); } catch { /* ignore */ }
+  };
 
   return (
-    <div className="os-sys">
-      <section className="os-sys-section">
-        <h3><WindowIcon size={16} /> Open windows</h3>
-        {windows.length === 0 ? (
-          <p>No windows are open.</p>
-        ) : (
-          <ul className="os-sys-list">
-            {windows.map(w => (
-              <li key={w.id}>
-                <button onClick={() => focusWindow(w.id)}>{w.app.name}{w.minimized ? ' (minimized)' : ''}</button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+    <div className="os-activity">
+      <div className="os-act-stats">
+        <div className="os-act-stat"><span>{data?.total ?? '–'}</span><label>events</label></div>
+        <div className="os-act-stat"><span className={data && data.errors ? 'err' : ''}>{data?.errors ?? '–'}</span><label>errors</label></div>
+        <div className="os-act-stat"><span>{data?.avg_ms ?? '–'}<small>ms</small></span><label>avg</label></div>
+        <div className="os-act-stat"><span>{data?.sources ?? '–'}</span><label>sources</label></div>
+      </div>
 
-      <section className="os-sys-section">
-        <h3><Clock size={16} /> Recently opened</h3>
-        {recents.length === 0 ? (
-          <p>Nothing opened yet this session.</p>
-        ) : (
-          <ul className="os-sys-list">
-            {recents.map(a => <li key={a.id}>{a.name}</li>)}
-          </ul>
-        )}
-      </section>
+      <div className="os-act-toolbar">
+        {KINDS.map(k => (
+          <button key={k} className={`os-act-chip ${kind === k ? 'on' : ''}`} onClick={() => setKind(k)}>{k}</button>
+        ))}
+        <button className={`os-act-chip ${errorsOnly ? 'on' : ''}`} onClick={() => setErrorsOnly(v => !v)}>errors only</button>
+        <div className="os-act-search"><Search size={13} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Search path, ip, user" /></div>
+        {isAdmin && <button className="os-act-clear" onClick={clear} title="Clear all"><Trash2 size={14} /></button>}
+      </div>
+
+      <div className="os-act-list">
+        {data?.items.length === 0 && <p className="os-sys-hint">No activity yet.</p>}
+        {data?.items.map(r => (
+          <button key={r.id} className="os-act-row" onClick={() => openDetail(r.id)}>
+            <span className={`os-act-method m-${r.method.toLowerCase()}`}>{r.method}</span>
+            <span className={`os-act-status s-${statusClass(r.status)}`}>{r.status}</span>
+            <span className="os-act-path">{r.path}</span>
+            <span className="os-act-kind">{r.kind}</span>
+            <span className="os-act-actor">{r.actor}</span>
+            <span className="os-act-dur">{r.duration_ms}ms</span>
+            <span className="os-act-time">{fmtTime(r.at)}</span>
+          </button>
+        ))}
+      </div>
+
+      {detail && (
+        <div className="os-act-drawer" onClick={() => setDetail(null)}>
+          <div className="os-act-drawer-card" onClick={e => e.stopPropagation()}>
+            <button className="os-act-drawer-x" onClick={() => setDetail(null)}><X size={16} /></button>
+            <h3>{detail.method} {detail.path}</h3>
+            <pre>{JSON.stringify(detail, null, 2)}</pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -94,7 +156,7 @@ const AboutApp: React.FC = () => (
 const SystemContent: React.FC<{ appKey: SystemKey }> = ({ appKey }) => {
   switch (appKey) {
     case 'settings': return <SettingsApp />;
-    case 'logs': return <LogsApp />;
+    case 'logs': return <ActivityFeed />;
     case 'guide': return <div className="os-sys-guide"><GuidePage /></div>;
     case 'about': return <AboutApp />;
     default: return null;
