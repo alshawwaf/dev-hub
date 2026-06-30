@@ -10,6 +10,8 @@ class AppBase(BaseModel):
     category: Optional[str] = None
     icon: Optional[str] = None
     is_live: bool = True
+    embeddable: bool = False
+    placement: str = "desktop"
 
 class AppCreate(AppBase):
     pass

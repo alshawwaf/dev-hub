@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
-import LandingPage from './pages/LandingPage';
+import Desktop from './os/Desktop';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import GuidePage from './pages/GuidePage';
@@ -18,46 +18,43 @@ const ProtectedRoute = ({ children, adminOnly = false }: { children: React.React
       </div>
     );
   }
-  
+
   if (!user) return <Navigate to="/login" replace />;
   if (adminOnly && !user.is_admin) return <Navigate to="/" replace />;
 
   return <>{children}</>;
 };
 
+// Chrome layout for the secondary pages (login / admin / guide) that still use
+// the classic navbar + animated background. The desktop route renders full-bleed.
+const ChromeLayout = ({ children }: { children: React.ReactNode }) => (
+  <div className="min-h-screen relative">
+    <div className="landing-bg"></div>
+    <Navbar />
+    <div className="relative z-10 pt-2">{children}</div>
+    <footer>
+      <p>© 2026 AI Dev Hub • Crafted for AI by AI</p>
+    </footer>
+  </div>
+);
+
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen relative">
-          {/* Animated Background */}
-          <div className="landing-bg"></div>
-          
-          {/* Navigation */}
-          <Navbar />
-          
-          {/* Main Content */}
-          <div className="relative z-10 pt-2">
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/guide" element={<GuidePage />} />
-              <Route 
-                path="/admin" 
-                element={
-                  <ProtectedRoute adminOnly>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-            </Routes>
-          </div>
-          
-          {/* Footer */}
-          <footer>
-            <p>© 2026 AI Dev Hub • Crafted for AI by AI</p>
-          </footer>
-        </div>
+        <Routes>
+          <Route path="/" element={<Desktop />} />
+          <Route path="/login" element={<ChromeLayout><LoginPage /></ChromeLayout>} />
+          <Route path="/guide" element={<ChromeLayout><GuidePage /></ChromeLayout>} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute adminOnly>
+                <ChromeLayout><AdminDashboard /></ChromeLayout>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
       </Router>
     </AuthProvider>
   );
