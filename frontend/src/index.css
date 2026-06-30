@@ -769,6 +769,14 @@ footer p {
 .min-h-screen { min-height: 100vh; }
 .max-w-md { max-width: 28rem; }
 .max-w-2xl { max-width: 42rem; }
+/* Utility classes the Add/Edit modals rely on (this project ships a CSS subset,
+   not full Tailwind — these were referenced but never defined, so the Edit modal
+   rendered as a transparent, full-height, uncontained sheet). */
+.bg-bg-card { background: var(--bg-elevated); }
+.bg-bg-surface { background: var(--bg-surface); }
+.border-glass-border { border-color: var(--glass-border); }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.app-icon-prev img { max-width: 32px; max-height: 32px; object-fit: contain; }
 
 /* Positioning */
 .fixed { position: fixed; }
