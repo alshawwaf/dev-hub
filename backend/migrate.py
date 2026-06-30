@@ -23,6 +23,8 @@ def _add_missing_columns():
         pending.append("ALTER TABLE applications ADD COLUMN placement VARCHAR DEFAULT 'desktop'")
     if "proxy_embed" not in existing:
         pending.append(f"ALTER TABLE applications ADD COLUMN proxy_embed BOOLEAN DEFAULT {bool_false}")
+    if "embed_url" not in existing:
+        pending.append("ALTER TABLE applications ADD COLUMN embed_url VARCHAR")
     # remembered window geometry, added after the prefs table first shipped
     if inspector.has_table("user_desktop_prefs"):
         upcols = {col["name"] for col in inspector.get_columns("user_desktop_prefs")}

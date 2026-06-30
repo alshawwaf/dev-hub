@@ -36,6 +36,11 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // embed_url is sensitive (carries a token), so it's never in the public app
+  // payload. Fetch it from the authenticated endpoint to prefill; only send it
+  // back if the admin actually edits it (so a failed prefetch can't wipe it).
+  const [embedUrl, setEmbedUrl] = useState('');
+  const [embedDirty, setEmbedDirty] = useState(false);
 
   useEffect(() => {
     if (app) {
@@ -50,6 +55,9 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
         embeddable: app.embeddable ?? false,
         proxy_embed: app.proxy_embed ?? false
       });
+      setEmbedUrl('');
+      setEmbedDirty(false);
+      api.get(`apps/${app.id}/embed`).then(r => setEmbedUrl(r.data?.embed_url || '')).catch(() => {});
     }
   }, [app]);
 
@@ -63,7 +71,9 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
 
     try {
       const token = localStorage.getItem('token');
-      await api.put(`apps/${app.id}`, formData, {
+      const payload: Record<string, unknown> = { ...formData };
+      if (embedDirty) payload.embed_url = embedUrl;
+      await api.put(`apps/${app.id}`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
       onAppUpdated();
@@ -167,8 +177,21 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
           <div className="flex items-center gap-3">
             <input id="proxy_embed" name="proxy_embed" type="checkbox" checked={formData.proxy_embed} onChange={handleChange} className="w-4 h-4" />
             <label htmlFor="proxy_embed" className="text-sm text-text-secondary">
-              Route through the same-origin proxy — for apps that block framing (e.g. n8n). The app may also need its own base-path set.
+              Route through the same-origin proxy — for simple apps that block framing but tolerate a path prefix. Single-page apps (n8n, Langflow) don't work this way: embed them directly and add the hub to their <code>frame-ancestors</code> instead.
             </label>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Embed URL (optional)</label>
+            <input
+              name="embed_url"
+              type="url"
+              value={embedUrl}
+              onChange={e => { setEmbedUrl(e.target.value); setEmbedDirty(true); }}
+              placeholder="Token-bearing URL to frame instead of the app URL"
+              className="w-full bg-bg-surface border border-glass-border rounded-lg p-3 text-sm"
+            />
+            <p className="text-xs text-text-muted mt-1">Stored encrypted. When set, the in-window frame loads this instead of the app URL — e.g. an OpenClaw tokenized dashboard URL. Leave blank to frame the app URL.</p>
           </div>
 
           <button type="submit" disabled={loading} className="w-full btn btn-primary py-3 rounded-xl font-semibold">

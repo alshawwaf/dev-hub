@@ -7,6 +7,7 @@ import Launcher from './Launcher';
 import SystemContent from './system/SystemContent';
 import { safeHttpUrl } from './url';
 import AppGlyph from './AppGlyph';
+import api from '../services/api';
 
 const TITLEBAR_H = 40;
 const EMBED_TIMEOUT_MS = 18000;
@@ -25,6 +26,21 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
   const [interacting, setInteracting] = useState(false);
   const [embedPhase, setEmbedPhase] = useState<'loading' | 'loaded' | 'blocked'>('loading');
   const [reloadKey, setReloadKey] = useState(0);
+  const [overrideSrc, setOverrideSrc] = useState<string | null>(null);
+
+  // Apps with an encrypted embed URL (e.g. a token-bearing dashboard) frame that
+  // URL instead of app.url. It's fetched from an authenticated endpoint so the
+  // token never rides in the public app list; anonymous users just get the launcher.
+  const needsOverride = !!app.embeddable && !app.proxy_embed && !!app.has_embed_url;
+  useEffect(() => {
+    if (!needsOverride) { setOverrideSrc(null); return; }
+    let cancelled = false;
+    setOverrideSrc(null);
+    api.get(`apps/${app.id}/embed`)
+      .then(r => { if (!cancelled) setOverrideSrc(safeHttpUrl(r.data?.embed_url)); })
+      .catch(() => { if (!cancelled) setOverrideSrc(null); });
+    return () => { cancelled = true; };
+  }, [app.id, needsOverride, reloadKey]);
 
   useEffect(() => {
     if (!app.embeddable && !app.proxy_embed) return;
@@ -100,7 +116,10 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
 
   const safeUrl = safeHttpUrl(app.url);
   const proxied = !!app.proxy_embed && !!safeUrl;
-  const embedSrc = proxied ? `/embed/${app.id}/` : safeUrl;
+  // proxy → /embed; override-URL app → the (authenticated) token URL once resolved;
+  // otherwise the app's real URL. needsOverride apps wait for the fetch (null src →
+  // launcher) so the bare, unauthenticated URL is never framed first.
+  const embedSrc = proxied ? `/embed/${app.id}/` : (needsOverride ? overrideSrc : safeUrl);
   const showEmbed = (!!app.embeddable || proxied) && !!embedSrc && embedPhase !== 'blocked';
 
   return (

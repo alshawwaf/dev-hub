@@ -25,8 +25,17 @@ class Application(Base):
     embeddable = Column(Boolean, default=False)  # app allows being shown inside an in-window iframe
     placement = Column(String, default="desktop")  # baseline surface: desktop | dock | both | hidden
     proxy_embed = Column(Boolean, default=False)  # route the in-window iframe through the same-origin /embed proxy
+    # Encrypted (AES-256-GCM) override URL for the in-window iframe — used when the
+    # framed URL must carry a token (e.g. OpenClaw's tokenized dashboard URL).
+    # NEVER exposed in the public API; only the has_embed_url flag is, and the
+    # decrypted value is served from an authenticated endpoint.
+    embed_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    @property
+    def has_embed_url(self) -> bool:
+        return bool(self.embed_url)
 
 class ActivityLog(Base):
     __tablename__ = "activity_log"
