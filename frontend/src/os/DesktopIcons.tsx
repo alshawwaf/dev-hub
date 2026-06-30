@@ -32,7 +32,7 @@ const DesktopIcon: React.FC<{ app: AppInfo }> = ({ app }) => {
     if (isAdmin) {
       items.push(
         { separator: true, label: '' },
-        { label: 'Edit app…', icon: <Pencil size={15} />, onClick: () => openEditApp(app) },
+        { label: 'Rename / Edit…', icon: <Pencil size={15} />, onClick: () => openEditApp(app) },
         { label: 'Delete app…', icon: <Trash2 size={15} />, danger: true, onClick: () => openDeleteApp(app) },
       );
     }

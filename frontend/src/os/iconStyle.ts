@@ -20,7 +20,18 @@ const TINTS: Record<string, string> = {
   'docs to swagger': 'linear-gradient(145deg,#12241f,#0a1813)',
 };
 
+// Deterministic dark, hue-varied gradient for any app not in TINTS (custom or
+// renamed apps), so every tile reads as a cohesive colored squircle instead of a
+// blank/grey square on the dark desktop.
+function fallbackTint(key: string): string {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  const hue = h % 360;
+  return `linear-gradient(145deg, hsl(${hue} 45% 22%), hsl(${hue} 55% 12%))`;
+}
+
 export function tintFor(app: AppInfo): string | undefined {
   if (app.system) return undefined;
-  return TINTS[(app.name || '').trim().toLowerCase()];
+  const key = (app.name || '').trim().toLowerCase();
+  return TINTS[key] ?? fallbackTint(key || 'app');
 }
