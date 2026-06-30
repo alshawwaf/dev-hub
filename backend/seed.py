@@ -1,5 +1,6 @@
 from db.database import SessionLocal
 from db import models
+from migrate import init_db
 from passlib.context import CryptContext
 import os
 
@@ -9,6 +10,9 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 def seed():
+    # Ensure tables + new columns exist before any query (seed.py runs
+    # standalone in the container CMD, before uvicorn imports main.py).
+    init_db()
     db = SessionLocal()
     try:
         # Basic Configuration - use env var or default
