@@ -2,7 +2,7 @@ import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from migrate import init_db
-from routers import auth, apps, embed, activity
+from routers import auth, apps, embed, activity, desktop
 from activity_log import write_activity, actor_from_auth, classify, excluded
 from seed import seed
 
@@ -57,6 +57,7 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(apps.router, prefix="/apps", tags=["apps"])
 app.include_router(embed.router, prefix="/embed", tags=["embed"])
 app.include_router(activity.router, prefix="/activity", tags=["activity"])
+app.include_router(desktop.router, prefix="/desktop", tags=["desktop"])
 
 @app.get("/")
 def read_root():

@@ -44,3 +44,11 @@ class ActivityLog(Base):
     detail = Column(JSON)            # small redacted context (query, user-agent)
 
     __table_args__ = (Index("ix_activity_kind_at", "kind", "at"),)
+
+class UserDesktopPref(Base):
+    __tablename__ = "user_desktop_prefs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, unique=True, index=True)   # users.id
+    overrides = Column(JSON, default=dict)                # { appId: "desktop|dock|both|hidden" }
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
