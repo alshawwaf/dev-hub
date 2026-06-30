@@ -1,22 +1,24 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { ExternalLink, Pin, PinOff, EyeOff, Play, Pencil, Trash2, SlidersHorizontal } from 'lucide-react';
 import type { AppInfo } from './types';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
 import { useContextMenu, type MenuItem } from './ContextMenu';
 import { useHub } from './HubContext';
-import { DRAG_MIME } from './drag';
 import { openExternal } from './url';
 import AppGlyph from './AppGlyph';
 import { tintFor } from './iconStyle';
+import { flowPositions, snapToFreeCell, rowsPerColumn, type Pos } from './iconGrid';
 
-const DesktopIcon: React.FC<{ app: AppInfo }> = ({ app }) => {
+const DesktopIcon: React.FC<{ app: AppInfo; pos: Pos; onMove: (id: number, x: number, y: number) => void }> = ({ app, pos, onMove }) => {
   const { openApp, isOpen } = useWindows();
   const { getPlacement, setPlacement } = useLayout();
   const { open: openMenu, openAt } = useContextMenu();
   const { isAdmin, openEditApp, openRenameApp, openDeleteApp } = useHub();
   const placement = getPlacement(app);
   const running = isOpen(app.id);
+  const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
+  const movedRef = useRef(false);
 
   const menuItems = (): MenuItem[] => {
     const items: MenuItem[] = [
@@ -50,17 +52,37 @@ const DesktopIcon: React.FC<{ app: AppInfo }> = ({ app }) => {
     }
   };
 
-  const onDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ id: app.id, source: 'desktop' }));
-    e.dataTransfer.effectAllowed = 'move';
+  // Pointer-drag to reposition; a plain click (no movement) opens the app.
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    const sx = e.clientX, sy = e.clientY;
+    movedRef.current = false;
+    const onPointerMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if (!movedRef.current && Math.hypot(dx, dy) > 4) movedRef.current = true;
+      if (movedRef.current) setDrag({ dx, dy });
+    };
+    const onPointerUp = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      setDrag(null);
+      if (movedRef.current) onMove(app.id, pos.x + (ev.clientX - sx), pos.y + (ev.clientY - sy));
+    };
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
+  const onClick = () => {
+    if (movedRef.current) { movedRef.current = false; return; }   // was a drag, not a click
+    openApp(app);
   };
 
   return (
     <button
-      className={`os-deskicon ${running ? 'running' : ''}`}
-      draggable
-      onDragStart={onDragStart}
-      onClick={() => openApp(app)}
+      className={`os-deskicon ${running ? 'running' : ''} ${drag ? 'dragging' : ''}`}
+      style={{ left: pos.x, top: pos.y, transform: drag ? `translate(${drag.dx}px, ${drag.dy}px)` : undefined }}
+      onPointerDown={onPointerDown}
+      onClick={onClick}
       onContextMenu={onContextMenu}
       onKeyDown={onKeyDown}
       title={app.description || app.name}
@@ -72,12 +94,18 @@ const DesktopIcon: React.FC<{ app: AppInfo }> = ({ app }) => {
 };
 
 const DesktopIcons: React.FC = () => {
-  const { desktopApps } = useLayout();
+  const { desktopApps, iconPositions, setIconPos } = useLayout();
   if (!desktopApps.length) return null;
+
+  const rows = rowsPerColumn(window.innerHeight);
+  const ids = desktopApps.map(a => a.id);
+  const positions = flowPositions(ids, iconPositions, rows);
+  const onMove = (id: number, x: number, y: number) => setIconPos(id, snapToFreeCell(x, y, id, positions, rows));
+
   return (
     <div className="os-deskicons">
       {desktopApps.map(app => (
-        <DesktopIcon key={app.id} app={app} />
+        <DesktopIcon key={app.id} app={app} pos={positions[app.id]} onMove={onMove} />
       ))}
     </div>
   );

@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type { AppInfo, Placement, WinGeometry, GeometryMap, WidgetId } from './types';
+import type { Pos } from './iconGrid';
 import api from '../services/api';
 
 const LS_OVERRIDES = 'devhub.layout.overrides';
 const LS_GEOMETRY = 'devhub.window.geometry';
 const LS_WIDGETS = 'devhub.layout.widgets';
 const LS_THEME = 'devhub.theme';
+const LS_ICONPOS = 'devhub.icon.positions';
 
 type Theme = 'dark' | 'light';
 
@@ -37,6 +39,17 @@ function cleanGeometry(parsed: unknown): GeometryMap {
   }
   return out;
 }
+function cleanIconPos(parsed: unknown): Record<number, Pos> {
+  const out: Record<number, Pos> = {};
+  if (parsed && typeof parsed === 'object') {
+    for (const [k, v] of Object.entries(parsed as Record<string, any>)) {
+      if (Number.isFinite(Number(k)) && v && Number.isFinite(Number(v.x)) && Number.isFinite(Number(v.y))) {
+        out[Number(k)] = { x: Number(v.x), y: Number(v.y) };
+      }
+    }
+  }
+  return out;
+}
 function cleanWidgets(parsed: unknown): WidgetId[] {
   const out: WidgetId[] = [];
   if (Array.isArray(parsed)) {
@@ -63,6 +76,8 @@ interface LayoutContextType {
   hasLocalOverrides: boolean;
   getGeometry: (appId: number) => WinGeometry | undefined;
   saveGeometry: (appId: number, g: WinGeometry) => void;
+  iconPositions: Record<number, Pos>;
+  setIconPos: (appId: number, pos: Pos) => void;
   widgets: WidgetId[];
   toggleWidget: (id: WidgetId) => void;
   theme: Theme;
@@ -83,6 +98,7 @@ interface ProviderProps {
 export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId, persistBaseline, children }) => {
   const [overrides, setOverrides] = useState<Overrides>(() => loadLS(LS_OVERRIDES, cleanOverrides));
   const [geometry, setGeometry] = useState<GeometryMap>(() => loadLS(LS_GEOMETRY, cleanGeometry));
+  const [iconPositions, setIconPositions] = useState<Record<number, Pos>>(() => loadLS(LS_ICONPOS, cleanIconPos));
   const [widgets, setWidgets] = useState<WidgetId[]>(() => {
     try {
       const raw = localStorage.getItem(LS_WIDGETS);
@@ -106,8 +122,8 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
   const isPersonalUser = !!userId && !isAdmin;
 
   // Latest state, read by the debounced writer at fire time.
-  const stateRef = useRef({ overrides, geometry, widgets, theme, isPersonalUser });
-  useEffect(() => { stateRef.current = { overrides, geometry, widgets, theme, isPersonalUser }; }, [overrides, geometry, widgets, theme, isPersonalUser]);
+  const stateRef = useRef({ overrides, geometry, iconPositions, widgets, theme, isPersonalUser });
+  useEffect(() => { stateRef.current = { overrides, geometry, iconPositions, widgets, theme, isPersonalUser }; }, [overrides, geometry, iconPositions, widgets, theme, isPersonalUser]);
 
   // Load server prefs on sign-in.
   useEffect(() => {
@@ -117,6 +133,7 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
       if (cancelled) return;
       setOverrides(cleanOverrides(r.data?.overrides));
       setGeometry(cleanGeometry(r.data?.geometry));
+      setIconPositions(cleanIconPos(r.data?.icon_positions));
       // null/undefined (never set) → default; [] → respected (all off).
       setWidgets(r.data?.widgets != null ? cleanWidgets(r.data.widgets) : DEFAULT_WIDGETS);
       if (r.data?.theme === 'light' || r.data?.theme === 'dark') setThemeState(r.data.theme);
@@ -131,11 +148,12 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
     timer.current = window.setTimeout(() => {
       const s = stateRef.current;
       if (s.isPersonalUser) {
-        api.put('desktop/prefs', { overrides: s.overrides, geometry: s.geometry, widgets: s.widgets, theme: s.theme }).catch(() => {});
+        api.put('desktop/prefs', { overrides: s.overrides, geometry: s.geometry, widgets: s.widgets, theme: s.theme, icon_positions: s.iconPositions }).catch(() => {});
       } else {
         saveLS(LS_OVERRIDES, s.overrides);
         saveLS(LS_GEOMETRY, s.geometry);
         saveLS(LS_WIDGETS, s.widgets);
+        saveLS(LS_ICONPOS, s.iconPositions);
       }
     }, 450);
   }, []);
@@ -174,12 +192,18 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
   const resetLayout = useCallback(() => {
     setOverrides({});
     setGeometry({});
+    setIconPositions({});
     scheduleFlush();
   }, [scheduleFlush]);
 
   const getGeometry = useCallback((appId: number) => geometry[appId], [geometry]);
   const saveGeometry = useCallback((appId: number, g: WinGeometry) => {
     setGeometry(prev => ({ ...prev, [appId]: g }));
+    scheduleFlush();
+  }, [scheduleFlush]);
+
+  const setIconPos = useCallback((appId: number, pos: Pos) => {
+    setIconPositions(prev => ({ ...prev, [appId]: pos }));
     scheduleFlush();
   }, [scheduleFlush]);
 
@@ -195,8 +219,8 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
   const toggleTheme = useCallback(() => setTheme(theme === 'dark' ? 'light' : 'dark'), [theme, setTheme]);
 
   const value = useMemo(
-    () => ({ getPlacement, desktopApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry, widgets, toggleWidget, theme, setTheme, toggleTheme, hasLocalOverrides: Object.keys(overrides).length > 0 }),
-    [getPlacement, desktopApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry, widgets, toggleWidget, theme, setTheme, toggleTheme, overrides],
+    () => ({ getPlacement, desktopApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry, iconPositions, setIconPos, widgets, toggleWidget, theme, setTheme, toggleTheme, hasLocalOverrides: Object.keys(overrides).length > 0 }),
+    [getPlacement, desktopApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry, iconPositions, setIconPos, widgets, toggleWidget, theme, setTheme, toggleTheme, overrides],
   );
 
   return <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>;
