@@ -142,6 +142,7 @@ def seed():
             "SAML IDP Simulator": "lucide:KeyRound",
             "Training Portal": "lucide:GraduationCap",
             "AI Basic Training": "lucide:Sparkles",
+            "Lakera Guard Demo": "lucide:ShieldCheck",
         }
         changed = 0
         for app_name, new_icon in bespoke_icons.items():

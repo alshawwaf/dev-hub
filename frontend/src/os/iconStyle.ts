@@ -16,7 +16,7 @@ const TINTS: Record<string, string> = {
   'flowise': 'linear-gradient(145deg,#211d3f,#12102a)',
   'langflow': 'linear-gradient(145deg,#10231f,#0a1512)',
   'openclaw': 'linear-gradient(145deg,#2a1518,#180b0d)',
-  'lakera guard demo': 'linear-gradient(145deg,#ffffff,#eef2f7)',
+  'lakera guard demo': 'linear-gradient(145deg,#8b5cf6,#6d28d9)',
   'docs to swagger': 'linear-gradient(145deg,#12241f,#0a1813)',
 };
 
