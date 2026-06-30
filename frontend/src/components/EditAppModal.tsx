@@ -12,6 +12,7 @@ interface App {
   icon: string;
   is_live: boolean;
   embeddable?: boolean;
+  proxy_embed?: boolean;
 }
 
 interface EditAppModalProps {
@@ -30,7 +31,8 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
     category: '',
     icon: '',
     is_live: true,
-    embeddable: false
+    embeddable: false,
+    proxy_embed: false
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -45,7 +47,8 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
         category: app.category,
         icon: app.icon,
         is_live: app.is_live,
-        embeddable: app.embeddable ?? false
+        embeddable: app.embeddable ?? false,
+        proxy_embed: app.proxy_embed ?? false
       });
     }
   }, [app]);
@@ -158,6 +161,13 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
             <input id="embeddable" name="embeddable" type="checkbox" checked={formData.embeddable} onChange={handleChange} className="w-4 h-4" />
             <label htmlFor="embeddable" className="text-sm text-text-secondary">
               Open inside a window (embeddable) — leave off if the app blocks iframes
+            </label>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input id="proxy_embed" name="proxy_embed" type="checkbox" checked={formData.proxy_embed} onChange={handleChange} className="w-4 h-4" />
+            <label htmlFor="proxy_embed" className="text-sm text-text-secondary">
+              Route through the same-origin proxy — for apps that block framing (e.g. n8n). The app may also need its own base-path set.
             </label>
           </div>
 

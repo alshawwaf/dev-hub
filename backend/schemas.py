@@ -12,6 +12,7 @@ class AppBase(BaseModel):
     is_live: bool = True
     embeddable: bool = False
     placement: str = "desktop"
+    proxy_embed: bool = False
 
 class AppCreate(AppBase):
     pass

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from migrate import init_db
-from routers import auth, apps
+from routers import auth, apps, embed
 from seed import seed
 
 # Create tables + apply column migrations before anything queries the DB.
@@ -27,6 +27,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(apps.router, prefix="/apps", tags=["apps"])
+app.include_router(embed.router, prefix="/embed", tags=["embed"])
 
 @app.get("/")
 def read_root():
