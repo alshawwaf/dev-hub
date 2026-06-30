@@ -25,7 +25,7 @@ from fastapi import APIRouter, Request, Response, Depends, HTTPException, WebSoc
 from sqlalchemy.orm import Session
 from starlette.responses import StreamingResponse
 from db import models
-from db.database import get_db, SessionLocal
+from db.database import SessionLocal
 
 router = APIRouter()
 
@@ -62,12 +62,20 @@ def _rewrite_set_cookie(value: str, prefix: str) -> str:
     return ";".join(out)
 
 
+def get_target_base(app_id: int) -> str:
+    # Sync dependency: FastAPI runs it in the threadpool, so the psycopg2 lookup
+    # never blocks the event loop, and it opens+closes its own session — the
+    # connection is back in the pool BEFORE the async handler's slow upstream
+    # call (nothing held idle-in-transaction across the await).
+    db = SessionLocal()
+    try:
+        return _target_base(app_id, db)
+    finally:
+        db.close()
+
+
 @router.api_route("/{app_id}/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
-async def proxy(app_id: int, path: str, request: Request, db: Session = Depends(get_db)):
-    base = _target_base(app_id, db)
-    # Release the DB transaction before the (potentially slow) upstream call so
-    # the pooled connection isn't held "idle in transaction" during the await.
-    db.rollback()
+async def proxy(app_id: int, path: str, request: Request, base: str = Depends(get_target_base)):
     prefix = f"/embed/{app_id}/"
     target = f"{base}/{path}"
     if request.url.query:
@@ -146,8 +154,8 @@ async def proxy_ws(websocket: WebSocket, app_id: int, path: str):
                     while True:
                         msg = await websocket.receive_text()
                         await upstream.send(msg)
-                except WebSocketDisconnect:
-                    await upstream.close()
+                except Exception:
+                    pass
 
             async def upstream_to_client():
                 try:
@@ -156,8 +164,24 @@ async def proxy_ws(websocket: WebSocket, app_id: int, path: str):
                 except Exception:
                     pass
 
-            await asyncio.gather(client_to_upstream(), upstream_to_client())
+            # When EITHER direction ends (clean upstream close, client disconnect,
+            # or error), cancel the other — otherwise the surviving side parks on
+            # receive_text()/the async-for forever, leaking both sockets.
+            tasks = [asyncio.create_task(client_to_upstream()),
+                     asyncio.create_task(upstream_to_client())]
+            try:
+                _done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+                for t in pending:
+                    t.cancel()
+                await asyncio.gather(*pending, return_exceptions=True)
+            finally:
+                try:
+                    await upstream.close()
+                except Exception:
+                    pass
     except Exception:
+        pass
+    finally:
         try:
             await websocket.close()
         except Exception:

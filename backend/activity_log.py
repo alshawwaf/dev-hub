@@ -28,7 +28,7 @@ SENSITIVE_SUBSTR = ("password", "token", "secret", "authorization", "cookie", "a
 EXCLUDED_PREFIXES = ("/activity", "/health", "/embed", "/notifications")
 
 _queue: "queue.Queue" = queue.Queue(maxsize=QUEUE_MAX)
-_worker_started = False
+_worker_thread = None
 _worker_lock = threading.Lock()
 
 
@@ -83,8 +83,9 @@ def _worker():
         try:
             if fields is None:  # shutdown sentinel
                 return
-            db = SessionLocal()
+            db = None
             try:
+                db = SessionLocal()
                 if fields.get("detail") is not None:
                     fields["detail"] = _redact(fields["detail"])
                 db.add(models.ActivityLog(**fields))
@@ -94,24 +95,39 @@ def _worker():
                     _trim(db)
             except Exception as e:
                 print(f"activity log write failed: {e}")
-                try:
-                    db.rollback()
-                except Exception:
-                    pass
+                if db is not None:
+                    try:
+                        db.rollback()
+                    except Exception:
+                        pass
             finally:
-                db.close()
+                if db is not None:
+                    try:
+                        db.close()
+                    except Exception:
+                        pass
+        except Exception as e:
+            # Final backstop: ONLY the sentinel may break this loop. A failure in
+            # SessionLocal() or db.close() must not kill the writer — it would
+            # never be respawned and every later event would be dropped silently.
+            print(f"activity writer loop error: {e}")
         finally:
             _queue.task_done()
 
 
 def _ensure_worker():
-    global _worker_started
-    if _worker_started:
+    # Respawn if the writer ever dies (liveness check), rather than latching a
+    # boolean that would leave a dead worker and a silently-filling queue.
+    global _worker_thread
+    t = _worker_thread
+    if t is not None and t.is_alive():
         return
     with _worker_lock:
-        if not _worker_started:
-            threading.Thread(target=_worker, daemon=True, name="activity-writer").start()
-            _worker_started = True
+        t = _worker_thread
+        if t is not None and t.is_alive():
+            return
+        _worker_thread = threading.Thread(target=_worker, daemon=True, name="activity-writer")
+        _worker_thread.start()
 
 
 def write_activity(**fields):
