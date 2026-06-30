@@ -11,6 +11,7 @@ interface WindowManagerContextType {
   minimizeWindow: (id: string) => void;
   toggleMaximize: (id: string) => void;
   moveWindow: (id: string, x: number, y: number) => void;
+  resizeWindow: (id: string, geom: { x: number; y: number; width: number; height: number }) => void;
   isOpen: (appId: number) => boolean;
 }
 
@@ -90,6 +91,10 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     setWindows(prev => prev.map(w => (w.id === id ? { ...w, x, y } : w)));
   }, []);
 
+  const resizeWindow = useCallback((id: string, geom: { x: number; y: number; width: number; height: number }) => {
+    setWindows(prev => prev.map(w => (w.id === id ? { ...w, ...geom } : w)));
+  }, []);
+
   // "Open" means a window exists for the app — including minimized ones, which
   // still show in the dock with a running dot (consistent with runningNotPinned).
   const isOpen = useCallback(
@@ -99,7 +104,7 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <WindowManagerContext.Provider
-      value={{ windows, activeId, openApp, closeWindow, focusWindow, minimizeWindow, toggleMaximize, moveWindow, isOpen }}
+      value={{ windows, activeId, openApp, closeWindow, focusWindow, minimizeWindow, toggleMaximize, moveWindow, resizeWindow, isOpen }}
     >
       {children}
     </WindowManagerContext.Provider>

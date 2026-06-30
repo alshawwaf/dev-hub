@@ -1086,6 +1086,20 @@ svg {
 
 .os-window-body { position: relative; background: var(--bg-dark); overflow: auto; }
 .os-iframe { width: 100%; height: 100%; border: none; display: block; background: #fff; }
+/* while dragging/resizing, don't let the iframe swallow the pointer stream */
+.os-window.interacting .os-iframe { pointer-events: none; }
+
+/* Resize handles. Title bar sits above them (z 7 vs 6) so dragging stays reliable. */
+.os-titlebar { position: relative; z-index: 7; }
+.os-rz { position: absolute; z-index: 6; }
+.os-rz-n { top: 0; left: 10px; right: 10px; height: 6px; cursor: ns-resize; }
+.os-rz-s { bottom: 0; left: 10px; right: 10px; height: 6px; cursor: ns-resize; }
+.os-rz-e { right: 0; top: 10px; bottom: 10px; width: 6px; cursor: ew-resize; }
+.os-rz-w { left: 0; top: 10px; bottom: 10px; width: 6px; cursor: ew-resize; }
+.os-rz-ne { top: 0; right: 0; width: 14px; height: 14px; cursor: nesw-resize; }
+.os-rz-nw { top: 0; left: 0; width: 14px; height: 14px; cursor: nwse-resize; }
+.os-rz-se { bottom: 0; right: 0; width: 14px; height: 14px; cursor: nwse-resize; }
+.os-rz-sw { bottom: 0; left: 0; width: 14px; height: 14px; cursor: nesw-resize; }
 
 .os-embed-loading {
   position: absolute;
