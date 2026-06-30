@@ -4,6 +4,7 @@ layered on top of the admin-set baseline (the Application.placement column).
 """
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from typing import Optional
 from sqlalchemy.orm import Session
 from db import models
 from db.database import get_db
