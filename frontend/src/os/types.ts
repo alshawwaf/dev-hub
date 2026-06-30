@@ -1,5 +1,8 @@
 export type Placement = 'desktop' | 'dock' | 'both' | 'hidden';
 
+export interface WinGeometry { x: number; y: number; w: number; h: number; }
+export type GeometryMap = Record<number, WinGeometry>;
+
 export type SystemKey = 'launchpad' | 'settings' | 'logs' | 'guide' | 'about';
 
 export interface AppInfo {

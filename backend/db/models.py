@@ -51,6 +51,7 @@ class UserDesktopPref(Base):
     id = Column(Integer, primary_key=True, index=True)
     owner_id = Column(Integer, unique=True, index=True)   # users.id
     overrides = Column(JSON, default=dict)                # { appId: "desktop|dock|both|hidden" }
+    geometry = Column(JSON, default=dict)                 # { appId: {x,y,w,h} } remembered window size/pos
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 class Notification(Base):

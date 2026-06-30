@@ -120,8 +120,8 @@ const Desktop: React.FC = () => {
   }, []);
 
   return (
-    <WindowManagerProvider>
-      <LayoutProvider apps={apps} isAdmin={isAdmin} userId={user?.id ?? null} persistBaseline={persistBaseline}>
+    <LayoutProvider apps={apps} isAdmin={isAdmin} userId={user?.id ?? null} persistBaseline={persistBaseline}>
+      <WindowManagerProvider>
         <HubProvider
           apps={apps}
           isAdmin={isAdmin}
@@ -152,8 +152,8 @@ const Desktop: React.FC = () => {
             />
           </ContextMenuProvider>
         </HubProvider>
-      </LayoutProvider>
-    </WindowManagerProvider>
+      </WindowManagerProvider>
+    </LayoutProvider>
   );
 };
 
