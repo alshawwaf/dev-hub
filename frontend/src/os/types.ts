@@ -1,0 +1,32 @@
+export type Placement = 'desktop' | 'dock' | 'both' | 'hidden';
+
+export type SystemKey = 'launchpad' | 'settings' | 'logs' | 'guide' | 'about';
+
+export interface AppInfo {
+  id: number;
+  name: string;
+  description: string;
+  url: string;
+  github_url: string;
+  category: string;
+  icon: string;
+  is_live: boolean;
+  embeddable?: boolean;
+  placement?: Placement;
+  /** Set on synthetic built-in apps (Settings, Logs, Guide, About). */
+  system?: SystemKey;
+  /** lucide-react icon name used to render system apps in the dock/desktop. */
+  iconName?: string;
+}
+
+export interface WindowState {
+  id: string;
+  app: AppInfo;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  z: number;
+  minimized: boolean;
+  maximized: boolean;
+}
