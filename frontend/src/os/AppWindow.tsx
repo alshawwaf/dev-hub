@@ -8,7 +8,7 @@ import { safeHttpUrl } from './url';
 import AppGlyph from './AppGlyph';
 
 const TITLEBAR_H = 40;
-const EMBED_TIMEOUT_MS = 10000;
+const EMBED_TIMEOUT_MS = 18000;
 const MIN_W = 360;
 const MIN_H = 240;
 const RESIZE_DIRS = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as const;
