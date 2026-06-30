@@ -1,8 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Search, ChevronDown, Plus, Shield, BookOpen, LogOut, Github, LayoutGrid, Info } from 'lucide-react';
+import { Search, ChevronDown, Plus, Shield, BookOpen, LogOut, Github, LayoutGrid, Info, Bell, Trash2 } from 'lucide-react';
 import { useWindows } from './WindowManager';
 import { getSystemApp } from './systemApps';
+import api from '../services/api';
+
+interface Notif { id: number; kind: string; text: string; read: boolean; created_at: string; }
+const notifTime = (s: string) => new Date(/[Z+]/.test(s) ? s : s + 'Z').toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 interface MenuBarProps {
   onAddApp: () => void;
@@ -25,13 +29,17 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const brandRef = useRef<HTMLButtonElement>(null);
+  const [notifs, setNotifs] = useState<{ items: Notif[]; unread: number } | null>(null);
+  const [bellOpen, setBellOpen] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && menuOpen) { setMenuOpen(false); brandRef.current?.focus(); }
+      if (e.key === 'Escape') { if (menuOpen) { setMenuOpen(false); brandRef.current?.focus(); } setBellOpen(false); }
     };
     document.addEventListener('mousedown', onClick);
     document.addEventListener('keydown', onKey);
@@ -40,6 +48,26 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad }) => {
       document.removeEventListener('keydown', onKey);
     };
   }, [menuOpen]);
+
+  // Poll notifications while signed in.
+  useEffect(() => {
+    if (!user) { setNotifs(null); return; }
+    let cancelled = false;
+    const load = () => api.get('notifications/').then(r => { if (!cancelled) setNotifs(r.data); }).catch(() => {});
+    load();
+    const t = window.setInterval(load, 30_000);
+    return () => { cancelled = true; window.clearInterval(t); };
+  }, [user]);
+
+  const reloadNotifs = () => api.get('notifications/').then(r => setNotifs(r.data)).catch(() => {});
+  const toggleBell = () => {
+    setBellOpen(o => {
+      const next = !o;
+      if (next && notifs?.unread) api.post('notifications/read', {}).then(reloadNotifs).catch(() => {});
+      return next;
+    });
+  };
+  const clearNotifs = () => api.delete('notifications/').then(() => setNotifs({ items: [], unread: 0 })).catch(() => {});
 
   const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const day = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
@@ -107,6 +135,34 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad }) => {
 
       <div className="os-menubar-right">
         {user && <span className="os-user">{user.email.split('@')[0]}</span>}
+        {user && (
+          <div className="os-bell-wrap" ref={bellRef}>
+            <button className="os-menubar-btn" onClick={toggleBell} aria-label="Notifications" aria-expanded={bellOpen}>
+              <Bell size={15} />
+              {notifs && notifs.unread > 0 && <span className="os-bell-badge">{notifs.unread > 9 ? '9+' : notifs.unread}</span>}
+            </button>
+            {bellOpen && (
+              <div className="os-bell-menu">
+                <div className="os-bell-head">
+                  <span>Notifications</span>
+                  {notifs && notifs.items.length > 0 && (
+                    <button className="os-bell-clear" onClick={clearNotifs} title="Clear all"><Trash2 size={13} /></button>
+                  )}
+                </div>
+                {!notifs || notifs.items.length === 0 ? (
+                  <p className="os-bell-empty">No notifications.</p>
+                ) : (
+                  notifs.items.map(n => (
+                    <div key={n.id} className={`os-bell-item k-${n.kind}`}>
+                      <span>{n.text}</span>
+                      <time>{notifTime(n.created_at)}</time>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
         <button className="os-menubar-btn" onClick={onOpenLaunchpad} title="Search apps" aria-label="Search apps">
           <Search size={15} />
         </button>

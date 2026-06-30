@@ -52,3 +52,12 @@ class UserDesktopPref(Base):
     owner_id = Column(Integer, unique=True, index=True)   # users.id
     overrides = Column(JSON, default=dict)                # { appId: "desktop|dock|both|hidden" }
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    kind = Column(String, default="info")   # info | success | warning | error
+    text = Column(String)
+    read = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
