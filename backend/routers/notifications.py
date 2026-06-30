@@ -64,3 +64,10 @@ def clear(db: Session = Depends(get_db), user: schemas.User = Depends(read_users
     deleted = db.query(models.Notification).delete()
     db.commit()
     return {"deleted": deleted}
+
+
+@router.delete("/{nid}")
+def delete_one(nid: int, db: Session = Depends(get_db), user: schemas.User = Depends(read_users_me)):
+    db.query(models.Notification).filter(models.Notification.id == nid).delete()
+    db.commit()
+    return {"ok": True}
