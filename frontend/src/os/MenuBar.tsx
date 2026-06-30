@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Search, ChevronDown, Plus, Shield, BookOpen, LogOut, Github, LayoutGrid, Info, Bell, Trash2 } from 'lucide-react';
+import { Search, ChevronDown, Plus, Shield, BookOpen, LogOut, Github, LayoutGrid, Info, Bell, Trash2, SlidersHorizontal } from 'lucide-react';
 import { useWindows } from './WindowManager';
+import { useLayout } from './LayoutContext';
+import { useContextMenu } from './ContextMenu';
+import { buildCustomizeItems } from './widgets/customizeMenu';
 import { getSystemApp } from './systemApps';
 import api from '../services/api';
 
@@ -25,7 +28,19 @@ const useClock = () => {
 const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad }) => {
   const { user, logout } = useAuth();
   const { openApp } = useWindows();
+  const { widgets, toggleWidget } = useLayout();
+  const { openAt } = useContextMenu();
   const now = useClock();
+
+  const openCustomize = (e: React.MouseEvent) => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    openAt(r.right - 210, r.bottom + 6, buildCustomizeItems({
+      widgets,
+      toggleWidget,
+      railHidden: window.matchMedia('(max-width:1040px)').matches,
+      onOpenLaunchpad,
+    }));
+  };
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const brandRef = useRef<HTMLButtonElement>(null);
@@ -163,6 +178,9 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad }) => {
             )}
           </div>
         )}
+        <button className="os-menubar-btn" onClick={openCustomize} title="Customize desktop — widgets" aria-label="Customize desktop widgets">
+          <SlidersHorizontal size={15} />
+        </button>
         <button className="os-menubar-btn" onClick={onOpenLaunchpad} title="Search apps" aria-label="Search apps">
           <Search size={15} />
         </button>

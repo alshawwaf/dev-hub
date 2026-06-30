@@ -30,6 +30,8 @@ def _add_missing_columns():
         upcols = {col["name"] for col in inspector.get_columns("user_desktop_prefs")}
         if "geometry" not in upcols:
             pending.append("ALTER TABLE user_desktop_prefs ADD COLUMN geometry JSON")
+        if "widgets" not in upcols:
+            pending.append("ALTER TABLE user_desktop_prefs ADD COLUMN widgets JSON")
 
     is_pg = engine.dialect.name != "sqlite"
     for stmt in pending:

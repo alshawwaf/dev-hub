@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { Check } from 'lucide-react';
 
 export interface MenuItem {
   label: string;
@@ -6,6 +7,14 @@ export interface MenuItem {
   onClick?: () => void;
   danger?: boolean;
   separator?: boolean;
+  /** render a leading check slot; toggles live in place when keepOpen */
+  checked?: boolean;
+  /** keep the menu open after click (for checklists like widgets / placement) */
+  keepOpen?: boolean;
+  /** non-interactive uppercase section heading row */
+  heading?: string;
+  /** non-interactive muted note row */
+  note?: string;
 }
 
 interface MenuState {
@@ -48,7 +57,7 @@ export const ContextMenuProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Move focus into the menu when it opens.
   useEffect(() => {
-    if (menu) menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+    if (menu) menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"],[role="menuitemcheckbox"]')?.focus();
   }, [menu]);
 
   useEffect(() => {
@@ -61,7 +70,7 @@ export const ContextMenuProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (!menuRef.current) return;
-    const items = [...menuRef.current.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
+    const items = [...menuRef.current.querySelectorAll<HTMLButtonElement>('[role="menuitem"],[role="menuitemcheckbox"]')];
     const idx = items.indexOf(document.activeElement as HTMLButtonElement);
     if (e.key === 'Escape') { e.preventDefault(); close(); }
     else if (e.key === 'ArrowDown') { e.preventDefault(); items[(idx + 1) % items.length]?.focus(); }
@@ -83,22 +92,33 @@ export const ContextMenuProvider: React.FC<{ children: React.ReactNode }> = ({ c
           onMouseDown={e => e.stopPropagation()}
           onKeyDown={onKeyDown}
         >
-          {menu.items.map((item, i) =>
-            item.separator ? (
-              <div key={i} className="os-ctxmenu-sep" role="separator" />
-            ) : (
+          {menu.items.map((item, i) => {
+            if (item.separator) return <div key={i} className="os-ctxmenu-sep" role="separator" />;
+            if (item.heading !== undefined) return <div key={i} className="os-ctxmenu-head">{item.heading}</div>;
+            if (item.note !== undefined) return <div key={i} className="os-ctxmenu-note">{item.note}</div>;
+            const checkable = item.checked !== undefined;
+            return (
               <button
                 key={i}
-                role="menuitem"
+                role={checkable ? 'menuitemcheckbox' : 'menuitem'}
+                aria-checked={checkable ? !!item.checked : undefined}
                 tabIndex={-1}
                 className={`os-ctxmenu-item ${item.danger ? 'danger' : ''}`}
-                onClick={() => { item.onClick?.(); close(); }}
+                onClick={() => {
+                  item.onClick?.();
+                  if (item.keepOpen) {
+                    setMenu(m => (m ? { ...m, items: m.items.map((it, j) => (j === i ? { ...it, checked: !it.checked } : it)) } : m));
+                  } else {
+                    close();
+                  }
+                }}
               >
+                {checkable && <span className={`os-ck ${item.checked ? 'on' : ''}`}><Check size={13} /></span>}
                 {item.icon}
                 <span>{item.label}</span>
               </button>
-            ),
-          )}
+            );
+          })}
         </div>
       )}
     </Ctx.Provider>
