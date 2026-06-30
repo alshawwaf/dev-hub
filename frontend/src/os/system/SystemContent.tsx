@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { RotateCcw, Shield, Plus, Layers, ExternalLink, Github, Trash2, Search, X } from 'lucide-react';
+import { RotateCcw, Shield, Plus, Layers, ExternalLink, Github, Trash2, Search, X, Palette, LayoutGrid } from 'lucide-react';
 import type { SystemKey, Placement } from '../types';
 import { useLayout } from '../LayoutContext';
 import { useHub } from '../HubContext';
@@ -15,60 +15,98 @@ const PLACEMENTS: { value: Placement; label: string }[] = [
   { value: 'hidden', label: 'Hidden' },
 ];
 
+const Group: React.FC<{ children: React.ReactNode }> = ({ children }) => <div className="os-set-grp">{children}</div>;
+const Row: React.FC<{ label: string; help?: string; children: React.ReactNode }> = ({ label, help, children }) => (
+  <div className="os-set-row">
+    <span className="os-set-label">{label}{help && <small>{help}</small>}</span>
+    <span className="os-set-ctrl">{children}</span>
+  </div>
+);
+
+const SECTIONS = [
+  { key: 'appearance', label: 'Appearance', Icon: Palette, color: 'linear-gradient(135deg,#ec4899,#be185d)' },
+  { key: 'apps', label: 'Apps & Layout', Icon: LayoutGrid, color: 'linear-gradient(135deg,#7c3aed,#6d28d9)' },
+];
+
 const SettingsApp: React.FC = () => {
-  const { resetLayout, hasLocalOverrides, getPlacement, setPlacement } = useLayout();
+  const { resetLayout, hasLocalOverrides, getPlacement, setPlacement, theme, setTheme } = useLayout();
   const { isAdmin, openAddApp, apps } = useHub();
   const catalog = apps.filter(a => a.id > 0);
+  const [active, setActive] = useState('appearance');
+  const [q, setQ] = useState('');
+
+  const sections = isAdmin
+    ? [...SECTIONS, { key: 'manage', label: 'Manage', Icon: Shield, color: 'linear-gradient(135deg,#3b82f6,#1d4ed8)' }]
+    : SECTIONS;
+  const visible = sections.filter(s => s.label.toLowerCase().includes(q.trim().toLowerCase()));
 
   return (
-    <div className="os-sys">
-      <section className="os-sys-section">
-        <h3>App placement</h3>
-        <p>Choose where each app appears. You can also drag an icon between the desktop and dock, or right-click any app.{isAdmin && ' As an admin, your choices set the shared default for everyone.'}</p>
-        <div className="os-place-list">
-          {catalog.map(app => {
-            const current = getPlacement(app);
-            return (
-              <div key={app.id} className="os-place-row">
-                <span className="os-place-icon" style={{ background: tintFor(app) }}><AppGlyph app={app} size={18} /></span>
-                <span className="os-place-name">{app.name}</span>
-                <div className="os-place-seg" role="radiogroup" aria-label={`Placement for ${app.name}`}>
-                  {PLACEMENTS.map(p => (
-                    <button
-                      key={p.value}
-                      className={`os-place-opt ${current === p.value ? 'on' : ''}`}
-                      role="radio"
-                      aria-checked={current === p.value}
-                      onClick={() => setPlacement(app, p.value)}
-                    >
-                      {p.label}
-                    </button>
+    <div className="os-set-wrap">
+      <aside className="os-set-side">
+        <div className="os-set-search"><Search size={14} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Search" aria-label="Search settings" /></div>
+        {visible.map(s => (
+          <button key={s.key} className={`os-set-item ${active === s.key ? 'act' : ''}`} onClick={() => setActive(s.key)}>
+            <span className="os-set-tile" style={{ background: s.color }}><s.Icon size={13} color="#fff" /></span>
+            {s.label}
+          </button>
+        ))}
+        {visible.length === 0 && <p className="os-sys-hint" style={{ padding: '0 6px' }}>No settings match “{q}”.</p>}
+      </aside>
+
+      <div className="os-set-main" key={active}>
+        {active === 'appearance' && (
+          <>
+            <div className="os-set-head"><h1>Appearance</h1><p>Theme and how the desktop looks.</p></div>
+            <Group>
+              <Row label="Theme" help="Switch the whole desktop between dark and light.">
+                <div className="os-place-seg" role="radiogroup" aria-label="Theme">
+                  {(['dark', 'light'] as const).map(t => (
+                    <button key={t} role="radio" aria-checked={theme === t} className={`os-place-opt ${theme === t ? 'on' : ''}`} onClick={() => setTheme(t)}>{t === 'dark' ? 'Dark' : 'Light'}</button>
                   ))}
                 </div>
-              </div>
-            );
-          })}
-        </div>
-        <button className="btn btn-ghost" onClick={resetLayout} disabled={!hasLocalOverrides} style={{ marginTop: '1rem' }}>
-          <RotateCcw size={15} /> Reset to default layout
-        </button>
-        {!hasLocalOverrides && <span className="os-sys-hint">You're using the default layout.</span>}
-      </section>
+              </Row>
+            </Group>
+            <p className="os-set-note">Your theme is remembered on this device instantly, and follows you across devices when you're signed in.</p>
+          </>
+        )}
 
-      <section className="os-sys-section">
-        <h3>Opening apps</h3>
-        <p>Apps marked <em>embeddable</em> open inside a window; apps that block framing can be routed through the proxy. Everything else opens in its own tab — set this per app in the Edit dialog (right-click → Edit app).</p>
-      </section>
+        {active === 'apps' && (
+          <>
+            <div className="os-set-head"><h1>Apps &amp; Layout</h1><p>Where each app appears. Drag an icon between desktop and dock, or right-click any app.{isAdmin && ' As an admin, your choices set the shared default for everyone.'}</p></div>
+            <div className="os-place-list">
+              {catalog.map(app => {
+                const current = getPlacement(app);
+                return (
+                  <div key={app.id} className="os-place-row">
+                    <span className="os-place-icon" style={{ background: tintFor(app) }}><AppGlyph app={app} size={18} /></span>
+                    <span className="os-place-name">{app.name}</span>
+                    <div className="os-place-seg" role="radiogroup" aria-label={`Placement for ${app.name}`}>
+                      {PLACEMENTS.map(p => (
+                        <button key={p.value} className={`os-place-opt ${current === p.value ? 'on' : ''}`} role="radio" aria-checked={current === p.value} onClick={() => setPlacement(app, p.value)}>{p.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <button className="btn btn-ghost" onClick={resetLayout} disabled={!hasLocalOverrides} style={{ marginTop: '1rem' }}>
+              <RotateCcw size={15} /> Reset to default layout
+            </button>
+            {!hasLocalOverrides && <span className="os-sys-hint">You're using the default layout.</span>}
+            <p className="os-set-note">Apps marked <em>embeddable</em> open inside a window; single-page apps frame their real URL directly. Set this per app in the Edit dialog (right-click → Rename / Edit).</p>
+          </>
+        )}
 
-      {isAdmin && (
-        <section className="os-sys-section">
-          <h3>Manage</h3>
-          <div className="os-sys-row">
-            <button className="btn btn-primary" onClick={openAddApp}><Plus size={15} /> Add application</button>
-            <a className="btn btn-ghost" href="/admin"><Shield size={15} /> Admin dashboard</a>
-          </div>
-        </section>
-      )}
+        {active === 'manage' && isAdmin && (
+          <>
+            <div className="os-set-head"><h1>Manage</h1><p>Administrator tools.</p></div>
+            <div className="os-sys-row">
+              <button className="btn btn-primary" onClick={openAddApp}><Plus size={15} /> Add application</button>
+              <a className="btn btn-ghost" href="/admin"><Shield size={15} /> Admin dashboard</a>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 };
