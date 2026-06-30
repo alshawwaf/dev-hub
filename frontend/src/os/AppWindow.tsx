@@ -9,13 +9,17 @@ import AppGlyph from './AppGlyph';
 
 const TITLEBAR_H = 40;
 const EMBED_TIMEOUT_MS = 10000;
+const MIN_W = 360;
+const MIN_H = 240;
+const RESIZE_DIRS = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as const;
 
 const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
-  const { activeId, closeWindow, focusWindow, minimizeWindow, toggleMaximize, moveWindow } = useWindows();
+  const { activeId, closeWindow, focusWindow, minimizeWindow, toggleMaximize, moveWindow, resizeWindow } = useWindows();
   const { app } = win;
   const active = activeId === win.id;
 
   const dragStart = useRef<{ mx: number; my: number; wx: number; wy: number } | null>(null);
+  const [interacting, setInteracting] = useState(false);
   const [embedPhase, setEmbedPhase] = useState<'loading' | 'loaded' | 'blocked'>('loading');
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -33,6 +37,7 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
     if (win.maximized) return;
     if ((e.target as HTMLElement).closest('.os-traffic')) return;
     dragStart.current = { mx: e.clientX, my: e.clientY, wx: win.x, wy: win.y };
+    setInteracting(true);
 
     const onMove = (ev: PointerEvent) => {
       if (!dragStart.current) return;
@@ -44,6 +49,35 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
     };
     const onUp = () => {
       dragStart.current = null;
+      setInteracting(false);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
+  const startResize = (dir: string) => (e: React.PointerEvent) => {
+    e.stopPropagation();
+    focusWindow(win.id);
+    if (win.maximized) return;
+    const start = { mx: e.clientX, my: e.clientY, x: win.x, y: win.y, w: win.width, h: win.height };
+    setInteracting(true);
+
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - start.mx;
+      const dy = ev.clientY - start.my;
+      let { x, y, w, h } = start;
+      if (dir.includes('e')) w = Math.max(MIN_W, start.w + dx);
+      if (dir.includes('s')) h = Math.max(MIN_H, start.h + dy);
+      if (dir.includes('w')) { const right = start.x + start.w; w = Math.max(MIN_W, start.w - dx); x = right - w; }
+      if (dir.includes('n')) { const bottom = start.y + start.h; h = Math.max(MIN_H, start.h - dy); y = bottom - h; }
+      x = Math.max(0, x);
+      y = Math.max(28, y);
+      resizeWindow(win.id, { x, y, width: w, height: h });
+    };
+    const onUp = () => {
+      setInteracting(false);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
@@ -62,7 +96,7 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
 
   return (
     <div
-      className={`os-window ${active ? 'active' : ''}`}
+      className={`os-window ${active ? 'active' : ''} ${interacting ? 'interacting' : ''}`}
       style={style}
       onPointerDown={() => focusWindow(win.id)}
     >
@@ -111,6 +145,10 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
           <Launcher app={app} embedBlocked={app.embeddable && embedPhase === 'blocked'} />
         )}
       </div>
+
+      {!win.maximized && RESIZE_DIRS.map(dir => (
+        <div key={dir} className={`os-rz os-rz-${dir}`} onPointerDown={startResize(dir)} />
+      ))}
     </div>
   );
 };
