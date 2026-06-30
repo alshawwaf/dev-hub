@@ -5,6 +5,9 @@ import api from '../services/api';
 const LS_OVERRIDES = 'devhub.layout.overrides';
 const LS_GEOMETRY = 'devhub.window.geometry';
 const LS_WIDGETS = 'devhub.layout.widgets';
+const LS_THEME = 'devhub.theme';
+
+type Theme = 'dark' | 'light';
 
 const DEFAULT_WIDGETS: WidgetId[] = ['clock', 'activity'];
 const VALID_WIDGETS: string[] = ['clock', 'apps', 'activity', 'errors', 'latency', 'recent', 'notifications', 'lastapp', 'quick'];
@@ -62,6 +65,9 @@ interface LayoutContextType {
   saveGeometry: (appId: number, g: WinGeometry) => void;
   widgets: WidgetId[];
   toggleWidget: (id: WidgetId) => void;
+  theme: Theme;
+  setTheme: (t: Theme) => void;
+  toggleTheme: () => void;
 }
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
@@ -84,14 +90,24 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
     } catch { /* ignore */ }
     return DEFAULT_WIDGETS;
   });
+  const [theme, setThemeState] = useState<Theme>(() => {
+    try { return localStorage.getItem(LS_THEME) === 'light' ? 'light' : 'dark'; } catch { return 'dark'; }
+  });
+
+  // Apply + persist theme locally on every change (instant, no flash). Server
+  // sync (cross-device) rides the debounced writer below.
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem(LS_THEME, theme); } catch { /* unavailable */ }
+  }, [theme]);
 
   // Signed-in non-admin → server-persisted (follows across devices). Admin edits
   // the shared baseline (placement) but keeps geometry local. Anonymous → local.
   const isPersonalUser = !!userId && !isAdmin;
 
   // Latest state, read by the debounced writer at fire time.
-  const stateRef = useRef({ overrides, geometry, widgets, isPersonalUser });
-  useEffect(() => { stateRef.current = { overrides, geometry, widgets, isPersonalUser }; }, [overrides, geometry, widgets, isPersonalUser]);
+  const stateRef = useRef({ overrides, geometry, widgets, theme, isPersonalUser });
+  useEffect(() => { stateRef.current = { overrides, geometry, widgets, theme, isPersonalUser }; }, [overrides, geometry, widgets, theme, isPersonalUser]);
 
   // Load server prefs on sign-in.
   useEffect(() => {
@@ -103,6 +119,7 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
       setGeometry(cleanGeometry(r.data?.geometry));
       // null/undefined (never set) → default; [] → respected (all off).
       setWidgets(r.data?.widgets != null ? cleanWidgets(r.data.widgets) : DEFAULT_WIDGETS);
+      if (r.data?.theme === 'light' || r.data?.theme === 'dark') setThemeState(r.data.theme);
     }).catch(() => { /* keep current */ });
     return () => { cancelled = true; };
   }, [isPersonalUser]);
@@ -114,7 +131,7 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
     timer.current = window.setTimeout(() => {
       const s = stateRef.current;
       if (s.isPersonalUser) {
-        api.put('desktop/prefs', { overrides: s.overrides, geometry: s.geometry, widgets: s.widgets }).catch(() => {});
+        api.put('desktop/prefs', { overrides: s.overrides, geometry: s.geometry, widgets: s.widgets, theme: s.theme }).catch(() => {});
       } else {
         saveLS(LS_OVERRIDES, s.overrides);
         saveLS(LS_GEOMETRY, s.geometry);
@@ -171,9 +188,15 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
     scheduleFlush();
   }, [scheduleFlush]);
 
+  const setTheme = useCallback((t: Theme) => {
+    setThemeState(t);       // the [theme] effect applies + saves locally
+    scheduleFlush();        // sync to server for signed-in users
+  }, [scheduleFlush]);
+  const toggleTheme = useCallback(() => setTheme(theme === 'dark' ? 'light' : 'dark'), [theme, setTheme]);
+
   const value = useMemo(
-    () => ({ getPlacement, desktopApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry, widgets, toggleWidget, hasLocalOverrides: Object.keys(overrides).length > 0 }),
-    [getPlacement, desktopApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry, widgets, toggleWidget, overrides],
+    () => ({ getPlacement, desktopApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry, widgets, toggleWidget, theme, setTheme, toggleTheme, hasLocalOverrides: Object.keys(overrides).length > 0 }),
+    [getPlacement, desktopApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry, widgets, toggleWidget, theme, setTheme, toggleTheme, overrides],
   );
 
   return <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>;

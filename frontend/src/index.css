@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
 
-:root {
+:root, [data-theme="dark"] {
   /* Deep space dark theme */
   --bg-deep: #050508;
   --bg-dark: #0c0d12;
@@ -51,6 +51,24 @@
   --transition-smooth: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Light theme — surfaces/text/glass/shadows flip; brand hues stay for identity. */
+[data-theme="light"] {
+  --bg-deep: #e9edf6;
+  --bg-dark: #f3f5fb;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --glass-bg: rgba(16, 24, 40, 0.025);
+  --glass-bg-strong: rgba(16, 24, 40, 0.05);
+  --glass-border: rgba(16, 24, 40, 0.08);
+  --glass-border-strong: rgba(16, 24, 40, 0.14);
+  --text-primary: #131a2c;
+  --text-secondary: #33415c;
+  --text-muted: #5b6678;
+  --text-dim: #8a93a6;
+  --shadow-card: 0 4px 24px -8px rgba(16, 24, 40, 0.14);
+  --shadow-elevated: 0 16px 48px -12px rgba(16, 24, 40, 0.22);
+}
+
 /* Reset & Base */
 *, *::before, *::after {
   margin: 0;
@@ -71,6 +89,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -1667,3 +1686,19 @@ svg {
   .os-pw-card { animation: none; }
   .os-pw-card.clk:hover { transform: none; }
 }
+
+/* ===== Light theme — OS layer overrides (surfaces that hardcode dark) ===== */
+[data-theme="light"] .os-wallpaper { background: linear-gradient(160deg, #e9edf6 0%, #dbe1ef 100%); }
+[data-theme="light"] .os-wallpaper::before { opacity: 0.03; }
+[data-theme="light"] .os-mesh-blob { opacity: 0.4; }
+[data-theme="light"] .os-deskicon-label,
+[data-theme="light"] .os-launchpad-label { color: #1a2236; text-shadow: none; }
+[data-theme="light"] .os-menubar { background: rgba(255, 255, 255, 0.62); }
+[data-theme="light"] .os-menu,
+[data-theme="light"] .os-bell-menu,
+[data-theme="light"] .os-ctxmenu { background: rgba(255, 255, 255, 0.93); }
+[data-theme="light"] .os-dock { background: rgba(255, 255, 255, 0.55); }
+[data-theme="light"] .os-dock-icon.system { background: rgba(16, 24, 40, 0.06); color: #2a3550; }
+[data-theme="light"] .os-dock-sep { background: rgba(16, 24, 40, 0.12); }
+[data-theme="light"] .os-launchpad { background: rgba(233, 237, 246, 0.72); }
+[data-theme="light"] .os-ctxmenu-item:hover .os-ck { color: #fff; }

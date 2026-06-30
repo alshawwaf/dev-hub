@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Search, ChevronDown, Plus, Shield, BookOpen, LogOut, Github, LayoutGrid, Info, Bell, Trash2, SlidersHorizontal } from 'lucide-react';
+import { Search, ChevronDown, Plus, Shield, BookOpen, LogOut, Github, LayoutGrid, Info, Bell, Trash2, SlidersHorizontal, Sun, Moon } from 'lucide-react';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
 import { useContextMenu } from './ContextMenu';
@@ -28,7 +28,7 @@ const useClock = () => {
 const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad }) => {
   const { user, logout } = useAuth();
   const { openApp } = useWindows();
-  const { widgets, toggleWidget } = useLayout();
+  const { widgets, toggleWidget, theme, toggleTheme } = useLayout();
   const { openAt } = useContextMenu();
   const now = useClock();
 
@@ -178,6 +178,9 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad }) => {
             )}
           </div>
         )}
+        <button className="os-menubar-btn" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} aria-label="Toggle light or dark mode">
+          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
         <button className="os-menubar-btn" onClick={openCustomize} title="Customize desktop — widgets" aria-label="Customize desktop widgets">
           <SlidersHorizontal size={15} />
         </button>
