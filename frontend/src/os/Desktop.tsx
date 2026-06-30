@@ -4,6 +4,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import AddAppModal from '../components/AddAppModal';
 import EditAppModal from '../components/EditAppModal';
+import RenameAppModal from '../components/RenameAppModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import { WindowManagerProvider, useWindows } from './WindowManager';
 import { LayoutProvider, useLayout } from './LayoutContext';
@@ -105,6 +106,7 @@ const Desktop: React.FC = () => {
   const [error, setError] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [editingApp, setEditingApp] = useState<AppInfo | null>(null);
+  const [renamingApp, setRenamingApp] = useState<AppInfo | null>(null);
   const [deletingApp, setDeletingApp] = useState<AppInfo | null>(null);
   const [launchpadOpen, setLaunchpadOpen] = useState(false);
 
@@ -137,6 +139,7 @@ const Desktop: React.FC = () => {
           isAdmin={isAdmin}
           openAddApp={() => setAddOpen(true)}
           openEditApp={app => setEditingApp(app)}
+          openRenameApp={app => setRenamingApp(app)}
           openDeleteApp={app => setDeletingApp(app)}
           openLaunchpad={() => setLaunchpadOpen(true)}
           refetch={fetchApps}
@@ -153,6 +156,7 @@ const Desktop: React.FC = () => {
             {launchpadOpen && <Launchpad apps={apps} onClose={() => setLaunchpadOpen(false)} />}
             <AddAppModal isOpen={addOpen} onClose={() => setAddOpen(false)} onAppAdded={fetchApps} />
             <EditAppModal isOpen={!!editingApp} app={editingApp} onClose={() => setEditingApp(null)} onAppUpdated={fetchApps} />
+            <RenameAppModal isOpen={!!renamingApp} app={renamingApp} onClose={() => setRenamingApp(null)} onRenamed={fetchApps} />
             <DeleteConfirmModal
               isOpen={!!deletingApp}
               appId={deletingApp?.id ?? null}

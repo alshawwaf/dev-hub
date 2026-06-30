@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, Pin, PinOff, EyeOff, Play, Pencil, Trash2 } from 'lucide-react';
+import { ExternalLink, Pin, PinOff, EyeOff, Play, Pencil, Trash2, SlidersHorizontal } from 'lucide-react';
 import type { AppInfo } from './types';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
@@ -14,7 +14,7 @@ const DesktopIcon: React.FC<{ app: AppInfo }> = ({ app }) => {
   const { openApp, isOpen } = useWindows();
   const { getPlacement, setPlacement } = useLayout();
   const { open: openMenu, openAt } = useContextMenu();
-  const { isAdmin, openEditApp, openDeleteApp } = useHub();
+  const { isAdmin, openEditApp, openRenameApp, openDeleteApp } = useHub();
   const placement = getPlacement(app);
   const running = isOpen(app.id);
 
@@ -32,7 +32,8 @@ const DesktopIcon: React.FC<{ app: AppInfo }> = ({ app }) => {
     if (isAdmin) {
       items.push(
         { separator: true, label: '' },
-        { label: 'Rename / Edit…', icon: <Pencil size={15} />, onClick: () => openEditApp(app) },
+        { label: 'Rename…', icon: <Pencil size={15} />, onClick: () => openRenameApp(app) },
+        { label: 'Edit app…', icon: <SlidersHorizontal size={15} />, onClick: () => openEditApp(app) },
         { label: 'Delete app…', icon: <Trash2 size={15} />, danger: true, onClick: () => openDeleteApp(app) },
       );
     }
