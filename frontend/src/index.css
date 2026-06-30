@@ -1480,6 +1480,23 @@ svg {
 }
 .os-sys-guide { padding: 0.5rem 0; }
 
+/* App-placement table (Settings) */
+.os-place-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.os-place-row { display: flex; align-items: center; gap: 10px; padding: 6px 4px; }
+.os-place-icon { width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--glass-bg-strong); color: #fff; }
+.os-place-icon img { width: 60%; height: 60%; object-fit: contain; }
+.os-place-name { flex: 1; font-size: 0.85rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.os-place-seg { display: flex; flex-shrink: 0; border: 1px solid var(--glass-border); border-radius: 8px; overflow: hidden; }
+.os-place-opt { background: var(--bg-surface); border: none; border-right: 1px solid var(--glass-border); color: var(--text-muted); font-size: 0.72rem; padding: 5px 10px; cursor: pointer; transition: var(--transition-fast); }
+.os-place-opt:last-child { border-right: none; }
+.os-place-opt:hover { color: var(--text-primary); }
+.os-place-opt.on { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: #fff; }
+.os-place-opt:focus-visible { outline: 2px solid var(--primary-light); outline-offset: -2px; }
+@media (max-width: 520px) {
+  .os-place-name { display: none; }
+  .os-place-opt { padding: 5px 8px; }
+}
+
 /* Activity feed (Logs system app) */
 .os-activity { display: flex; flex-direction: column; height: 100%; color: var(--text-secondary); }
 .os-act-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 16px 18px 10px; }
