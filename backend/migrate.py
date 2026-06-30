@@ -21,6 +21,8 @@ def _add_missing_columns():
         pending.append(f"ALTER TABLE applications ADD COLUMN embeddable BOOLEAN DEFAULT {bool_false}")
     if "placement" not in existing:
         pending.append("ALTER TABLE applications ADD COLUMN placement VARCHAR DEFAULT 'desktop'")
+    if "proxy_embed" not in existing:
+        pending.append(f"ALTER TABLE applications ADD COLUMN proxy_embed BOOLEAN DEFAULT {bool_false}")
     for stmt in pending:
         try:
             with engine.begin() as conn:

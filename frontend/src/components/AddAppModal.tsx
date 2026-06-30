@@ -17,7 +17,8 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
     category: "",
     icon: "",
     is_live: true,
-    embeddable: false
+    embeddable: false,
+    proxy_embed: false
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -36,7 +37,7 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
       });
       onAppAdded();
       onClose();
-      setFormData({ name: "", description: "", url: "", github_url: "", category: "", icon: "", is_live: true, embeddable: false });
+      setFormData({ name: "", description: "", url: "", github_url: "", category: "", icon: "", is_live: true, embeddable: false, proxy_embed: false });
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to add application.");
     } finally {
@@ -175,6 +176,22 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
                 Open inside a window (embeddable)
                 <span style={{ display: "block", fontSize: "0.75rem", color: "#94a3b8", marginTop: "2px" }}>
                   Leave off if the app blocks iframes — it'll open in its own tab.
+                </span>
+              </span>
+            </label>
+
+            <label style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px", cursor: "pointer" }}>
+              <input
+                name="proxy_embed"
+                type="checkbox"
+                checked={formData.proxy_embed}
+                onChange={(e) => setFormData(prev => ({ ...prev, proxy_embed: e.target.checked }))}
+                style={{ width: "18px", height: "18px", accentColor: "#a855f7", cursor: "pointer" }}
+              />
+              <span style={{ fontSize: "0.875rem", color: "#cbd5e1" }}>
+                Route through the same-origin proxy
+                <span style={{ display: "block", fontSize: "0.75rem", color: "#94a3b8", marginTop: "2px" }}>
+                  For apps that block framing (e.g. n8n). The app may also need its own base-path set.
                 </span>
               </span>
             </label>

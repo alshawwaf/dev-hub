@@ -24,7 +24,7 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (!app.embeddable) return;
+    if (!app.embeddable && !app.proxy_embed) return;
     setEmbedPhase('loading');
     const t = window.setTimeout(() => {
       setEmbedPhase(phase => (phase === 'loading' ? 'blocked' : phase));
@@ -92,7 +92,9 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
   if (win.minimized) return null;
 
   const safeUrl = safeHttpUrl(app.url);
-  const showEmbed = !!app.embeddable && !!safeUrl && embedPhase !== 'blocked';
+  const proxied = !!app.proxy_embed && !!safeUrl;
+  const embedSrc = proxied ? `/embed/${app.id}/` : safeUrl;
+  const showEmbed = (!!app.embeddable || proxied) && !!embedSrc && embedPhase !== 'blocked';
 
   return (
     <div
@@ -123,7 +125,7 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
           <>
             <iframe
               key={reloadKey}
-              src={safeUrl ?? undefined}
+              src={embedSrc ?? undefined}
               title={app.name}
               className="os-iframe"
               onLoad={() => setEmbedPhase(p => (p === 'loading' ? 'loaded' : p))}
