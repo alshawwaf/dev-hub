@@ -1,15 +1,16 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
-import type { AppInfo, Placement } from './types';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import type { AppInfo, Placement, WinGeometry, GeometryMap } from './types';
 import api from '../services/api';
 
-const LS_KEY = 'devhub.layout.overrides';
+const LS_OVERRIDES = 'devhub.layout.overrides';
+const LS_GEOMETRY = 'devhub.window.geometry';
 
 type Overrides = Record<number, Placement>;
 
 const PLACEMENTS: Placement[] = ['desktop', 'dock', 'both', 'hidden'];
 const isPlacement = (v: unknown): v is Placement => typeof v === 'string' && (PLACEMENTS as string[]).includes(v);
 
-function clean(parsed: unknown): Overrides {
+function cleanOverrides(parsed: unknown): Overrides {
   const out: Overrides = {};
   if (parsed && typeof parsed === 'object') {
     for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
@@ -18,12 +19,21 @@ function clean(parsed: unknown): Overrides {
   }
   return out;
 }
-function loadOverrides(): Overrides {
-  try { return clean(JSON.parse(localStorage.getItem(LS_KEY) || '{}')); } catch { return {}; }
+function cleanGeometry(parsed: unknown): GeometryMap {
+  const out: GeometryMap = {};
+  if (parsed && typeof parsed === 'object') {
+    for (const [k, v] of Object.entries(parsed as Record<string, any>)) {
+      if (Number.isFinite(Number(k)) && v && ['x', 'y', 'w', 'h'].every(p => Number.isFinite(Number(v[p])))) {
+        out[Number(k)] = { x: Number(v.x), y: Number(v.y), w: Number(v.w), h: Number(v.h) };
+      }
+    }
+  }
+  return out;
 }
-function saveOverrides(o: Overrides) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(o)); } catch { /* storage unavailable */ }
-}
+const loadLS = <T,>(key: string, fn: (p: unknown) => T): T => {
+  try { return fn(JSON.parse(localStorage.getItem(key) || '{}')); } catch { return fn({}); }
+};
+const saveLS = (key: string, val: unknown) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch { /* unavailable */ } };
 
 const resolve = (app: AppInfo, overrides: Overrides): Placement =>
   overrides[app.id] ?? app.placement ?? 'desktop';
@@ -35,6 +45,8 @@ interface LayoutContextType {
   setPlacement: (app: AppInfo, placement: Placement) => void;
   resetLayout: () => void;
   hasLocalOverrides: boolean;
+  getGeometry: (appId: number) => WinGeometry | undefined;
+  saveGeometry: (appId: number, g: WinGeometry) => void;
 }
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
@@ -42,36 +54,49 @@ const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
 interface ProviderProps {
   apps: AppInfo[];
   isAdmin: boolean;
-  /** Signed-in user id (null when anonymous). */
   userId: number | null;
-  /** Persist the shared baseline to the DB (admin only). */
   persistBaseline: (appId: number, placement: Placement) => void;
   children: React.ReactNode;
 }
 
 export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId, persistBaseline, children }) => {
-  const [overrides, setOverrides] = useState<Overrides>(loadOverrides);
+  const [overrides, setOverrides] = useState<Overrides>(() => loadLS(LS_OVERRIDES, cleanOverrides));
+  const [geometry, setGeometry] = useState<GeometryMap>(() => loadLS(LS_GEOMETRY, cleanGeometry));
 
-  // A signed-in non-admin gets server-persisted personal placement (follows them
-  // across devices). Admins edit the shared baseline; anonymous uses localStorage.
+  // Signed-in non-admin → server-persisted (follows across devices). Admin edits
+  // the shared baseline (placement) but keeps geometry local. Anonymous → local.
   const isPersonalUser = !!userId && !isAdmin;
 
+  // Latest state, read by the debounced writer at fire time.
+  const stateRef = useRef({ overrides, geometry, isPersonalUser });
+  useEffect(() => { stateRef.current = { overrides, geometry, isPersonalUser }; }, [overrides, geometry, isPersonalUser]);
+
+  // Load server prefs on sign-in.
   useEffect(() => {
     if (!isPersonalUser) return;
     let cancelled = false;
-    api.get('desktop/prefs')
-      .then(r => { if (!cancelled) setOverrides(clean(r.data?.overrides)); })
-      .catch(() => { /* keep current */ });
+    api.get('desktop/prefs').then(r => {
+      if (cancelled) return;
+      setOverrides(cleanOverrides(r.data?.overrides));
+      setGeometry(cleanGeometry(r.data?.geometry));
+    }).catch(() => { /* keep current */ });
     return () => { cancelled = true; };
   }, [isPersonalUser]);
 
-  const persist = useCallback((next: Overrides) => {
-    if (isPersonalUser) {
-      api.put('desktop/prefs', { overrides: next }).catch(() => { /* best-effort */ });
-    } else {
-      saveOverrides(next);
-    }
-  }, [isPersonalUser]);
+  // Single debounced writer for BOTH overrides + geometry (avoids a save race).
+  const timer = useRef<number | undefined>(undefined);
+  const scheduleFlush = useCallback(() => {
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      const s = stateRef.current;
+      if (s.isPersonalUser) {
+        api.put('desktop/prefs', { overrides: s.overrides, geometry: s.geometry }).catch(() => {});
+      } else {
+        saveLS(LS_OVERRIDES, s.overrides);
+        saveLS(LS_GEOMETRY, s.geometry);
+      }
+    }, 450);
+  }, []);
 
   const getPlacement = useCallback((app: AppInfo) => resolve(app, overrides), [overrides]);
 
@@ -86,40 +111,39 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
 
   const setPlacement = useCallback((app: AppInfo, placement: Placement) => {
     if (isAdmin) {
-      // Admin edits the shared baseline; drop any local override for this app.
       persistBaseline(app.id, placement);
       setOverrides(prev => {
         if (!(app.id in prev)) return prev;
         const next = { ...prev };
         delete next[app.id];
-        saveOverrides(next);
         return next;
       });
-    } else {
-      setOverrides(prev => {
-        const next = { ...prev };
-        // If the chosen placement equals the baseline, drop the override so the
-        // app keeps tracking future admin changes instead of shadowing them.
-        if (placement === (app.placement ?? 'desktop')) {
-          if (!(app.id in next)) return prev;
-          delete next[app.id];
-        } else {
-          next[app.id] = placement;
-        }
-        persist(next);
-        return next;
-      });
+      return;
     }
-  }, [isAdmin, persistBaseline, persist]);
+    setOverrides(prev => {
+      const next = { ...prev };
+      if (placement === (app.placement ?? 'desktop')) delete next[app.id];
+      else next[app.id] = placement;
+      return next;
+    });
+    scheduleFlush();
+  }, [isAdmin, persistBaseline, scheduleFlush]);
 
   const resetLayout = useCallback(() => {
     setOverrides({});
-    persist({});
-  }, [persist]);
+    setGeometry({});
+    scheduleFlush();
+  }, [scheduleFlush]);
+
+  const getGeometry = useCallback((appId: number) => geometry[appId], [geometry]);
+  const saveGeometry = useCallback((appId: number, g: WinGeometry) => {
+    setGeometry(prev => ({ ...prev, [appId]: g }));
+    scheduleFlush();
+  }, [scheduleFlush]);
 
   const value = useMemo(
-    () => ({ getPlacement, desktopApps, dockApps, setPlacement, resetLayout, hasLocalOverrides: Object.keys(overrides).length > 0 }),
-    [getPlacement, desktopApps, dockApps, setPlacement, resetLayout, overrides],
+    () => ({ getPlacement, desktopApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry, hasLocalOverrides: Object.keys(overrides).length > 0 }),
+    [getPlacement, desktopApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry, overrides],
   );
 
   return <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>;

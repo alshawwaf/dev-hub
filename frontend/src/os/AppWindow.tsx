@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ExternalLink, RotateCw } from 'lucide-react';
 import type { WindowState } from './types';
 import { useWindows } from './WindowManager';
+import { useLayout } from './LayoutContext';
 import Launcher from './Launcher';
 import SystemContent from './system/SystemContent';
 import { safeHttpUrl } from './url';
@@ -15,10 +16,12 @@ const RESIZE_DIRS = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as const;
 
 const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
   const { activeId, closeWindow, focusWindow, minimizeWindow, toggleMaximize, moveWindow, resizeWindow } = useWindows();
+  const { saveGeometry } = useLayout();
   const { app } = win;
   const active = activeId === win.id;
 
   const dragStart = useRef<{ mx: number; my: number; wx: number; wy: number } | null>(null);
+  const geomRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
   const [interacting, setInteracting] = useState(false);
   const [embedPhase, setEmbedPhase] = useState<'loading' | 'loaded' | 'blocked'>('loading');
   const [reloadKey, setReloadKey] = useState(0);
@@ -45,11 +48,13 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
       const vh = window.innerHeight;
       const nx = Math.max(0, Math.min(dragStart.current.wx + (ev.clientX - dragStart.current.mx), vw - 120));
       const ny = Math.max(28, Math.min(dragStart.current.wy + (ev.clientY - dragStart.current.my), vh - 60));
+      geomRef.current = { x: nx, y: ny, w: win.width, h: win.height };
       moveWindow(win.id, nx, ny);
     };
     const onUp = () => {
       dragStart.current = null;
       setInteracting(false);
+      if (geomRef.current) saveGeometry(win.app.id, geomRef.current);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
@@ -74,10 +79,12 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
       if (dir.includes('n')) { const bottom = start.y + start.h; h = Math.max(MIN_H, start.h - dy); y = bottom - h; }
       x = Math.max(0, x);
       y = Math.max(28, y);
+      geomRef.current = { x, y, w, h };
       resizeWindow(win.id, { x, y, width: w, height: h });
     };
     const onUp = () => {
       setInteracting(false);
+      if (geomRef.current) saveGeometry(win.app.id, geomRef.current);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
