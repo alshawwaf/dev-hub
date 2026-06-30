@@ -35,15 +35,26 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+def _notify(db, text, kind):
+    # Best-effort activity notification. Lazy import avoids the auth<->notifications
+    # circular import; emit() itself never raises.
+    try:
+        from .notifications import emit
+        emit(db, text, kind)
+    except Exception:
+        pass
+
 @router.post("/login")
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
+        _notify(db, f"Failed sign-in attempt for {form_data.username}", "error")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    _notify(db, f"{user.email} signed in", "info")
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
