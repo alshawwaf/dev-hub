@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { LayoutGrid, ExternalLink, PinOff, Pin, Monitor, EyeOff, Play, Pencil, Trash2, SlidersHorizontal } from 'lucide-react';
 import type { AppInfo } from './types';
 import { useWindows } from './WindowManager';
@@ -15,6 +15,7 @@ import { tintFor } from './iconStyle';
 const DockTile: React.FC<{ app: AppInfo; draggable?: boolean; onMenu?: (e: React.MouseEvent) => void }> = ({ app, draggable, onMenu }) => {
   const { openApp, isOpen } = useWindows();
   const running = isOpen(app.id);
+  const [bouncing, setBouncing] = useState(false);
 
   const onDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ id: app.id, source: 'dock' }));
@@ -24,7 +25,7 @@ const DockTile: React.FC<{ app: AppInfo; draggable?: boolean; onMenu?: (e: React
   return (
     <button
       className="os-dock-item"
-      onClick={() => openApp(app)}
+      onClick={() => { setBouncing(true); openApp(app); }}
       onContextMenu={onMenu}
       draggable={draggable}
       onDragStart={draggable ? onDragStart : undefined}
@@ -32,7 +33,13 @@ const DockTile: React.FC<{ app: AppInfo; draggable?: boolean; onMenu?: (e: React
       aria-label={`Open ${app.name}`}
     >
       <span className="os-dock-tooltip">{app.name}</span>
-      <span className={`os-dock-icon ${app.system ? 'system' : ''}`} style={{ background: tintFor(app) }}><AppGlyph app={app} size={26} emojiClass="os-dock-emoji" /></span>
+      <span
+        className={`os-dock-icon ${app.system ? 'system' : ''} ${bouncing ? 'bouncing' : ''}`}
+        style={{ background: tintFor(app) }}
+        onAnimationEnd={() => setBouncing(false)}
+      >
+        <AppGlyph app={app} size={26} emojiClass="os-dock-emoji" />
+      </span>
       <span className={`os-dock-dot ${running ? 'on' : ''}`} aria-hidden="true" />
     </button>
   );
