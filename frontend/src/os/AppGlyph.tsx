@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Server, Terminal, KeyRound, GraduationCap, Sparkles, ShieldCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { AppInfo } from './types';
@@ -8,6 +8,17 @@ const isImageIcon = (icon?: string) => !!icon && (icon.startsWith('http') || ico
 
 // Glyphs usable as an app icon via `icon: "lucide:Name"`.
 const LUCIDE: Record<string, LucideIcon> = { Server, Terminal, KeyRound, GraduationCap, Sparkles, ShieldCheck };
+
+// A logo image that degrades to a letter monogram if the file 404s or fails to
+// load, so a missing logo never renders as a blank/greyed tile.
+const ImgGlyph: React.FC<{ src: string; name: string; size: number }> = ({ src, name, size }) => {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    const letter = (name || '').trim().charAt(0).toUpperCase() || '?';
+    return <span aria-hidden="true" style={{ fontSize: size * 0.78, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{letter}</span>;
+  }
+  return <img src={src} alt="" aria-hidden="true" onError={() => setFailed(true)} />;
+};
 
 // Single source of truth for rendering an app's icon: a system glyph, a
 // "lucide:Name" glyph, a logo image, or an emoji fallback. emojiClass lets
@@ -22,7 +33,7 @@ const AppGlyph: React.FC<{ app: AppInfo; size?: number; emojiClass?: string }> =
     const Icon = LUCIDE[app.icon.slice(7)] ?? Sparkles;
     return <Icon size={size} color="#fff" strokeWidth={2} />;
   }
-  if (isImageIcon(app.icon)) return <img src={app.icon} alt="" aria-hidden="true" />;
+  if (isImageIcon(app.icon)) return <ImgGlyph src={app.icon!} name={app.name} size={size} />;
   return <span className={emojiClass} aria-hidden="true">{app.icon || '🧩'}</span>;
 };
 
