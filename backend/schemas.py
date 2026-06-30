@@ -15,13 +15,19 @@ class AppBase(BaseModel):
     proxy_embed: bool = False
 
 class AppCreate(AppBase):
-    pass
+    # Optional override URL for the in-window frame; may carry a token, so it is
+    # encrypted at rest and never returned in the public App response.
+    embed_url: Optional[str] = None
 
 class AppUpdate(AppBase):
     name: Optional[str] = None
+    embed_url: Optional[str] = None
 
 class App(AppBase):
     id: int
+    # Flag only — the actual (possibly token-bearing) URL is served from the
+    # authenticated GET /apps/{id}/embed endpoint, never in this public payload.
+    has_embed_url: bool = False
     created_at: datetime
     updated_at: Optional[datetime] = None
 

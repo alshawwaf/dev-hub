@@ -17,6 +17,8 @@ export interface AppInfo {
   embeddable?: boolean;
   /** route the in-window iframe through the same-origin /embed reverse proxy */
   proxy_embed?: boolean;
+  /** an encrypted override URL exists; fetch it from GET /apps/{id}/embed to frame (carries a token) */
+  has_embed_url?: boolean;
   placement?: Placement;
   /** Set on synthetic built-in apps (Settings, Logs, Guide, About). */
   system?: SystemKey;

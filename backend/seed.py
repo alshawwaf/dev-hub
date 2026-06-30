@@ -157,15 +157,20 @@ def seed():
             print(f"Icon backfill complete. Updated {changed} app icon(s).")
 
         # Run every app inside a window. Each app gets its recommended method:
-        # framable apps render directly; apps that block framing (X-Frame-Options)
-        # or render blank cross-origin go through the same-origin proxy. Only apps
-        # NOT yet configured for embedding are touched, so admin toggles stand.
-        # (Langflow is omitted — its app.url currently 404s and must be fixed first.)
+        # framable apps (and root-only SPAs / token dashboards) render the real URL
+        # directly; the same-origin proxy is reserved for simple apps that block
+        # framing but tolerate a path prefix. Only apps NOT yet configured for
+        # embedding are touched here, so admin toggles stand.
         embed_direct = {
             "Docs to Swagger", "Open WebUI", "Flowise",
             "Training Portal", "SAML IDP Simulator", "Lakera Guard Demo",
+            # Root-only SPAs (n8n's subpath is broken upstream; Langflow has no
+            # base-path) + OpenClaw (token dashboard). The path-prefix proxy can't
+            # host these — they frame their real URL directly, and each app's own
+            # edge must allow frame-ancestors of the hub.
+            "n8n Workflow", "Langflow", "OpenClaw",
         }
-        embed_proxy = {"OpenClaw", "AI Basic Training", "Demo Server", "Script Builder", "n8n Workflow"}
+        embed_proxy = {"AI Basic Training", "Demo Server", "Script Builder"}
         changed_embed = 0
         for a in db.query(models.Application).all():
             if a.embeddable or a.proxy_embed:
@@ -179,6 +184,21 @@ def seed():
         if changed_embed:
             db.commit()
             print(f"Embed config applied to {changed_embed} app(s).")
+
+        # Correction for earlier installs that routed these through the proxy:
+        # n8n / Langflow are root-only SPAs and OpenClaw is a token-gated dashboard,
+        # none of which the path-prefix proxy can serve. Force them to direct embed
+        # even if a prior deploy set proxy_embed.
+        force_direct = {"n8n Workflow", "Langflow", "OpenClaw"}
+        fixed = 0
+        for a in db.query(models.Application).all():
+            if a.name in force_direct and (not a.embeddable or a.proxy_embed):
+                a.embeddable = True
+                a.proxy_embed = False
+                fixed += 1
+        if fixed:
+            db.commit()
+            print(f"Direct-embed correction applied to {fixed} app(s).")
 
     finally:
         db.close()

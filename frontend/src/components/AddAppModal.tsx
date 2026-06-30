@@ -18,7 +18,8 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
     icon: "",
     is_live: true,
     embeddable: false,
-    proxy_embed: false
+    proxy_embed: false,
+    embed_url: ""
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -37,7 +38,7 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
       });
       onAppAdded();
       onClose();
-      setFormData({ name: "", description: "", url: "", github_url: "", category: "", icon: "", is_live: true, embeddable: false, proxy_embed: false });
+      setFormData({ name: "", description: "", url: "", github_url: "", category: "", icon: "", is_live: true, embeddable: false, proxy_embed: false, embed_url: "" });
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to add application.");
     } finally {
@@ -191,10 +192,18 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
               <span style={{ fontSize: "0.875rem", color: "#cbd5e1" }}>
                 Route through the same-origin proxy
                 <span style={{ display: "block", fontSize: "0.75rem", color: "#94a3b8", marginTop: "2px" }}>
-                  For apps that block framing (e.g. n8n). The app may also need its own base-path set.
+                  For simple apps that block framing but tolerate a path prefix. Single-page apps (n8n, Langflow) embed directly instead.
                 </span>
               </span>
             </label>
+
+            <div style={{ marginBottom: "28px" }}>
+              <label style={labelStyle}><ExternalLink size={14} /> Embed URL (optional)</label>
+              <input name="embed_url" type="url" placeholder="Token-bearing URL to frame instead of the app URL" value={formData.embed_url} onChange={handleChange} onFocus={() => setFocusedField("embed_url")} onBlur={() => setFocusedField(null)} style={getInputStyle("embed_url")} />
+              <span style={{ display: "block", fontSize: "0.75rem", color: "#94a3b8", marginTop: "6px" }}>
+                Stored encrypted; framed instead of the app URL when set (e.g. an OpenClaw tokenized dashboard URL).
+              </span>
+            </div>
 
             <button type="submit" disabled={loading} style={{
               width: "100%", padding: "18px 24px", borderRadius: "14px", border: "none",

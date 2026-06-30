@@ -4,7 +4,8 @@ from typing import List
 from db import models
 from db.database import get_db
 import schemas
-from .auth import get_current_admin_user
+import crypto
+from .auth import get_current_admin_user, read_users_me
 from .notifications import emit
 
 router = APIRouter()
@@ -15,7 +16,10 @@ def get_apps(db: Session = Depends(get_db)):
 
 @router.post("/", response_model=schemas.App)
 def create_app(app: schemas.AppCreate, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_admin_user)):
-    db_app = models.Application(**app.dict())
+    data = app.dict()
+    embed_url = data.pop("embed_url", None)
+    db_app = models.Application(**data)
+    db_app.embed_url = crypto.encrypt(embed_url)  # encrypt at rest (None if empty)
     db.add(db_app)
     db.commit()
     db.refresh(db_app)
@@ -27,15 +31,28 @@ def update_app(app_id: int, app_update: schemas.AppUpdate, db: Session = Depends
     db_app = db.query(models.Application).filter(models.Application.id == app_id).first()
     if not db_app:
         raise HTTPException(status_code=404, detail="Application not found")
-    
+
     update_data = app_update.dict(exclude_unset=True)
+    # embed_url is only touched when the client explicitly sends it; encrypt or
+    # clear. Omitting the field leaves the stored (encrypted) value untouched.
+    if "embed_url" in update_data:
+        db_app.embed_url = crypto.encrypt(update_data.pop("embed_url"))
     for key, value in update_data.items():
         setattr(db_app, key, value)
-    
+
     db.commit()
     db.refresh(db_app)
     emit(db, f"Application “{db_app.name}” updated by {current_user.email}", "info")
     return db_app
+
+@router.get("/{app_id}/embed")
+def get_embed_url(app_id: int, db: Session = Depends(get_db), user: schemas.User = Depends(read_users_me)):
+    """Return the decrypted embed URL (may carry a token) — authenticated only,
+    so it is never exposed via the public app list."""
+    db_app = db.query(models.Application).filter(models.Application.id == app_id).first()
+    if not db_app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    return {"embed_url": crypto.decrypt(db_app.embed_url)}
 
 @router.delete("/{app_id}")
 def delete_app(app_id: int, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_admin_user)):
