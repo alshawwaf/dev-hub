@@ -65,6 +65,9 @@ def _rewrite_set_cookie(value: str, prefix: str) -> str:
 @router.api_route("/{app_id}/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
 async def proxy(app_id: int, path: str, request: Request, db: Session = Depends(get_db)):
     base = _target_base(app_id, db)
+    # Release the DB transaction before the (potentially slow) upstream call so
+    # the pooled connection isn't held "idle in transaction" during the await.
+    db.rollback()
     prefix = f"/embed/{app_id}/"
     target = f"{base}/{path}"
     if request.url.query:
