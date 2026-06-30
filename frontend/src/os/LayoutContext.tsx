@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import type { AppInfo, Placement } from './types';
+import api from '../services/api';
 
 const LS_KEY = 'devhub.layout.overrides';
 
@@ -8,24 +9,20 @@ type Overrides = Record<number, Placement>;
 const PLACEMENTS: Placement[] = ['desktop', 'dock', 'both', 'hidden'];
 const isPlacement = (v: unknown): v is Placement => typeof v === 'string' && (PLACEMENTS as string[]).includes(v);
 
-function loadOverrides(): Overrides {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
-    const clean: Overrides = {};
-    if (parsed && typeof parsed === 'object') {
-      for (const [k, v] of Object.entries(parsed)) {
-        if (isPlacement(v) && Number.isFinite(Number(k))) clean[Number(k)] = v;
-      }
+function clean(parsed: unknown): Overrides {
+  const out: Overrides = {};
+  if (parsed && typeof parsed === 'object') {
+    for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+      if (isPlacement(v) && Number.isFinite(Number(k))) out[Number(k)] = v;
     }
-    return clean;
-  } catch {
-    return {};
   }
+  return out;
+}
+function loadOverrides(): Overrides {
+  try { return clean(JSON.parse(localStorage.getItem(LS_KEY) || '{}')); } catch { return {}; }
 }
 function saveOverrides(o: Overrides) {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(o));
-  } catch { /* storage unavailable */ }
+  try { localStorage.setItem(LS_KEY, JSON.stringify(o)); } catch { /* storage unavailable */ }
 }
 
 const resolve = (app: AppInfo, overrides: Overrides): Placement =>
@@ -45,13 +42,36 @@ const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
 interface ProviderProps {
   apps: AppInfo[];
   isAdmin: boolean;
+  /** Signed-in user id (null when anonymous). */
+  userId: number | null;
   /** Persist the shared baseline to the DB (admin only). */
   persistBaseline: (appId: number, placement: Placement) => void;
   children: React.ReactNode;
 }
 
-export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, persistBaseline, children }) => {
+export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId, persistBaseline, children }) => {
   const [overrides, setOverrides] = useState<Overrides>(loadOverrides);
+
+  // A signed-in non-admin gets server-persisted personal placement (follows them
+  // across devices). Admins edit the shared baseline; anonymous uses localStorage.
+  const isPersonalUser = !!userId && !isAdmin;
+
+  useEffect(() => {
+    if (!isPersonalUser) return;
+    let cancelled = false;
+    api.get('desktop/prefs')
+      .then(r => { if (!cancelled) setOverrides(clean(r.data?.overrides)); })
+      .catch(() => { /* keep current */ });
+    return () => { cancelled = true; };
+  }, [isPersonalUser]);
+
+  const persist = useCallback((next: Overrides) => {
+    if (isPersonalUser) {
+      api.put('desktop/prefs', { overrides: next }).catch(() => { /* best-effort */ });
+    } else {
+      saveOverrides(next);
+    }
+  }, [isPersonalUser]);
 
   const getPlacement = useCallback((app: AppInfo) => resolve(app, overrides), [overrides]);
 
@@ -66,8 +86,7 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, persist
 
   const setPlacement = useCallback((app: AppInfo, placement: Placement) => {
     if (isAdmin) {
-      // Admin edits the shared baseline; drop any local override for this app
-      // so the admin always sees the true default.
+      // Admin edits the shared baseline; drop any local override for this app.
       persistBaseline(app.id, placement);
       setOverrides(prev => {
         if (!(app.id in prev)) return prev;
@@ -79,24 +98,24 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, persist
     } else {
       setOverrides(prev => {
         const next = { ...prev };
-        // If the chosen placement equals the shared baseline, drop the override
-        // so the app keeps tracking future admin changes instead of shadowing them.
+        // If the chosen placement equals the baseline, drop the override so the
+        // app keeps tracking future admin changes instead of shadowing them.
         if (placement === (app.placement ?? 'desktop')) {
           if (!(app.id in next)) return prev;
           delete next[app.id];
         } else {
           next[app.id] = placement;
         }
-        saveOverrides(next);
+        persist(next);
         return next;
       });
     }
-  }, [isAdmin, persistBaseline]);
+  }, [isAdmin, persistBaseline, persist]);
 
   const resetLayout = useCallback(() => {
     setOverrides({});
-    saveOverrides({});
-  }, []);
+    persist({});
+  }, [persist]);
 
   const value = useMemo(
     () => ({ getPlacement, desktopApps, dockApps, setPlacement, resetLayout, hasLocalOverrides: Object.keys(overrides).length > 0 }),
