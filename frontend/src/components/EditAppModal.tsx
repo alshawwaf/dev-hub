@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save } from 'lucide-react';
+import { X, Save, Upload, Image as ImageIcon } from 'lucide-react';
 import api from '../services/api';
 import AppGlyph from '../os/AppGlyph';
+import { fileToIconDataUrl } from './iconUpload';
 
 interface App {
   id: number;
@@ -88,10 +89,17 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value 
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }));
+  };
+
+  const onPickIcon = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    try { const url = await fileToIconDataUrl(f); setFormData(prev => ({ ...prev, icon: url })); } catch { /* ignore */ }
   };
 
   return (
@@ -158,7 +166,18 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
               <div className="app-icon-prev" style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0, background: 'var(--bg-surface)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                 <AppGlyph app={{ name: formData.name, icon: formData.icon }} size={30} />
               </div>
-              <input name="icon" type="text" placeholder="https://…/icon.png, /logos/app.svg, or an emoji" value={formData.icon} onChange={handleChange} className="bg-bg-surface border border-glass-border rounded-lg p-3 text-sm" style={{ flex: 1 }} />
+              {(formData.icon || '').startsWith('data:') ? (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '11px 13px', background: 'var(--bg-surface)', border: '1px solid var(--glass-border)', borderRadius: 8, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  <ImageIcon size={15} /> Uploaded image
+                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, icon: '' }))} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}>Clear</button>
+                </div>
+              ) : (
+                <input name="icon" type="text" placeholder="URL, /logos/x.png, emoji, or lucide:Name" value={formData.icon} onChange={handleChange} className="bg-bg-surface border border-glass-border rounded-lg p-3 text-sm" style={{ flex: 1 }} />
+              )}
+              <label className="btn btn-ghost" style={{ cursor: 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Upload size={15} /> Upload
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={onPickIcon} />
+              </label>
             </div>
           </div>
 
