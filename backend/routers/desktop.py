@@ -24,6 +24,7 @@ class PrefsIn(BaseModel):
     overrides: Optional[dict] = None
     geometry: Optional[dict] = None   # None = leave unchanged
     widgets: Optional[list] = None    # None = leave unchanged; [] = explicitly none
+    theme: Optional[str] = None       # "dark" | "light"; None = leave unchanged
 
 
 def _clean_overrides(raw: Optional[dict]) -> dict:
@@ -85,6 +86,7 @@ def get_prefs(db: Session = Depends(get_db), user: schemas.User = Depends(read_u
         "geometry": (row.geometry if row and row.geometry else {}),
         # None (never set) -> client applies its default; [] -> user disabled all.
         "widgets": (row.widgets if row and row.widgets is not None else None),
+        "theme": (row.theme if row and row.theme else "dark"),
     }
 
 
@@ -100,8 +102,10 @@ def put_prefs(body: PrefsIn, db: Session = Depends(get_db), user: schemas.User =
         row.geometry = _clean_geometry(body.geometry)
     if body.widgets is not None:
         row.widgets = _clean_widgets(body.widgets)
+    if body.theme in ("dark", "light"):
+        row.theme = body.theme
     db.commit()
-    return {"overrides": row.overrides or {}, "geometry": row.geometry or {}, "widgets": row.widgets or []}
+    return {"overrides": row.overrides or {}, "geometry": row.geometry or {}, "widgets": row.widgets or [], "theme": row.theme or "dark"}
 
 
 @router.get("/widgets")
