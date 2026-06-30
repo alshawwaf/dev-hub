@@ -137,6 +137,18 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
             </div>
           </div>
 
+          <div>
+            <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Icon</label>
+            <div className="flex items-center gap-3">
+              <div style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                {formData.icon && (formData.icon.startsWith('http') || formData.icon.startsWith('/'))
+                  ? <img src={formData.icon} alt="" style={{ maxWidth: 34, maxHeight: 34, objectFit: 'contain' }} />
+                  : <span style={{ fontSize: '1.6rem' }}>{formData.icon || '🧩'}</span>}
+              </div>
+              <input name="icon" type="text" placeholder="https://…/icon.png, /logos/app.svg, or an emoji" value={formData.icon} onChange={handleChange} className="bg-bg-surface border border-glass-border rounded-lg p-3 text-sm" style={{ flex: 1 }} />
+            </div>
+          </div>
+
           <div className="flex items-center gap-3">
             <input id="is_live" name="is_live" type="checkbox" checked={formData.is_live} onChange={handleChange} className="w-4 h-4" />
             <label htmlFor="is_live" className="text-sm text-text-secondary">Application is live</label>

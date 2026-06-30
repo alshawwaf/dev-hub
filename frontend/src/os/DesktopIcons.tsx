@@ -8,6 +8,7 @@ import { useHub } from './HubContext';
 import { DRAG_MIME } from './drag';
 import { openExternal } from './url';
 import AppGlyph from './AppGlyph';
+import { tintFor } from './iconStyle';
 
 const DesktopIcon: React.FC<{ app: AppInfo }> = ({ app }) => {
   const { openApp, isOpen } = useWindows();
@@ -63,7 +64,7 @@ const DesktopIcon: React.FC<{ app: AppInfo }> = ({ app }) => {
       onKeyDown={onKeyDown}
       title={app.description || app.name}
     >
-      <span className="os-deskicon-tile"><AppGlyph app={app} /></span>
+      <span className="os-deskicon-tile" style={{ background: tintFor(app) }}><AppGlyph app={app} size={30} /></span>
       <span className="os-deskicon-label">{app.name}</span>
     </button>
   );

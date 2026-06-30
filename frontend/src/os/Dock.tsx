@@ -10,6 +10,7 @@ import { SYSTEM_APPS } from './systemApps';
 import { DRAG_MIME } from './drag';
 import { openExternal } from './url';
 import AppGlyph from './AppGlyph';
+import { tintFor } from './iconStyle';
 
 const DockTile: React.FC<{ app: AppInfo; draggable?: boolean; onMenu?: (e: React.MouseEvent) => void }> = ({ app, draggable, onMenu }) => {
   const { openApp, isOpen } = useWindows();
@@ -31,7 +32,7 @@ const DockTile: React.FC<{ app: AppInfo; draggable?: boolean; onMenu?: (e: React
       aria-label={`Open ${app.name}`}
     >
       <span className="os-dock-tooltip">{app.name}</span>
-      <span className={`os-dock-icon ${app.system ? 'system' : ''}`}><AppGlyph app={app} emojiClass="os-dock-emoji" /></span>
+      <span className={`os-dock-icon ${app.system ? 'system' : ''}`} style={{ background: tintFor(app) }}><AppGlyph app={app} size={26} emojiClass="os-dock-emoji" /></span>
       <span className={`os-dock-dot ${running ? 'on' : ''}`} aria-hidden="true" />
     </button>
   );

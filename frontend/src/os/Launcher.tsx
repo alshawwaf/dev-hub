@@ -3,6 +3,7 @@ import { ExternalLink, Github } from 'lucide-react';
 import type { AppInfo } from './types';
 import { safeHttpUrl } from './url';
 import AppGlyph from './AppGlyph';
+import { tintFor } from './iconStyle';
 
 interface LauncherProps {
   app: AppInfo;
@@ -16,7 +17,7 @@ const Launcher: React.FC<LauncherProps> = ({ app, embedBlocked }) => {
 
   return (
     <div className="os-launcher">
-      <div className="os-launcher-icon">
+      <div className="os-launcher-icon" style={{ background: tintFor(app) }}>
         <AppGlyph app={app} size={48} />
       </div>
 

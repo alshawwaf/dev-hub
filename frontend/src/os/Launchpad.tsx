@@ -4,6 +4,7 @@ import type { AppInfo } from './types';
 import { useWindows } from './WindowManager';
 import { SYSTEM_APPS } from './systemApps';
 import AppGlyph from './AppGlyph';
+import { tintFor } from './iconStyle';
 
 const Launchpad: React.FC<{ apps: AppInfo[]; onClose: () => void }> = ({ apps, onClose }) => {
   const { openApp } = useWindows();
@@ -36,7 +37,7 @@ const Launchpad: React.FC<{ apps: AppInfo[]; onClose: () => void }> = ({ apps, o
       <div className="os-launchpad-grid" onMouseDown={e => e.stopPropagation()}>
         {filtered.map(app => (
           <button key={app.id} className="os-launchpad-item" onClick={() => launch(app)}>
-            <span className="os-launchpad-icon"><AppGlyph app={app} size={40} /></span>
+            <span className="os-launchpad-icon" style={{ background: tintFor(app) }}><AppGlyph app={app} size={40} /></span>
             <span className="os-launchpad-label">{app.name}</span>
           </button>
         ))}
