@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { AlertTriangle, MousePointerClick, Plus, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, MousePointerClick, Plus, RotateCcw, SlidersHorizontal, Star } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import AddAppModal from '../components/AddAppModal';
@@ -30,7 +30,7 @@ const DesktopSurface: React.FC<{
   onOpenLaunchpad: () => void;
 }> = ({ apps, loading, error, isAdmin, onAddApp, onOpenLaunchpad }) => {
   const { windows, openApp } = useWindows();
-  const { setPlacement, desktopApps, dockApps, resetLayout, hasLocalOverrides, widgets, toggleWidget } = useLayout();
+  const { setPlacement, getPlacement, desktopApps, dockApps, resetLayout, hasLocalOverrides, widgets, toggleWidget } = useLayout();
   const { open: openMenu } = useContextMenu();
 
   const onDrop = (e: React.DragEvent) => {
@@ -51,6 +51,13 @@ const DesktopSurface: React.FC<{
     items.push({ separator: true, label: '' });
     if (isAdmin) items.push({ label: 'Add application', icon: <Plus size={15} />, onClick: onAddApp });
     items.push({ label: 'App placement…', icon: <SlidersHorizontal size={15} />, onClick: () => { const s = getSystemApp('settings'); if (s) openApp(s); } });
+    if (isAdmin) {
+      items.push({ label: 'Set as everyone’s default', icon: <Star size={15} />, onClick: async () => {
+        if (!window.confirm('Make the current app layout the default for everyone?')) return;
+        const placements = Object.fromEntries(apps.filter(a => a.id > 0).map(a => [a.id, getPlacement(a)]));
+        try { await api.post('desktop/default', { placements }); } catch (err) { console.error('Failed to set default layout:', err); }
+      } });
+    }
     if (hasLocalOverrides) {
       items.push({ separator: true, label: '' });
       items.push({ label: 'Reset layout', icon: <RotateCcw size={15} />, onClick: resetLayout });

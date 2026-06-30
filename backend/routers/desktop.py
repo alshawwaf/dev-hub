@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from db import models
 from db.database import get_db
 import schemas
-from .auth import read_users_me
+from .auth import read_users_me, get_current_admin_user
 
 router = APIRouter()
 
@@ -25,6 +25,10 @@ class PrefsIn(BaseModel):
     geometry: Optional[dict] = None   # None = leave unchanged
     widgets: Optional[list] = None    # None = leave unchanged; [] = explicitly none
     theme: Optional[str] = None       # "dark" | "light"; None = leave unchanged
+
+
+class DefaultIn(BaseModel):
+    placements: dict   # { appId: "desktop|dock|both|hidden" } — admin writes the shared baseline
 
 
 def _clean_overrides(raw: Optional[dict]) -> dict:
@@ -106,6 +110,26 @@ def put_prefs(body: PrefsIn, db: Session = Depends(get_db), user: schemas.User =
         row.theme = body.theme
     db.commit()
     return {"overrides": row.overrides or {}, "geometry": row.geometry or {}, "widgets": row.widgets or [], "theme": row.theme or "dark"}
+
+
+@router.post("/default")
+def set_default(body: DefaultIn, db: Session = Depends(get_db), admin: schemas.User = Depends(get_current_admin_user)):
+    """Admin-only: snapshot the submitted per-app placements as the shared baseline
+    (Application.placement) — the default layout for everyone."""
+    updated = 0
+    for k, v in (body.placements or {}).items():
+        if not isinstance(v, str) or v not in VALID:
+            continue
+        try:
+            aid = int(k)
+        except (TypeError, ValueError):
+            continue
+        app = db.query(models.Application).filter(models.Application.id == aid).first()
+        if app:
+            app.placement = v
+            updated += 1
+    db.commit()
+    return {"updated": updated}
 
 
 @router.get("/widgets")
