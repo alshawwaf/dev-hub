@@ -1,21 +1,55 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RotateCcw, Shield, Plus, Layers, ExternalLink, Github, Trash2, Search, X } from 'lucide-react';
-import type { SystemKey } from '../types';
+import type { SystemKey, Placement } from '../types';
 import { useLayout } from '../LayoutContext';
 import { useHub } from '../HubContext';
 import api from '../../services/api';
 import GuidePage from '../../pages/GuidePage';
+import AppGlyph from '../AppGlyph';
+import { tintFor } from '../iconStyle';
+
+const PLACEMENTS: { value: Placement; label: string }[] = [
+  { value: 'desktop', label: 'Desktop' },
+  { value: 'dock', label: 'Dock' },
+  { value: 'both', label: 'Both' },
+  { value: 'hidden', label: 'Hidden' },
+];
 
 const SettingsApp: React.FC = () => {
-  const { resetLayout, hasLocalOverrides } = useLayout();
-  const { isAdmin, openAddApp } = useHub();
+  const { resetLayout, hasLocalOverrides, getPlacement, setPlacement } = useLayout();
+  const { isAdmin, openAddApp, apps } = useHub();
+  const catalog = apps.filter(a => a.id > 0);
 
   return (
     <div className="os-sys">
       <section className="os-sys-section">
-        <h3>Layout</h3>
-        <p>Drag icons between the desktop and the dock, or right-click any app to place it. Your changes are saved to this browser on top of the shared defaults.</p>
-        <button className="btn btn-ghost" onClick={resetLayout} disabled={!hasLocalOverrides}>
+        <h3>App placement</h3>
+        <p>Choose where each app appears. You can also drag an icon between the desktop and dock, or right-click any app.{isAdmin && ' As an admin, your choices set the shared default for everyone.'}</p>
+        <div className="os-place-list">
+          {catalog.map(app => {
+            const current = getPlacement(app);
+            return (
+              <div key={app.id} className="os-place-row">
+                <span className="os-place-icon" style={{ background: tintFor(app) }}><AppGlyph app={app} size={18} /></span>
+                <span className="os-place-name">{app.name}</span>
+                <div className="os-place-seg" role="radiogroup" aria-label={`Placement for ${app.name}`}>
+                  {PLACEMENTS.map(p => (
+                    <button
+                      key={p.value}
+                      className={`os-place-opt ${current === p.value ? 'on' : ''}`}
+                      role="radio"
+                      aria-checked={current === p.value}
+                      onClick={() => setPlacement(app, p.value)}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <button className="btn btn-ghost" onClick={resetLayout} disabled={!hasLocalOverrides} style={{ marginTop: '1rem' }}>
           <RotateCcw size={15} /> Reset to default layout
         </button>
         {!hasLocalOverrides && <span className="os-sys-hint">You're using the default layout.</span>}
@@ -23,7 +57,7 @@ const SettingsApp: React.FC = () => {
 
       <section className="os-sys-section">
         <h3>Opening apps</h3>
-        <p>Apps marked <em>embeddable</em> open inside a window. Everything else opens in its own browser tab — set this per app in the admin panel.</p>
+        <p>Apps marked <em>embeddable</em> open inside a window; apps that block framing can be routed through the proxy. Everything else opens in its own tab — set this per app in the Edit dialog (right-click → Edit app).</p>
       </section>
 
       {isAdmin && (
