@@ -7,7 +7,7 @@ import SystemContent from './system/SystemContent';
 import { safeHttpUrl } from './url';
 
 const TITLEBAR_H = 40;
-const EMBED_TIMEOUT_MS = 7000;
+const EMBED_TIMEOUT_MS = 10000;
 
 const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
   const { activeId, closeWindow, focusWindow, minimizeWindow, toggleMaximize, moveWindow } = useWindows();

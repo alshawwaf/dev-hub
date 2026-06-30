@@ -155,6 +155,22 @@ def seed():
             db.commit()
             print(f"Icon backfill complete. Updated {changed} app icon(s).")
 
+        # One-time embed-by-default for the apps verified to render inside a
+        # window (others either block framing or render blank/404, so they keep
+        # the launcher). Applied only on the first boot when every app is still
+        # False, so an admin toggling embedding later is never overridden.
+        embed_default = {
+            "Docs to Swagger", "Open WebUI", "Flowise",
+            "Training Portal", "SAML IDP Simulator",
+        }
+        all_apps = db.query(models.Application).all()
+        if all_apps and all(not a.embeddable for a in all_apps):
+            for a in all_apps:
+                if a.name in embed_default:
+                    a.embeddable = True
+            db.commit()
+            print(f"Embed-by-default applied to {sum(1 for a in all_apps if a.embeddable)} app(s).")
+
     finally:
         db.close()
 
