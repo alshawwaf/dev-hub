@@ -106,6 +106,11 @@ async def proxy(app_id: int, path: str, request: Request, db: Session = Depends(
         html = content.decode(upstream.encoding or "utf-8", errors="replace")
         if "<base " not in html.lower():
             html = re.sub(r"(<head[^>]*>)", rf"\1<base href=\"{prefix}\">", html, count=1, flags=re.IGNORECASE)
+        # Route absolute-root asset/link refs (src="/...", href="/...") back through
+        # the proxy. Skips protocol-relative (//) and already-prefixed (/embed/) refs.
+        # NOTE: this fixes refs in the served HTML; URLs an SPA builds at runtime in
+        # JS still need the app's own base-path env (e.g. n8n N8N_PATH).
+        html = re.sub(r'((?:src|href)=["\'])/(?!/|embed/)', lambda m: m.group(1) + prefix, html)
         return Response(content=html, status_code=upstream.status_code, headers=out_headers, media_type=ctype)
 
     return StreamingResponse(iter([content]), status_code=upstream.status_code, headers=out_headers, media_type=ctype or None)

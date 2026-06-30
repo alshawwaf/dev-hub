@@ -156,21 +156,29 @@ def seed():
             db.commit()
             print(f"Icon backfill complete. Updated {changed} app icon(s).")
 
-        # One-time embed-by-default for the apps verified to render inside a
-        # window (others either block framing or render blank/404, so they keep
-        # the launcher). Applied only on the first boot when every app is still
-        # False, so an admin toggling embedding later is never overridden.
-        embed_default = {
+        # Run every app inside a window. Each app gets its recommended method:
+        # framable apps render directly; apps that block framing (X-Frame-Options)
+        # or render blank cross-origin go through the same-origin proxy. Only apps
+        # NOT yet configured for embedding are touched, so admin toggles stand.
+        # (Langflow is omitted — its app.url currently 404s and must be fixed first.)
+        embed_direct = {
             "Docs to Swagger", "Open WebUI", "Flowise",
-            "Training Portal", "SAML IDP Simulator",
+            "Training Portal", "SAML IDP Simulator", "Lakera Guard Demo",
         }
-        all_apps = db.query(models.Application).all()
-        if all_apps and all(not a.embeddable for a in all_apps):
-            for a in all_apps:
-                if a.name in embed_default:
-                    a.embeddable = True
+        embed_proxy = {"OpenClaw", "AI Basic Training", "Demo Server", "Script Builder", "n8n Workflow"}
+        changed_embed = 0
+        for a in db.query(models.Application).all():
+            if a.embeddable or a.proxy_embed:
+                continue  # already set up to embed — don't override
+            if a.name in embed_direct:
+                a.embeddable = True
+                changed_embed += 1
+            elif a.name in embed_proxy:
+                a.proxy_embed = True
+                changed_embed += 1
+        if changed_embed:
             db.commit()
-            print(f"Embed-by-default applied to {sum(1 for a in all_apps if a.embeddable)} app(s).")
+            print(f"Embed config applied to {changed_embed} app(s).")
 
     finally:
         db.close()
