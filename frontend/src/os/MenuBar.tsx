@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Wifi, Search, BatteryMedium, ChevronDown, Plus, Shield, BookOpen, LogOut, Github, LayoutGrid, Info } from 'lucide-react';
+import { Search, ChevronDown, Plus, Shield, BookOpen, LogOut, Github, LayoutGrid, Info } from 'lucide-react';
 import { useWindows } from './WindowManager';
 import { getSystemApp } from './systemApps';
 
@@ -107,9 +107,9 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad }) => {
 
       <div className="os-menubar-right">
         {user && <span className="os-user">{user.email.split('@')[0]}</span>}
-        <Search size={15} />
-        <Wifi size={15} />
-        <BatteryMedium size={16} />
+        <button className="os-menubar-btn" onClick={onOpenLaunchpad} title="Search apps" aria-label="Search apps">
+          <Search size={15} />
+        </button>
         <span className="os-clock">{day}&nbsp;&nbsp;{time}</span>
       </div>
     </div>
