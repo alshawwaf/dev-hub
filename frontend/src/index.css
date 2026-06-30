@@ -1745,6 +1745,34 @@ svg {
 }
 @media (prefers-reduced-motion: reduce) { .os-set-main { animation: none; } }
 
+/* Settings: toggle switch + overview preset ladder + jump rows */
+.os-sw { display: inline-flex; cursor: pointer; }
+.os-sw input { position: absolute; opacity: 0; width: 0; height: 0; }
+.os-sw span { width: 40px; height: 24px; border-radius: 20px; background: rgba(125, 135, 148, 0.4); position: relative; transition: background var(--transition-fast); }
+.os-sw span::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left var(--transition-fast); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.os-sw input:checked + span { background: var(--primary); }
+.os-sw input:checked + span::after { left: 18px; }
+.os-sw input:focus-visible + span { outline: 2px solid var(--primary-light); outline-offset: 2px; }
+
+.os-set-ladder { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.os-set-seg { padding: 7px 12px; border-radius: 9px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-secondary); font-size: 0.82rem; cursor: pointer; transition: var(--transition-fast); }
+.os-set-seg:hover { background: var(--primary); color: #fff; border-color: transparent; }
+
+.os-set-jump { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; border: none; border-top: 1px solid var(--glass-border); background: none; color: var(--text-primary); font-size: 0.9rem; text-align: left; cursor: pointer; transition: var(--transition-fast); }
+.os-set-jump:first-child { border-top: none; }
+.os-set-jump:hover { background: var(--glass-bg-strong); }
+.os-set-jump span { flex: 1; }
+.os-set-jump small { color: var(--text-muted); font-size: 0.78rem; }
+.os-set-jump svg { color: var(--text-dim); flex-shrink: 0; }
+
+/* User-set "Reduce motion" — neutralize animations + transitions globally */
+[data-reduce-motion="1"] *, [data-reduce-motion="1"] *::before, [data-reduce-motion="1"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
 /* Launchpad per-app ⋯ options button (touch-reachable; right-click still works) */
 .os-launchpad-icon { position: relative; }
 .os-launchpad-more {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { RotateCcw, Shield, Plus, Layers, ExternalLink, Github, Trash2, Search, X, Palette, LayoutGrid } from 'lucide-react';
+import { RotateCcw, Shield, Plus, Layers, ExternalLink, Github, Trash2, Search, X, Palette, LayoutGrid, LayoutDashboard, ChevronRight } from 'lucide-react';
 import type { SystemKey, Placement } from '../types';
 import { useLayout } from '../LayoutContext';
 import { useHub } from '../HubContext';
@@ -22,18 +22,31 @@ const Row: React.FC<{ label: string; help?: string; children: React.ReactNode }>
     <span className="os-set-ctrl">{children}</span>
   </div>
 );
+const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label?: string }> = ({ checked, onChange, label }) => (
+  <label className="os-sw">
+    <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} aria-label={label} />
+    <span />
+  </label>
+);
 
 const SECTIONS = [
+  { key: 'overview', label: 'Overview', Icon: LayoutDashboard, color: 'linear-gradient(135deg,#06b6d4,#0e7490)' },
   { key: 'appearance', label: 'Appearance', Icon: Palette, color: 'linear-gradient(135deg,#ec4899,#be185d)' },
   { key: 'apps', label: 'Apps & Layout', Icon: LayoutGrid, color: 'linear-gradient(135deg,#7c3aed,#6d28d9)' },
 ];
 
 const SettingsApp: React.FC = () => {
-  const { resetLayout, hasLocalOverrides, getPlacement, setPlacement, theme, setTheme } = useLayout();
+  const { resetLayout, hasLocalOverrides, getPlacement, setPlacement, theme, setTheme, desktopApps, dockApps } = useLayout();
   const { isAdmin, openAddApp, apps } = useHub();
   const catalog = apps.filter(a => a.id > 0);
-  const [active, setActive] = useState('appearance');
+  const [active, setActive] = useState('overview');
   const [q, setQ] = useState('');
+  const [reduceMotion, setReduceMotion] = useState(() => { try { return localStorage.getItem('devhub.reduce-motion') === '1'; } catch { return false; } });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-reduce-motion', reduceMotion ? '1' : '0');
+    try { localStorage.setItem('devhub.reduce-motion', reduceMotion ? '1' : '0'); } catch { /* unavailable */ }
+  }, [reduceMotion]);
 
   const sections = isAdmin
     ? [...SECTIONS, { key: 'manage', label: 'Manage', Icon: Shield, color: 'linear-gradient(135deg,#3b82f6,#1d4ed8)' }]
@@ -54,6 +67,34 @@ const SettingsApp: React.FC = () => {
       </aside>
 
       <div className="os-set-main" key={active}>
+        {active === 'overview' && (
+          <>
+            <div className="os-set-head"><h1>Overview</h1><p>Your desktop at a glance.</p></div>
+            <Group>
+              <Row label="Desktop layout" help="One click to place every app.">
+                <div className="os-set-ladder">
+                  {([['dock', 'Minimal'], ['desktop', 'Balanced'], ['both', 'Everything']] as const).map(([val, lbl]) => (
+                    <button key={val} className="os-set-seg" onClick={() => catalog.forEach(a => setPlacement(a, val))}>{lbl}</button>
+                  ))}
+                </div>
+              </Row>
+            </Group>
+            <Group>
+              <button className="os-set-jump" onClick={() => setActive('appearance')}>
+                <span>Appearance</span><small>{theme === 'dark' ? 'Dark' : 'Light'}{reduceMotion ? ' · Reduced motion' : ''}</small><ChevronRight size={15} />
+              </button>
+              <button className="os-set-jump" onClick={() => setActive('apps')}>
+                <span>Apps &amp; Layout</span><small>{desktopApps.filter(a => a.id > 0).length} on desktop · {dockApps.filter(a => a.id > 0).length} in dock</small><ChevronRight size={15} />
+              </button>
+              {isAdmin && (
+                <button className="os-set-jump" onClick={() => setActive('manage')}>
+                  <span>Manage</span><small>Admin tools</small><ChevronRight size={15} />
+                </button>
+              )}
+            </Group>
+          </>
+        )}
+
         {active === 'appearance' && (
           <>
             <div className="os-set-head"><h1>Appearance</h1><p>Theme and how the desktop looks.</p></div>
@@ -64,6 +105,9 @@ const SettingsApp: React.FC = () => {
                     <button key={t} role="radio" aria-checked={theme === t} className={`os-place-opt ${theme === t ? 'on' : ''}`} onClick={() => setTheme(t)}>{t === 'dark' ? 'Dark' : 'Light'}</button>
                   ))}
                 </div>
+              </Row>
+              <Row label="Reduce motion" help="Minimize animations across the desktop.">
+                <Toggle checked={reduceMotion} onChange={setReduceMotion} label="Reduce motion" />
               </Row>
             </Group>
             <p className="os-set-note">Your theme is remembered on this device instantly, and follows you across devices when you're signed in.</p>
