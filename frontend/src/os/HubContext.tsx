@@ -6,6 +6,7 @@ interface HubContextType {
   isAdmin: boolean;
   openAddApp: () => void;
   openEditApp: (app: AppInfo) => void;
+  openRenameApp: (app: AppInfo) => void;
   openDeleteApp: (app: AppInfo) => void;
   openLaunchpad: () => void;
   refetch: () => void;

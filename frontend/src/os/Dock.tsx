@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutGrid, ExternalLink, PinOff, Pin, Monitor, EyeOff, Play, Pencil, Trash2 } from 'lucide-react';
+import { LayoutGrid, ExternalLink, PinOff, Pin, Monitor, EyeOff, Play, Pencil, Trash2, SlidersHorizontal } from 'lucide-react';
 import type { AppInfo } from './types';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
@@ -47,7 +47,7 @@ const Dock: React.FC<DockProps> = ({ apps, onOpenLaunchpad }) => {
   const { windows, openApp } = useWindows();
   const { dockApps, getPlacement, setPlacement } = useLayout();
   const { open: openMenu } = useContextMenu();
-  const { isAdmin, openEditApp, openDeleteApp } = useHub();
+  const { isAdmin, openEditApp, openRenameApp, openDeleteApp } = useHub();
 
   const pinnedIds = new Set(dockApps.map(a => a.id));
   const openCatalogIds = new Set(windows.map(w => w.app.id).filter(id => id > 0));
@@ -78,7 +78,8 @@ const Dock: React.FC<DockProps> = ({ apps, onOpenLaunchpad }) => {
     if (isAdmin) {
       items.push(
         { separator: true, label: '' },
-        { label: 'Rename / Edit…', icon: <Pencil size={15} />, onClick: () => openEditApp(app) },
+        { label: 'Rename…', icon: <Pencil size={15} />, onClick: () => openRenameApp(app) },
+        { label: 'Edit app…', icon: <SlidersHorizontal size={15} />, onClick: () => openEditApp(app) },
         { label: 'Delete app…', icon: <Trash2 size={15} />, danger: true, onClick: () => openDeleteApp(app) },
       );
     }

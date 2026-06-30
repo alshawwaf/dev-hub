@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Play, ExternalLink, Pencil, Trash2, MoreHorizontal } from 'lucide-react';
+import { Search, Play, ExternalLink, Pencil, Trash2, MoreHorizontal, SlidersHorizontal } from 'lucide-react';
 import type { AppInfo } from './types';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
@@ -14,7 +14,7 @@ const Launchpad: React.FC<{ apps: AppInfo[]; onClose: () => void }> = ({ apps, o
   const { openApp } = useWindows();
   const { getPlacement, setPlacement } = useLayout();
   const { open: openMenu, openAt } = useContextMenu();
-  const { isAdmin, openEditApp, openDeleteApp } = useHub();
+  const { isAdmin, openEditApp, openRenameApp, openDeleteApp } = useHub();
   const [q, setQ] = useState('');
   const restoreFocus = useRef<HTMLElement | null>(null);
 
@@ -52,7 +52,8 @@ const Launchpad: React.FC<{ apps: AppInfo[]; onClose: () => void }> = ({ apps, o
     if (isAdmin) {
       items.push(
         { separator: true, label: '' },
-        { label: 'Rename / Edit…', icon: <Pencil size={15} />, onClick: () => { onClose(); openEditApp(app); } },
+        { label: 'Rename…', icon: <Pencil size={15} />, onClick: () => { onClose(); openRenameApp(app); } },
+        { label: 'Edit app…', icon: <SlidersHorizontal size={15} />, onClick: () => { onClose(); openEditApp(app); } },
         { label: 'Delete app…', icon: <Trash2 size={15} />, danger: true, onClick: () => { onClose(); openDeleteApp(app); } },
       );
     }
