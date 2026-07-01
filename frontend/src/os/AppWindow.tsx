@@ -130,7 +130,9 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
   };
 
   const style: React.CSSProperties = win.maximized
-    ? { left: 0, top: 28, width: '100%', height: 'calc(100% - 28px - var(--os-dock-reserve, 96px))', zIndex: win.z }
+    // .os-desktop (the offset parent) already sits between the menubar and the
+    // dock in the flex column, so maximizing just fills it fully.
+    ? { left: 0, top: 0, width: '100%', height: '100%', zIndex: win.z }
     : { left: win.x, top: win.y, width: win.width, height: win.height, zIndex: win.z };
 
   if (win.minimized) return null;
