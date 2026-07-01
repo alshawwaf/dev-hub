@@ -12,7 +12,7 @@ const LS_ICONPOS = 'devhub.icon.positions';
 type Theme = 'dark' | 'light';
 
 const DEFAULT_WIDGETS: WidgetId[] = ['clock', 'activity'];
-const VALID_WIDGETS: string[] = ['clock', 'apps', 'activity', 'errors', 'latency', 'recent', 'notifications', 'lastapp', 'quick'];
+const VALID_WIDGETS: string[] = ['clock', 'apps', 'activity', 'errors', 'latency', 'recent', 'notifications', 'lastapp', 'quick', 'system'];
 
 type Overrides = Record<number, Placement>;
 

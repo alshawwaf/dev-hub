@@ -2,6 +2,8 @@
 overrides (which apps sit on the desktop vs dock) follow them across devices,
 layered on top of the admin-set baseline (the Application.placement column).
 """
+import os
+import time
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -15,9 +17,44 @@ from .auth import read_users_me, get_current_admin_user
 
 router = APIRouter()
 
+# Backend start (for the System widget's uptime).
+_STARTED = time.monotonic()
+
 VALID = {"desktop", "dock", "both", "hidden"}
 # Widget ids the desktop rail knows how to render (see frontend os/widgets/registry).
-VALID_WIDGETS = {"clock", "apps", "activity", "errors", "latency", "recent", "notifications", "lastapp", "quick"}
+VALID_WIDGETS = {"clock", "apps", "activity", "errors", "latency", "recent", "notifications", "lastapp", "quick", "system"}
+
+
+def _system_stats() -> dict:
+    """Host/app utilization via stdlib only (no psutil): app uptime, load average,
+    memory (from /proc/meminfo on Linux), and disk usage of /. Each piece degrades
+    to None if unavailable so the widget stays resilient across platforms."""
+    stats: dict = {"uptime_seconds": int(time.monotonic() - _STARTED), "cpus": os.cpu_count() or 1}
+    try:
+        stats["load"] = [round(x, 2) for x in os.getloadavg()]
+    except (OSError, AttributeError):
+        stats["load"] = None
+    try:
+        mem = {}
+        with open("/proc/meminfo") as f:
+            for line in f:
+                key, _, rest = line.partition(":")
+                mem[key] = int(rest.strip().split()[0])  # kB
+        total = mem.get("MemTotal", 0)
+        avail = mem.get("MemAvailable", mem.get("MemFree", 0))
+        stats["mem"] = {"used_pct": round(100 * (total - avail) / total, 1) if total else None,
+                        "total_mb": round(total / 1024)}
+    except Exception:
+        stats["mem"] = None
+    try:
+        st = os.statvfs("/")
+        total = st.f_blocks * st.f_frsize
+        free = st.f_bavail * st.f_frsize
+        stats["disk"] = {"used_pct": round(100 * (total - free) / total, 1) if total else None,
+                         "total_gb": round(total / 1e9, 1)}
+    except Exception:
+        stats["disk"] = None
+    return stats
 
 
 class PrefsIn(BaseModel):
@@ -207,4 +244,5 @@ def widgets_data(db: Session = Depends(get_db), user: schemas.User = Depends(rea
         "recent": recent,
         "notifications": {"unread": unread, "latest": latest},
         "last_app": last_app,
+        "system": _system_stats(),
     }

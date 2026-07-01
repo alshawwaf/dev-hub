@@ -26,7 +26,7 @@ export interface AppInfo {
   iconName?: string;
 }
 
-export type WidgetId = 'clock' | 'apps' | 'activity' | 'errors' | 'latency' | 'recent' | 'notifications' | 'lastapp' | 'quick';
+export type WidgetId = 'clock' | 'apps' | 'activity' | 'errors' | 'latency' | 'recent' | 'notifications' | 'lastapp' | 'quick' | 'system';
 
 export interface WidgetData {
   apps: { total: number; live: number; embeddable: number };
@@ -36,6 +36,13 @@ export interface WidgetData {
   recent: { method: string; path: string; status: number; kind: string; at: string | null }[];
   notifications: { unread: number; latest: { text: string; kind: string; created_at: string | null } | null };
   last_app: { name: string; category: string; is_live: boolean } | null;
+  system?: {
+    uptime_seconds: number;
+    cpus: number;
+    load: number[] | null;
+    mem: { used_pct: number | null; total_mb: number } | null;
+    disk: { used_pct: number | null; total_gb: number } | null;
+  };
 }
 
 export interface WindowState {

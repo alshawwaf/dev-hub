@@ -776,6 +776,14 @@ footer p {
 .bg-bg-surface::placeholder { color: var(--text-dim); }
 .os-rename-input::placeholder { color: var(--text-dim); }
 .os-build { font-size: 0.66rem; color: var(--text-dim); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; cursor: default; white-space: nowrap; }
+
+/* System widget utilization meters */
+.os-pw-meters { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.os-pw-meter { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--text-muted); }
+.os-pw-meter .l { width: 36px; flex-shrink: 0; letter-spacing: 0.04em; }
+.os-pw-meter .b { flex: 1; height: 5px; border-radius: 3px; background: var(--glass-bg-strong); overflow: hidden; }
+.os-pw-meter .b i { display: block; height: 100%; border-radius: 3px; transition: width var(--transition-base); }
+.os-pw-meter .v { width: 36px; text-align: right; flex-shrink: 0; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .border-glass-border { border-color: var(--glass-border-strong); }
 .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .app-icon-prev img { max-width: 32px; max-height: 32px; object-fit: contain; }
