@@ -70,7 +70,7 @@ def seed():
                 models.Application(
                     name="n8n Workflow",
                     description="AI workflow automation platform",
-                    url=f"https://n8n.{DOMAIN}",
+                    url=f"https://workflow.{DOMAIN}",
                     github_url="https://github.com/alshawwaf/cp-agentic-mcp-playground",
                     category="Automation",
                     icon="/logos/n8n.png",
@@ -213,10 +213,11 @@ def seed():
             db.commit()
             print(f"Direct-embed correction applied to {fixed} app(s).")
 
-        # URL correction: n8n's editor is served at n8n.<domain> (N8N_HOST /
-        # N8N_EDITOR_BASE_URL), not workflow.<domain>. Fix the managed row only if it
-        # still holds the old seeded default, so any admin-set URL is preserved.
-        url_fixes = {"n8n Workflow": (f"https://workflow.{DOMAIN}", f"https://n8n.{DOMAIN}")}
+        # URL correction: n8n is actually served at workflow.<domain> (confirmed live —
+        # /healthz 200), NOT n8n.<domain> (which has no route/cert). An earlier build
+        # wrongly flipped this to n8n.<domain>; flip it back. Only touches the row if it
+        # still holds that wrong value, so an admin-set URL is preserved.
+        url_fixes = {"n8n Workflow": (f"https://n8n.{DOMAIN}", f"https://workflow.{DOMAIN}")}
         url_fixed = 0
         for name, (old_url, new_url) in url_fixes.items():
             row = db.query(models.Application).filter(models.Application.name == name).first()
