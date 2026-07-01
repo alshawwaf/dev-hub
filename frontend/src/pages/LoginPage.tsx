@@ -36,8 +36,10 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="login-card">
+    <div className="min-h-screen relative flex items-center justify-center px-4 py-12">
+      {/* Standalone login: its own ambient background (no navbar/footer chrome). */}
+      <div className="landing-bg"></div>
+      <div className="login-card relative z-10">
         {/* Logo */}
         <div className="logo-icon overflow-hidden">
           <img 

@@ -44,7 +44,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<ProtectedRoute><Desktop /></ProtectedRoute>} />
-          <Route path="/login" element={<ChromeLayout><LoginPage /></ChromeLayout>} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/guide" element={<ChromeLayout><GuidePage /></ChromeLayout>} />
           <Route
             path="/admin"
