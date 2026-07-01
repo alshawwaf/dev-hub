@@ -8,6 +8,17 @@ import { buildCustomizeItems } from './widgets/customizeMenu';
 import { getSystemApp } from './systemApps';
 import api from '../services/api';
 
+// Build stamp baked in at build time (vite define) — lets you see at a glance
+// whether the latest deploy is live. Prod has no git SHA, so it shows the build time.
+const BUILD_SHA = typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '';
+const BUILD_TIME = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : '';
+const buildStampLabel = (() => {
+  if (BUILD_SHA) return BUILD_SHA;
+  if (BUILD_TIME) { try { return new Date(BUILD_TIME).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { /* ignore */ } }
+  return 'dev';
+})();
+const buildStampTitle = `Deployed build${BUILD_SHA ? ' · ' + BUILD_SHA : ''}${BUILD_TIME ? ' · built ' + (() => { try { return new Date(BUILD_TIME).toLocaleString(); } catch { return BUILD_TIME; } })() : ''}`;
+
 interface Notif { id: number; kind: string; text: string; read: boolean; created_at: string; }
 const notifTime = (s: string) => new Date(/[Z+]/.test(s) ? s : s + 'Z').toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 const ago = (s: string) => {
@@ -159,6 +170,7 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad }) => {
       </div>
 
       <div className="os-menubar-right">
+        <span className="os-build" title={buildStampTitle}>{buildStampLabel}</span>
         {user && <span className="os-user">{user.email.split('@')[0]}</span>}
         {user && (
           <div className="os-bell-wrap" ref={bellRef}>
