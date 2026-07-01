@@ -121,6 +121,15 @@ def seed():
                     icon="/logos/ai-basic-training.png",
                     is_live=True
                 ),
+                models.Application(
+                    name="Drawbridge",
+                    description="Integration server — connectors & simulators for lab integrations",
+                    url=f"https://dcsim.{DOMAIN}",
+                    github_url="https://github.com/alshawwaf/Drawbridge",
+                    category="Integration",
+                    icon="lucide:Cable",
+                    is_live=True
+                ),
         ]
         added = 0
         for app in apps:
@@ -162,16 +171,19 @@ def seed():
         # directly; the same-origin proxy is reserved for simple apps that block
         # framing but tolerate a path prefix. Only apps NOT yet configured for
         # embedding are touched here, so admin toggles stand.
+        # Every app frames its REAL URL directly. The same-origin path-prefix proxy
+        # is retired: it can't survive login redirects / SPA routing / non-GET methods
+        # (it surfaced raw "405 Not Allowed" from the upstream nginx). Direct embed +
+        # an edge frame-ancestors allowance (a Traefik hubframe middleware on each
+        # app's route, or one default middleware on the entrypoint) is the reliable
+        # path for ALL apps.
         embed_direct = {
             "Docs to Swagger", "Open WebUI", "Flowise",
             "Training Portal", "SAML IDP Simulator", "Lakera Guard Demo",
-            # Root-only SPAs (n8n's subpath is broken upstream; Langflow has no
-            # base-path) + OpenClaw (token dashboard). The path-prefix proxy can't
-            # host these — they frame their real URL directly, and each app's own
-            # edge must allow frame-ancestors of the hub.
             "n8n Workflow", "Langflow", "OpenClaw",
+            "AI Basic Training", "Demo Server", "Script Builder", "Drawbridge",
         }
-        embed_proxy = {"AI Basic Training", "Demo Server", "Script Builder"}
+        embed_proxy = set()  # retired — see note above
         changed_embed = 0
         for a in db.query(models.Application).all():
             if a.embeddable or a.proxy_embed:
@@ -214,6 +226,21 @@ def seed():
         if url_fixed:
             db.commit()
             print(f"URL correction applied to {url_fixed} app(s).")
+
+        # Retire the path-prefix proxy for EVERY app (incl. ones renamed by an admin,
+        # e.g. "Demo Server" -> "Threat Prevention Server"): flip any proxy_embed row
+        # to direct embed. The proxy 405s on login/SPA flows; direct embed lets the
+        # probe show a clean status and, with an edge frame-ancestors allowance, the
+        # app renders in-window.
+        proxy_retired = 0
+        for a in db.query(models.Application).all():
+            if a.proxy_embed:
+                a.proxy_embed = False
+                a.embeddable = True
+                proxy_retired += 1
+        if proxy_retired:
+            db.commit()
+            print(f"Retired proxy embedding for {proxy_retired} app(s) -> direct.")
 
     finally:
         db.close()
