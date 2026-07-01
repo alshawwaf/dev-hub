@@ -4,11 +4,12 @@ import type { WidgetData, WidgetId } from '../types';
 // Order the rail renders enabled widgets in, and the order shown in the
 // customize checklist.
 export const WIDGET_ORDER: WidgetId[] = [
-  'clock', 'apps', 'activity', 'errors', 'latency', 'recent', 'notifications', 'lastapp', 'quick',
+  'clock', 'system', 'apps', 'activity', 'errors', 'latency', 'recent', 'notifications', 'lastapp', 'quick',
 ];
 
 export const WIDGET_LABEL: Record<WidgetId, string> = {
   clock: 'Clock',
+  system: 'System',
   apps: 'Applications',
   activity: 'API activity',
   errors: 'Errors today',
@@ -51,6 +52,26 @@ const Sparkline: React.FC<{ data: number[] }> = ({ data }) => {
 };
 
 const dim = (msg = 'Loading…') => <div className="os-pw-dim">{msg}</div>;
+
+const fmtUptime = (s: number): string => {
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+  if (d) return `${d}d ${h}h`;
+  if (h) return `${h}h ${m}m`;
+  if (m) return `${m}m`;
+  return `${Math.floor(s)}s`;
+};
+
+const Meter: React.FC<{ label: string; pct: number }> = ({ label, pct }) => {
+  const p = Math.max(0, Math.min(100, Math.round(pct)));
+  const color = p >= 90 ? 'var(--error)' : p >= 75 ? 'var(--warning)' : 'var(--success)';
+  return (
+    <div className="os-pw-meter">
+      <span className="l">{label}</span>
+      <span className="b"><i style={{ width: `${Math.max(2, p)}%`, background: color }} /></span>
+      <span className="v">{p}%</span>
+    </div>
+  );
+};
 
 interface WidgetDef {
   label: string;
@@ -154,6 +175,28 @@ export const WIDGETS: Record<WidgetId, WidgetDef> = {
         <div className="os-pw-meta"><span className={`os-pw-dot ${d.last_app.is_live ? 'on' : ''}`} />{d.last_app.category || '—'}</div>
       </>
     ),
+  },
+  system: {
+    label: WIDGET_LABEL.system,
+    open: 'logs',
+    render: (d) => {
+      const s = d?.system;
+      if (!s) return dim();
+      const load1 = s.load ? s.load[0] : null;
+      const cpuPct = (load1 != null && s.cpus) ? (100 * load1) / s.cpus : null;
+      return (
+        <>
+          <div className="os-pw-h">System</div>
+          <div className="os-pw-big">{fmtUptime(s.uptime_seconds)}<small>uptime</small></div>
+          <div className="os-pw-meters">
+            {cpuPct != null && <Meter label="CPU" pct={cpuPct} />}
+            {s.mem?.used_pct != null && <Meter label="MEM" pct={s.mem.used_pct} />}
+            {s.disk?.used_pct != null && <Meter label="DISK" pct={s.disk.used_pct} />}
+            {cpuPct == null && !s.mem && !s.disk && <div className="os-pw-dim">No stats available.</div>}
+          </div>
+        </>
+      );
+    },
   },
   quick: {
     label: WIDGET_LABEL.quick,
