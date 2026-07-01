@@ -14,7 +14,7 @@ router = APIRouter()
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev_hub_secret_key_12345")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days — lab-friendly; avoids frequent re-login
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")

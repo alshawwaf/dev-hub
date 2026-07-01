@@ -130,6 +130,42 @@ def seed():
                     icon="lucide:Cable",
                     is_live=True
                 ),
+                models.Application(
+                    name="IDP Simulator",
+                    description="Identity Provider emulator for SAML SSO testing and security POCs",
+                    url=f"https://idp.{DOMAIN}",
+                    github_url="https://github.com/alshawwaf/SAML_IDP_Simulator",
+                    category="Security Demo",
+                    icon="lucide:KeyRound",
+                    is_live=True
+                ),
+                models.Application(
+                    name="Threat Prevention Server",
+                    description="Threat prevention demo - test IPS, malware emulation, and network security controls",
+                    url=f"https://demo.{DOMAIN}",
+                    github_url="https://github.com/alshawwaf/cp_demo_server",
+                    category="Security Demo",
+                    icon="lucide:Server",
+                    is_live=True
+                ),
+                models.Application(
+                    name="Script Builder",
+                    description="Firewall deployment script generator",
+                    url=f"https://scriptbuilder.{DOMAIN}",
+                    github_url="https://github.com/alshawwaf/cp-script-builder",
+                    category="Developer Tools",
+                    icon="lucide:Terminal",
+                    is_live=True
+                ),
+                models.Application(
+                    name="Policy Pilot",
+                    description="Access automation — turns a ticket into the right Check Point policy change (split out of Drawbridge)",
+                    url=f"https://policypilot.{DOMAIN}",
+                    github_url="https://github.com/alshawwaf/PolicyPilot",
+                    category="Automation",
+                    icon="lucide:Compass",
+                    is_live=True
+                ),
         ]
         added = 0
         for app in apps:
@@ -179,9 +215,10 @@ def seed():
         # path for ALL apps.
         embed_direct = {
             "Docs to Swagger", "Open WebUI", "Flowise",
-            "Training Portal", "SAML IDP Simulator", "Lakera Guard Demo",
+            "Training Portal", "IDP Simulator", "Lakera Guard Demo",
             "n8n Workflow", "Langflow", "OpenClaw",
-            "AI Basic Training", "Demo Server", "Script Builder", "Drawbridge",
+            "AI Basic Training", "Threat Prevention Server", "Script Builder",
+            "Drawbridge", "Policy Pilot",
         }
         embed_proxy = set()  # retired — see note above
         changed_embed = 0
