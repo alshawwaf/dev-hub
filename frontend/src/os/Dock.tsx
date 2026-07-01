@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutGrid, ExternalLink, PinOff, Pin, Monitor, EyeOff, Play, Pencil, Trash2, SlidersHorizontal } from 'lucide-react';
+import { LayoutGrid, ExternalLink, PinOff, Pin, Monitor, EyeOff, Play, Pencil, Trash2, SlidersHorizontal, Github } from 'lucide-react';
 import type { AppInfo } from './types';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
@@ -82,6 +82,9 @@ const Dock: React.FC<DockProps> = ({ apps, onOpenLaunchpad }) => {
       { separator: true, label: '' },
       { label: 'Open in new tab', icon: <ExternalLink size={15} />, onClick: () => openExternal(app.url) },
     );
+    if (app.github_url) {
+      items.push({ label: 'View source on GitHub', icon: <Github size={15} />, onClick: () => openExternal(app.github_url) });
+    }
     if (isAdmin) {
       items.push(
         { separator: true, label: '' },
