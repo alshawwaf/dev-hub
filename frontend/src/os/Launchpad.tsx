@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Play, ExternalLink, Pencil, Trash2, MoreHorizontal, SlidersHorizontal } from 'lucide-react';
+import { Search, Play, ExternalLink, Pencil, Trash2, MoreHorizontal, SlidersHorizontal, Github } from 'lucide-react';
 import type { AppInfo } from './types';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
@@ -49,6 +49,9 @@ const Launchpad: React.FC<{ apps: AppInfo[]; onClose: () => void }> = ({ apps, o
       { separator: true, label: '' },
       { label: 'Open in new tab', icon: <ExternalLink size={15} />, onClick: () => openExternal(app.url) },
     ];
+    if (app.github_url) {
+      items.push({ label: 'View source on GitHub', icon: <Github size={15} />, onClick: () => openExternal(app.github_url) });
+    }
     if (isAdmin) {
       items.push(
         { separator: true, label: '' },
