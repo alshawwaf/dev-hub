@@ -27,8 +27,14 @@ api.interceptors.response.use(
     const status = error?.response?.status;
     const url: string = error?.config?.url || '';
     const isLoginCall = url.includes('auth/login');
-    if (status === 401 && !isLoginCall && localStorage.getItem('token')) {
+    // Clear BOTH keys so we can't end up "logged in" (user present) with no valid
+    // token — that state renders the protected desktop but every authed call 401s,
+    // leaving widgets stuck on "Loading…". Guard on either key so a half-state still
+    // triggers the bounce.
+    const wasAuthed = localStorage.getItem('token') || localStorage.getItem('user');
+    if (status === 401 && !isLoginCall && wasAuthed) {
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       if (!window.location.pathname.startsWith('/login')) {
         window.location.assign('/login');
       }

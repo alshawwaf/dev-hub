@@ -43,7 +43,7 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<Desktop />} />
+          <Route path="/" element={<ProtectedRoute><Desktop /></ProtectedRoute>} />
           <Route path="/login" element={<ChromeLayout><LoginPage /></ChromeLayout>} />
           <Route path="/guide" element={<ChromeLayout><GuidePage /></ChromeLayout>} />
           <Route
