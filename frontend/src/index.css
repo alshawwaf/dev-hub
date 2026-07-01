@@ -775,6 +775,7 @@ footer p {
 .bg-bg-surface { background: var(--bg-surface); color: var(--text-primary); }
 .bg-bg-surface::placeholder { color: var(--text-dim); }
 .os-rename-input::placeholder { color: var(--text-dim); }
+.os-build { font-size: 0.66rem; color: var(--text-dim); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; cursor: default; white-space: nowrap; }
 .border-glass-border { border-color: var(--glass-border-strong); }
 .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .app-icon-prev img { max-width: 32px; max-height: 32px; object-fit: contain; }
