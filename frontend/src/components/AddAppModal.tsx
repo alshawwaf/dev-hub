@@ -92,11 +92,13 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
     >
       <div 
         className="w-full max-w-md relative overflow-hidden"
-        style={{ 
+        style={{
           background: "linear-gradient(165deg, #1e1b4b 0%, #0f172a 50%, #0c0a1d 100%)",
           borderRadius: "24px",
           border: "1px solid rgba(168, 85, 247, 0.3)",
           boxShadow: "0 25px 80px rgba(0, 0, 0, 0.7), 0 0 60px rgba(168, 85, 247, 0.15)",
+          maxHeight: "92vh",
+          overflowY: "auto",
         }}
         onClick={e => e.stopPropagation()}
       >

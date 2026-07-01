@@ -102,8 +102,13 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
     try { const url = await fileToIconDataUrl(f); setFormData(prev => ({ ...prev, icon: url })); } catch { /* ignore */ }
   };
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%', background: 'rgba(45,50,70,0.9)', border: '1px solid rgba(148,163,184,0.3)',
+    borderRadius: 10, padding: '12px 14px', color: '#f1f5f9', fontSize: '0.9rem', outline: 'none',
+  };
+
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center p-6"
       style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}
       onClick={onClose}
@@ -136,27 +141,27 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Name</label>
-              <input name="name" type="text" required value={formData.name} onChange={handleChange} className="w-full bg-bg-surface border border-glass-border rounded-lg p-3 text-sm" />
+              <input name="name" type="text" required value={formData.name} onChange={handleChange} style={inputStyle} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Category</label>
-              <input name="category" type="text" required value={formData.category} onChange={handleChange} className="w-full bg-bg-surface border border-glass-border rounded-lg p-3 text-sm" />
+              <input name="category" type="text" required value={formData.category} onChange={handleChange} style={inputStyle} />
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Description</label>
-            <textarea name="description" rows={2} required value={formData.description} onChange={handleChange} className="w-full bg-bg-surface border border-glass-border rounded-lg p-3 text-sm resize-none" />
+            <textarea name="description" rows={2} required value={formData.description} onChange={handleChange} style={{ ...inputStyle, resize: 'none', fontFamily: 'inherit' }} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">URL</label>
-              <input name="url" type="url" required value={formData.url} onChange={handleChange} className="w-full bg-bg-surface border border-glass-border rounded-lg p-3 text-sm" />
+              <input name="url" type="url" required value={formData.url} onChange={handleChange} style={inputStyle} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">GitHub URL</label>
-              <input name="github_url" type="url" required value={formData.github_url} onChange={handleChange} className="w-full bg-bg-surface border border-glass-border rounded-lg p-3 text-sm" />
+              <input name="github_url" type="url" required value={formData.github_url} onChange={handleChange} style={inputStyle} />
             </div>
           </div>
 
@@ -172,7 +177,7 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
                   <button type="button" onClick={() => setFormData(prev => ({ ...prev, icon: '' }))} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}>Clear</button>
                 </div>
               ) : (
-                <input name="icon" type="text" placeholder="URL, /logos/x.png, emoji, or lucide:Name" value={formData.icon} onChange={handleChange} className="bg-bg-surface border border-glass-border rounded-lg p-3 text-sm" style={{ flex: 1 }} />
+                <input name="icon" type="text" placeholder="URL, /logos/x.png, emoji, or lucide:Name" value={formData.icon} onChange={handleChange} style={{ ...inputStyle, flex: 1 }} />
               )}
               <label className="btn btn-ghost" style={{ cursor: 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <Upload size={15} /> Upload
@@ -208,7 +213,7 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
               value={embedUrl}
               onChange={e => { setEmbedUrl(e.target.value); setEmbedDirty(true); }}
               placeholder="Token-bearing URL to frame instead of the app URL"
-              className="w-full bg-bg-surface border border-glass-border rounded-lg p-3 text-sm"
+              style={inputStyle}
             />
             <p className="text-xs text-text-muted mt-1">Stored encrypted. When set, the in-window frame loads this instead of the app URL — e.g. an OpenClaw tokenized dashboard URL. Leave blank to frame the app URL.</p>
           </div>
