@@ -72,7 +72,8 @@ const RenameAppModal: React.FC<Props> = ({ isOpen, app, onClose, onRenamed }) =>
             onChange={e => setName(e.target.value)}
             maxLength={60}
             placeholder="Application name"
-            style={{ width: '100%', background: 'var(--bg-surface)', border: '1px solid var(--glass-border)', borderRadius: '10px', padding: '11px 13px', color: 'var(--text-primary)', fontSize: '0.9rem', outline: 'none', marginBottom: '18px' }}
+            className="os-rename-input"
+            style={{ width: '100%', background: 'var(--bg-surface)', border: '1px solid var(--glass-border-strong)', borderRadius: '10px', padding: '11px 13px', color: 'var(--text-primary)', fontSize: '0.9rem', outline: 'none', marginBottom: '18px' }}
           />
           <div style={{ display: 'flex', gap: '10px' }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
