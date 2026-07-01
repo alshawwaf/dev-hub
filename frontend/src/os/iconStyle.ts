@@ -30,8 +30,17 @@ function fallbackTint(key: string): string {
   return `linear-gradient(145deg, hsl(${hue} 45% 22%), hsl(${hue} 55% 12%))`;
 }
 
+// macOS-style colored tiles for the built-in system apps (were rendering grey).
+const SYSTEM_TINTS: Record<string, string> = {
+  settings: 'linear-gradient(145deg,#64748b,#334155)',   // slate
+  logs: 'linear-gradient(145deg,#10b981,#047857)',       // emerald (Activity)
+  guide: 'linear-gradient(145deg,#3b82f6,#1d4ed8)',      // blue
+  about: 'linear-gradient(145deg,#a78bfa,#7c3aed)',      // purple
+  launchpad: 'linear-gradient(145deg,#ec4899,#7c3aed)',  // pink→purple
+};
+
 export function tintFor(app: AppInfo): string | undefined {
-  if (app.system) return undefined;
+  if (app.system) return SYSTEM_TINTS[app.system] ?? 'linear-gradient(145deg,#6b7280,#374151)';
   const key = (app.name || '').trim().toLowerCase();
   return TINTS[key] ?? fallbackTint(key || 'app');
 }

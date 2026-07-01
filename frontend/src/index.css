@@ -773,8 +773,12 @@ footer p {
    not full Tailwind — these were referenced but never defined, so the Edit modal
    rendered as a transparent, full-height, uncontained sheet). */
 .bg-bg-card { background: var(--bg-elevated); }
-.bg-bg-surface { background: var(--bg-surface); }
-.border-glass-border { border-color: var(--glass-border); }
+/* inputs use bg-bg-surface — they also need a readable text + placeholder color
+   (browsers default input text to dark, which was invisible on the dark field). */
+.bg-bg-surface { background: var(--bg-surface); color: var(--text-primary); }
+.bg-bg-surface::placeholder { color: var(--text-dim); }
+.os-rename-input::placeholder { color: var(--text-dim); }
+.border-glass-border { border-color: var(--glass-border-strong); }
 .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .app-icon-prev img { max-width: 32px; max-height: 32px; object-fit: contain; }
 
