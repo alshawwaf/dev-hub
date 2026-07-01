@@ -27,7 +27,16 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
   const [embedPhase, setEmbedPhase] = useState<'loading' | 'loaded' | 'blocked'>('loading');
   const [reloadKey, setReloadKey] = useState(0);
   const [overrideSrc, setOverrideSrc] = useState<string | null>(null);
+  const [probe, setProbe] = useState<{ ok: boolean; category: string; status: number | null; reason: string } | null>(null);
+  const [probeChecking, setProbeChecking] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Directly-framed apps (real URL / token URL, not the same-origin proxy) are the
+  // hub's blind spot: a cross-origin 404 or blocked frame can't be inspected from
+  // JS, so a raw vendor error page would just sit inside the window. Probe them
+  // server-side first and show a precise card instead. Proxied apps are covered by
+  // the /embed proxy's own branded error page, so they aren't probed here.
+  const directEmbed = !!app.embeddable && !app.proxy_embed && !app.system;
 
   // Apps with an encrypted embed URL (e.g. a token-bearing dashboard) frame that
   // URL instead of app.url. It's fetched from an authenticated endpoint so the
@@ -44,13 +53,28 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
   }, [app.id, needsOverride, reloadKey]);
 
   useEffect(() => {
+    if (!directEmbed) { setProbe(null); setProbeChecking(false); return; }
+    let cancelled = false;
+    setProbe(null);
+    setProbeChecking(true);
+    api.get(`apps/${app.id}/probe`)
+      .then(r => { if (!cancelled) setProbe(r.data); })
+      .catch(() => { if (!cancelled) setProbe(null); })   // probe unavailable → stay optimistic
+      .finally(() => { if (!cancelled) setProbeChecking(false); });
+    return () => { cancelled = true; };
+  }, [app.id, directEmbed, reloadKey]);
+
+  useEffect(() => {
     if (!app.embeddable && !app.proxy_embed) return;
+    // Don't burn the load-timeout while the probe is still running — the iframe
+    // isn't mounted yet, so the full budget must start when we actually frame.
+    if (directEmbed && probeChecking) return;
     setEmbedPhase('loading');
     const t = window.setTimeout(() => {
       setEmbedPhase(phase => (phase === 'loading' ? 'blocked' : phase));
     }, EMBED_TIMEOUT_MS);
     return () => window.clearTimeout(t);
-  }, [app.embeddable, app.proxy_embed, app.url, overrideSrc, reloadKey]);
+  }, [app.embeddable, app.proxy_embed, app.url, overrideSrc, reloadKey, directEmbed, probeChecking]);
 
   // The iframe fires onLoad even for an error/blank document, so inspect what
   // actually loaded and fall back to the launcher: (proxy is same-origin) read
@@ -143,8 +167,15 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
   // otherwise the app's real URL. needsOverride apps wait for the fetch (null src →
   // launcher) so the bare, unauthenticated URL is never framed first.
   const embedSrc = proxied ? `/embed/${app.id}/` : (needsOverride ? overrideSrc : safeUrl);
-  const showEmbed = (!!app.embeddable || proxied) && !!embedSrc && embedPhase !== 'blocked';
-  const embedBlocked = (!!app.embeddable || proxied) && embedPhase === 'blocked';
+  // The probe only HIDES an app on a definitive verdict (not deployed / server
+  // error / framing disabled). A bare 'offline' (connection failure — possibly the
+  // backend just can't hairpin to a public host) is inconclusive, so we still try
+  // to frame and let the load-timeout be the backstop.
+  const probeChecks = directEmbed && probeChecking;
+  const probeCard = directEmbed && !probeChecking && !!probe && !probe.ok && probe.category !== 'offline';
+  const showEmbed = !probeChecks && !probeCard && (!!app.embeddable || proxied) && !!embedSrc && embedPhase !== 'blocked';
+  const embedBlocked = !probeChecks && !probeCard && (!!app.embeddable || proxied) && embedPhase === 'blocked';
+  const reload = () => setReloadKey(k => k + 1);
 
   return (
     <div
@@ -171,6 +202,13 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
       <div className="os-window-body" style={{ height: `calc(100% - ${TITLEBAR_H}px)` }}>
         {app.system ? (
           <SystemContent appKey={app.system} />
+        ) : probeChecks ? (
+          <div className="os-embed-loading">
+            <div className="spinner" />
+            <p>Checking {app.name}…</p>
+          </div>
+        ) : probeCard ? (
+          <Launcher app={app} embedStatus={probe} onRetry={reload} />
         ) : showEmbed ? (
           <>
             <iframe
@@ -188,14 +226,14 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
               <div className="os-embed-loading">
                 <div className="spinner" />
                 <p>Loading {app.name}…</p>
-                <button className="btn btn-ghost os-embed-reload" onClick={() => setReloadKey(k => k + 1)}>
+                <button className="btn btn-ghost os-embed-reload" onClick={reload}>
                   <RotateCw size={14} /> Reload
                 </button>
               </div>
             )}
           </>
         ) : (
-          <Launcher app={app} embedBlocked={embedBlocked} />
+          <Launcher app={app} embedBlocked={embedBlocked} onRetry={embedBlocked ? reload : undefined} />
         )}
       </div>
 
