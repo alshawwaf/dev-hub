@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, Save, Upload, Image as ImageIcon, Type, Tag, AlignLeft, ExternalLink, Github } from 'lucide-react';
 import api from '../services/api';
 import AppGlyph from '../os/AppGlyph';
 import { fileToIconDataUrl } from './iconUpload';
@@ -26,18 +26,12 @@ interface EditAppModalProps {
 
 const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onAppUpdated }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    url: '',
-    github_url: '',
-    category: '',
-    icon: '',
-    is_live: true,
-    embeddable: false,
-    proxy_embed: false
+    name: '', description: '', url: '', github_url: '', category: '', icon: '',
+    is_live: true, embeddable: false, proxy_embed: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   // embed_url is sensitive (carries a token), so it's never in the public app
   // payload. Fetch it from the authenticated endpoint to prefill; only send it
   // back if the admin actually edits it (so a failed prefetch can't wipe it).
@@ -47,15 +41,9 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
   useEffect(() => {
     if (app) {
       setFormData({
-        name: app.name,
-        description: app.description,
-        url: app.url,
-        github_url: app.github_url,
-        category: app.category,
-        icon: app.icon,
-        is_live: app.is_live,
-        embeddable: app.embeddable ?? false,
-        proxy_embed: app.proxy_embed ?? false
+        name: app.name, description: app.description, url: app.url, github_url: app.github_url,
+        category: app.category, icon: app.icon, is_live: app.is_live,
+        embeddable: app.embeddable ?? false, proxy_embed: app.proxy_embed ?? false,
       });
       setEmbedUrl('');
       setEmbedDirty(false);
@@ -70,14 +58,11 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
     e.preventDefault();
     setLoading(true);
     setError('');
-
     try {
       const token = localStorage.getItem('token');
       const payload: Record<string, unknown> = { ...formData };
       if (embedDirty) payload.embed_url = embedUrl;
-      await api.put(`apps/${app.id}`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.put(`apps/${app.id}`, payload, { headers: { Authorization: `Bearer ${token}` } });
       onAppUpdated();
       onClose();
     } catch (err: any) {
@@ -88,11 +73,7 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
-    }));
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const onPickIcon = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,126 +83,159 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
     try { const url = await fileToIconDataUrl(f); setFormData(prev => ({ ...prev, icon: url })); } catch { /* ignore */ }
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', background: 'rgba(45,50,70,0.9)', border: '1px solid rgba(148,163,184,0.3)',
-    borderRadius: 10, padding: '12px 14px', color: '#f1f5f9', fontSize: '0.9rem', outline: 'none',
+  const getInputStyle = (fieldName: string): React.CSSProperties => ({
+    width: '100%',
+    background: focusedField === fieldName ? 'rgba(124, 58, 237, 0.15)' : 'rgba(45, 50, 70, 0.9)',
+    border: focusedField === fieldName ? '1.5px solid rgba(168, 85, 247, 0.7)' : '1px solid rgba(148, 163, 184, 0.3)',
+    borderRadius: '10px', padding: '9px 12px', color: '#f1f5f9', fontSize: '0.88rem',
+    outline: 'none', transition: 'all 0.15s ease',
+    boxShadow: focusedField === fieldName ? '0 0 16px rgba(168, 85, 247, 0.18)' : 'none',
+  });
+
+  const labelStyle: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: '7px', fontSize: '0.68rem', fontWeight: 600,
+    textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c4b5fd', marginBottom: '5px',
   };
+
+  const checkbox = (name: 'is_live' | 'embeddable' | 'proxy_embed', title: string, sub?: string) => (
+    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+      <input
+        name={name}
+        type="checkbox"
+        checked={formData[name]}
+        onChange={(e) => setFormData(prev => ({ ...prev, [name]: e.target.checked }))}
+        style={{ width: '16px', height: '16px', marginTop: '2px', accentColor: '#a855f7', cursor: 'pointer', flexShrink: 0 }}
+      />
+      <span style={{ fontSize: '0.82rem', color: '#e2e8f0', lineHeight: 1.35 }}>
+        {title}
+        {sub && <span style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', marginTop: '1px' }}>{sub}</span>}
+      </span>
+    </label>
+  );
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-6"
-      style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(12px)' }}
       onClick={onClose}
     >
       <div
-        className="bg-bg-card w-full max-w-2xl relative rounded-2xl"
-        style={{ maxHeight: '88vh', overflowY: 'auto', padding: '24px 28px', border: '1px solid var(--glass-border-strong)', boxShadow: 'var(--shadow-elevated)' }}
+        className="w-full relative overflow-hidden"
+        style={{
+          maxWidth: '600px', maxHeight: '94vh', overflowY: 'auto',
+          background: 'linear-gradient(165deg, #1e1b4b 0%, #0f172a 50%, #0c0a1d 100%)',
+          borderRadius: '20px', border: '1px solid rgba(168, 85, 247, 0.3)',
+          boxShadow: '0 25px 80px rgba(0, 0, 0, 0.7), 0 0 60px rgba(168, 85, 247, 0.15)',
+        }}
         onClick={e => e.stopPropagation()}
       >
-        <button 
-          onClick={onClose}
-          className="absolute top-6 right-6 text-text-muted hover:text-white p-2 rounded-full bg-white/5 hover:bg-white/10"
-        >
-          <X size={20} />
-        </button>
+        <div style={{
+          position: 'absolute', top: '-100px', right: '-100px', width: '220px', height: '220px',
+          background: 'radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, transparent 70%)', pointerEvents: 'none',
+        }} />
 
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-            <Save size={24} className="text-primary-light" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold">Edit Application</h2>
-            <p className="text-sm text-text-muted">Update {app.name}</p>
+        <div style={{ padding: '18px 26px 14px', borderBottom: '1px solid rgba(148, 163, 184, 0.15)', position: 'relative' }}>
+          <button onClick={onClose} style={{
+            position: 'absolute', top: '16px', right: '16px', width: '32px', height: '32px', borderRadius: '9px',
+            border: '1px solid rgba(148, 163, 184, 0.3)', background: 'rgba(30, 35, 50, 0.8)', color: '#94a3b8',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          }}>
+            <X size={17} />
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{
+              width: '46px', height: '46px', borderRadius: '14px',
+              background: 'linear-gradient(135deg, #7c3aed 0%, #ec4899 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 8px 24px rgba(124, 58, 237, 0.4)', flexShrink: 0,
+            }}>
+              <Save size={22} className="text-white" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>Edit Application</h2>
+              <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '2px 0 0 0' }}>Update {app.name}</p>
+            </div>
           </div>
         </div>
 
-        {error && <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-lg mb-4 text-sm">{error}</div>}
+        <div style={{ padding: '18px 26px 22px', position: 'relative' }}>
+          {error && <div style={{ marginBottom: '14px', padding: '11px 14px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#fca5a5', fontSize: '0.85rem' }}>{error}</div>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Name</label>
-              <input name="name" type="text" required value={formData.name} onChange={handleChange} style={inputStyle} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Category</label>
-              <input name="category" type="text" required value={formData.category} onChange={handleChange} style={inputStyle} />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Description</label>
-            <textarea name="description" rows={2} required value={formData.description} onChange={handleChange} style={{ ...inputStyle, resize: 'none', fontFamily: 'inherit' }} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">URL</label>
-              <input name="url" type="url" required value={formData.url} onChange={handleChange} style={inputStyle} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">GitHub URL</label>
-              <input name="github_url" type="url" required value={formData.github_url} onChange={handleChange} style={inputStyle} />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Icon</label>
-            <div className="flex items-center gap-3">
-              <div className="app-icon-prev" style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0, background: 'var(--bg-surface)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                <AppGlyph app={{ name: formData.name, icon: formData.icon }} size={30} />
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+              <div>
+                <label style={labelStyle}><Type size={13} /> Name</label>
+                <input name="name" type="text" required value={formData.name} onChange={handleChange} onFocus={() => setFocusedField('name')} onBlur={() => setFocusedField(null)} style={getInputStyle('name')} />
               </div>
-              {(formData.icon || '').startsWith('data:') ? (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '11px 13px', background: 'var(--bg-surface)', border: '1px solid var(--glass-border)', borderRadius: 8, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  <ImageIcon size={15} /> Uploaded image
-                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, icon: '' }))} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}>Clear</button>
-                </div>
-              ) : (
-                <input name="icon" type="text" placeholder="URL, /logos/x.png, emoji, or lucide:Name" value={formData.icon} onChange={handleChange} style={{ ...inputStyle, flex: 1 }} />
-              )}
-              <label className="btn btn-ghost" style={{ cursor: 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <Upload size={15} /> Upload
-                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={onPickIcon} />
-              </label>
+              <div>
+                <label style={labelStyle}><Tag size={13} /> Category</label>
+                <input name="category" type="text" required value={formData.category} onChange={handleChange} onFocus={() => setFocusedField('category')} onBlur={() => setFocusedField(null)} style={getInputStyle('category')} />
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <input id="is_live" name="is_live" type="checkbox" checked={formData.is_live} onChange={handleChange} className="w-4 h-4" />
-            <label htmlFor="is_live" className="text-sm text-text-secondary">Application is live</label>
-          </div>
+            <div style={{ marginBottom: '14px' }}>
+              <label style={labelStyle}><AlignLeft size={13} /> Description</label>
+              <textarea name="description" rows={2} required value={formData.description} onChange={handleChange} onFocus={() => setFocusedField('description')} onBlur={() => setFocusedField(null)} style={{ ...getInputStyle('description'), resize: 'none', fontFamily: 'inherit' }} />
+            </div>
 
-          <div className="flex items-center gap-3">
-            <input id="embeddable" name="embeddable" type="checkbox" checked={formData.embeddable} onChange={handleChange} className="w-4 h-4" />
-            <label htmlFor="embeddable" className="text-sm text-text-secondary">
-              Open inside a window (embeddable) — leave off if the app blocks iframes
-            </label>
-          </div>
+            <div style={{ marginBottom: '14px' }}>
+              <label style={labelStyle}><ImageIcon size={13} /> Icon</label>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div className="app-icon-prev" style={{ width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(148,163,184,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  <AppGlyph app={{ name: formData.name, icon: formData.icon }} size={28} />
+                </div>
+                {(formData.icon || '').startsWith('data:') ? (
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: '10px', background: 'rgba(45,50,70,0.9)', border: '1px solid rgba(148,163,184,0.3)', color: '#cbd5e1', fontSize: '0.85rem' }}>
+                    <ImageIcon size={15} /> Uploaded image
+                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, icon: '' }))} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem' }}>Clear</button>
+                  </div>
+                ) : (
+                  <input name="icon" type="text" placeholder="URL, /logos/x.png, emoji, or lucide:Name" value={formData.icon} onChange={handleChange} onFocus={() => setFocusedField('icon')} onBlur={() => setFocusedField(null)} style={{ ...getInputStyle('icon'), flex: 1 }} />
+                )}
+                <label style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: '10px', border: '1px solid rgba(168,85,247,0.5)', background: 'rgba(124,58,237,0.15)', color: '#e9d5ff', fontSize: '0.83rem', fontWeight: 600, cursor: 'pointer' }}>
+                  <Upload size={15} /> Upload
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={onPickIcon} />
+                </label>
+              </div>
+            </div>
 
-          <div className="flex items-center gap-3">
-            <input id="proxy_embed" name="proxy_embed" type="checkbox" checked={formData.proxy_embed} onChange={handleChange} className="w-4 h-4" />
-            <label htmlFor="proxy_embed" className="text-sm text-text-secondary">
-              Route through the same-origin proxy — for simple apps that block framing but tolerate a path prefix. Single-page apps (n8n, Langflow) don't work this way: embed them directly and add the hub to their <code>frame-ancestors</code> instead.
-            </label>
-          </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
+              <div>
+                <label style={labelStyle}><ExternalLink size={13} /> URL</label>
+                <input name="url" type="url" required value={formData.url} onChange={handleChange} onFocus={() => setFocusedField('url')} onBlur={() => setFocusedField(null)} style={getInputStyle('url')} />
+              </div>
+              <div>
+                <label style={labelStyle}><Github size={13} /> GitHub URL</label>
+                <input name="github_url" type="url" required value={formData.github_url} onChange={handleChange} onFocus={() => setFocusedField('github_url')} onBlur={() => setFocusedField(null)} style={getInputStyle('github_url')} />
+              </div>
+            </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Embed URL (optional)</label>
-            <input
-              name="embed_url"
-              type="url"
-              value={embedUrl}
-              onChange={e => { setEmbedUrl(e.target.value); setEmbedDirty(true); }}
-              placeholder="Token-bearing URL to frame instead of the app URL"
-              style={inputStyle}
-            />
-            <p className="text-xs text-text-muted mt-1">Stored encrypted. When set, the in-window frame loads this instead of the app URL — e.g. an OpenClaw tokenized dashboard URL. Leave blank to frame the app URL.</p>
-          </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px', marginBottom: '16px' }}>
+              {checkbox('is_live', 'Application is live')}
+              {checkbox('embeddable', 'Open in a window', 'Off if the app blocks iframes.')}
+              {checkbox('proxy_embed', 'Same-origin proxy', 'For apps that block framing but tolerate a path prefix. SPAs embed directly.')}
+            </div>
 
-          <button type="submit" disabled={loading} className="w-full btn btn-primary py-3 rounded-xl font-semibold">
-            {loading ? 'Saving...' : 'Save Changes'}
-          </button>
-        </form>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={labelStyle}><ExternalLink size={13} /> Embed URL (optional)</label>
+              <input name="embed_url" type="url" value={embedUrl} onChange={e => { setEmbedUrl(e.target.value); setEmbedDirty(true); }} onFocus={() => setFocusedField('embed_url')} onBlur={() => setFocusedField(null)} placeholder="Token-bearing URL to frame instead of the app URL" style={getInputStyle('embed_url')} />
+              <span style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', marginTop: '5px' }}>
+                Stored encrypted; framed instead of the app URL when set (e.g. an OpenClaw tokenized dashboard URL).
+              </span>
+            </div>
+
+            <button type="submit" disabled={loading} style={{
+              width: '100%', padding: '13px 24px', borderRadius: '12px', border: 'none',
+              background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #ec4899 100%)',
+              color: '#ffffff', fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
+              cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1,
+              boxShadow: '0 8px 32px rgba(168, 85, 247, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+            }}>
+              <Save size={19} />
+              {loading ? 'Saving...' : 'Save Changes'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
