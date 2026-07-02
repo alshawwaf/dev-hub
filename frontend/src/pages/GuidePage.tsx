@@ -61,7 +61,7 @@ const GuidePage: React.FC = () => {
     const target: HTMLElement | Window = container || window;
     const compute = () => {
       const cTop = container ? container.getBoundingClientRect().top : 0;
-      let cur = SECTIONS[0].id;
+      let cur: string = SECTIONS[0].id;
       for (const s of SECTIONS) {
         const node = document.getElementById(s.id);
         if (node && node.getBoundingClientRect().top - cTop <= 120) cur = s.id;
