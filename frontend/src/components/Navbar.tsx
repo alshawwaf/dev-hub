@@ -62,8 +62,8 @@ const Navbar: React.FC = () => {
               <span className="hidden sm:inline">Guide</span>
             </a>
 
-            {user && (
-              <button 
+            {user?.is_admin && (
+              <button
                 onClick={() => setIsModalOpen(true)}
                 className="btn btn-primary px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2.5 shadow-lg shadow-primary-glow/20"
               >

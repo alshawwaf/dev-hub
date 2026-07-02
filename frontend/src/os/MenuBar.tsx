@@ -154,7 +154,7 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad, onOpenSpot
             <button role="menuitem" className="os-menu-item" onClick={() => { onOpenLaunchpad(); setMenuOpen(false); }}>
               <LayoutGrid size={15} /> Launchpad
             </button>
-            {user && (
+            {user?.is_admin && (
               <button role="menuitem" className="os-menu-item" onClick={() => { onAddApp(); setMenuOpen(false); }}>
                 <Plus size={15} /> Add application
               </button>
