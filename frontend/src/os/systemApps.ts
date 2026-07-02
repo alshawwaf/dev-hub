@@ -21,6 +21,10 @@ export const SYSTEM_APPS: AppInfo[] = [
     id: -5, name: 'About', system: 'about', iconName: 'Info',
     description: 'About DevHub', url: '', github_url: '', category: 'System', icon: '', is_live: true,
   },
+  {
+    id: -6, name: 'DevHub API', system: 'api', iconName: 'Braces',
+    description: 'REST API reference', url: '', github_url: '', category: 'System', icon: '', is_live: true,
+  },
 ];
 
 export const getSystemApp = (key: string): AppInfo | undefined =>

@@ -5,6 +5,7 @@ import { useLayout } from '../LayoutContext';
 import { useHub } from '../HubContext';
 import api from '../../services/api';
 import GuidePage from '../../pages/GuidePage';
+import ApiReference from '../../pages/ApiReference';
 import AppGlyph from '../AppGlyph';
 import { tintFor } from '../iconStyle';
 
@@ -274,6 +275,7 @@ const SystemContent: React.FC<{ appKey: SystemKey }> = ({ appKey }) => {
     case 'settings': return <SettingsApp />;
     case 'logs': return <ActivityFeed />;
     case 'guide': return <div className="os-sys-guide"><GuidePage /></div>;
+    case 'api': return <div className="os-sys-guide"><ApiReference /></div>;
     case 'about': return <AboutApp />;
     default: return null;
   }
