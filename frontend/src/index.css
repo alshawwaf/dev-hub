@@ -1156,7 +1156,13 @@ svg {
 .os-titlebar-right a:hover { color: var(--primary-light); }
 
 .os-window-body { position: relative; background: var(--bg-dark); overflow: auto; }
-.os-iframe { width: 100%; height: 100%; border: none; display: block; background: #fff; }
+/* translateZ(0) forces the iframe onto its own compositing layer. Without it, a
+   CROSS-ORIGIN app that paints while the window-open transform animation
+   (os-window-in, transform: scale) is running can get stranded in a stale layer —
+   its background shows but its content stays blank until a resize/scroll repaint.
+   This bit apps that redirect on load (e.g. Policy Pilot: / -> 303 -> /login, so
+   the real content paints late, right around the open animation). */
+.os-iframe { width: 100%; height: 100%; border: none; display: block; background: #fff; transform: translateZ(0); }
 /* while dragging/resizing, don't let the iframe swallow the pointer stream */
 .os-window.interacting .os-iframe { pointer-events: none; }
 
@@ -1850,7 +1856,139 @@ svg {
 }
 .os-window:hover .os-rz-se::after { opacity: 0.7; }
 
+/* ---------- Desktop folders (macOS-style) ---------- */
+
+/* Drop target while dragging an app over it: the tile "springs" like Launchpad. */
+.os-deskicon .os-deskicon-tile { transition: transform 0.12s ease, box-shadow 0.12s ease; }
+.os-deskicon.drop-hover { background: rgba(124, 58, 237, 0.16); border-color: var(--primary-glow); }
+.os-deskicon.drop-hover .os-deskicon-tile { transform: scale(1.12); box-shadow: 0 0 0 2px var(--primary-glow); }
+
+/* Folder icon: a darker translucent tile holding a mini-grid of app glyphs. */
+.os-folder-tile { background: rgba(255, 255, 255, 0.09); padding: 7px; }
+.os-folder-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
+.os-folder-mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+}
+.os-folder-empty-glyph { color: var(--text-muted); }
+
+/* Expanded folder: Launchpad-style blurred overlay with a centered panel. */
+.os-folderview {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(7, 7, 11, 0.55);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  animation: os-fv-fade 0.16s ease;
+}
+@keyframes os-fv-fade { from { opacity: 0; } }
+.os-folderview-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(720px, 88vw);
+  max-height: 74vh;
+  padding: 20px 22px 24px;
+  border-radius: 24px;
+  background: rgba(18, 20, 32, 0.72);
+  border: 1px solid var(--glass-border-strong);
+  box-shadow: 0 40px 90px rgba(0, 0, 0, 0.5);
+  animation: os-fv-pop 0.18s ease;
+}
+@keyframes os-fv-pop { from { opacity: 0; transform: scale(0.94); } }
+/* While an app is being dragged OUT, let it escape the panel visually. */
+.os-folderview-panel.dragging-out,
+.os-folderview-panel.dragging-out .os-fv-grid { overflow: visible; }
+.os-folderview-title {
+  align-self: center;
+  max-width: 82%;
+  padding: 4px 16px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  outline: none;
+  text-align: center;
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.os-folderview-title:hover { background: rgba(255, 255, 255, 0.05); }
+.os-folderview-title:focus { background: rgba(255, 255, 255, 0.08); box-shadow: 0 0 0 2px var(--primary-glow); }
+.os-fv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 4px;
+  padding: 4px;
+  overflow-y: auto;
+}
+.os-fv-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 4px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  touch-action: none;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.os-fv-item:hover { background: rgba(255, 255, 255, 0.06); border-color: var(--glass-border); }
+.os-fv-item:focus-visible { outline: none; background: rgba(124, 58, 237, 0.16); border-color: var(--primary-glow); }
+.os-fv-item.dragging { z-index: 80; opacity: 0.92; cursor: grabbing; }
+.os-fv-label {
+  font-size: 11.5px;
+  color: #e2e2ea;
+  text-align: center;
+  line-height: 1.25;
+  max-width: 100%;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.os-fv-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 26px 12px 30px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+[data-theme="light"] .os-folderview { background: rgba(233, 237, 246, 0.62); }
+[data-theme="light"] .os-folderview-panel { background: rgba(255, 255, 255, 0.78); }
+[data-theme="light"] .os-folderview-title { color: #1a2236; }
+[data-theme="light"] .os-folderview-title:hover { background: rgba(16, 24, 40, 0.05); }
+[data-theme="light"] .os-folderview-title:focus { background: rgba(16, 24, 40, 0.07); }
+[data-theme="light"] .os-fv-label { color: #1a2236; }
+[data-theme="light"] .os-fv-item:hover { background: rgba(16, 24, 40, 0.05); }
+[data-theme="light"] .os-folder-tile { background: rgba(16, 24, 40, 0.08); }
+
 @media (prefers-reduced-motion: reduce) {
   .os-dock-icon.bouncing { animation: none; }
   .os-menu, .os-bell-menu, .os-ctxmenu { animation: none; }
+  .os-folderview, .os-folderview-panel { animation: none; }
 }

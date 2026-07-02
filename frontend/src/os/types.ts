@@ -26,6 +26,15 @@ export interface AppInfo {
   iconName?: string;
 }
 
+/** A macOS-style desktop folder grouping catalog apps. Ids are negative
+ *  (allocated from -1001 down) so they share the numeric icon-grid key space
+ *  with app ids (positive) without colliding with system apps (-1..-5). */
+export interface FolderInfo {
+  id: number;
+  name: string;
+  appIds: number[];
+}
+
 export type WidgetId = 'clock' | 'apps' | 'activity' | 'errors' | 'latency' | 'recent' | 'notifications' | 'lastapp' | 'quick' | 'system';
 
 export interface WidgetData {

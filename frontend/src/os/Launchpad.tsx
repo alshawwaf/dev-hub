@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Play, ExternalLink, Pencil, Trash2, MoreHorizontal, SlidersHorizontal, Github } from 'lucide-react';
+import { Search, Play, ExternalLink, Pencil, Trash2, MoreHorizontal, SlidersHorizontal, Github, Copy } from 'lucide-react';
 import type { AppInfo } from './types';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
@@ -12,7 +12,7 @@ import { tintFor } from './iconStyle';
 
 const Launchpad: React.FC<{ apps: AppInfo[]; onClose: () => void }> = ({ apps, onClose }) => {
   const { openApp } = useWindows();
-  const { getPlacement, setPlacement } = useLayout();
+  const { getPlacement, setPlacement, copyApp } = useLayout();
   const { open: openMenu, openAt } = useContextMenu();
   const { isAdmin, openEditApp, openRenameApp, openDeleteApp } = useHub();
   const [q, setQ] = useState('');
@@ -47,6 +47,7 @@ const Launchpad: React.FC<{ apps: AppInfo[]; onClose: () => void }> = ({ apps, o
       { label: 'In Dock', checked: inDock, keepOpen: true, onClick: () => setPlacement(app, inDock ? (onDesk ? 'desktop' : 'hidden') : (onDesk ? 'both' : 'dock')) },
       { label: 'On Desktop', checked: onDesk, keepOpen: true, onClick: () => setPlacement(app, onDesk ? (inDock ? 'dock' : 'hidden') : (inDock ? 'both' : 'desktop')) },
       { separator: true, label: '' },
+      { label: 'Copy', icon: <Copy size={15} />, onClick: () => copyApp(app.id) },
       { label: 'Open in new tab', icon: <ExternalLink size={15} />, onClick: () => openExternal(app.url) },
     ];
     if (app.github_url) {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutGrid, ExternalLink, PinOff, Pin, Monitor, EyeOff, Play, Pencil, Trash2, SlidersHorizontal, Github } from 'lucide-react';
+import { LayoutGrid, ExternalLink, PinOff, Pin, Monitor, EyeOff, Play, Pencil, Trash2, SlidersHorizontal, Github, Copy } from 'lucide-react';
 import type { AppInfo } from './types';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
@@ -52,7 +52,7 @@ interface DockProps {
 
 const Dock: React.FC<DockProps> = ({ apps, onOpenLaunchpad }) => {
   const { windows, openApp } = useWindows();
-  const { dockApps, getPlacement, setPlacement } = useLayout();
+  const { dockApps, getPlacement, setPlacement, copyApp } = useLayout();
   const { open: openMenu } = useContextMenu();
   const { isAdmin, openEditApp, openRenameApp, openDeleteApp } = useHub();
 
@@ -80,6 +80,7 @@ const Dock: React.FC<DockProps> = ({ apps, onOpenLaunchpad }) => {
     }
     items.push(
       { separator: true, label: '' },
+      { label: 'Copy', icon: <Copy size={15} />, onClick: () => copyApp(app.id) },
       { label: 'Open in new tab', icon: <ExternalLink size={15} />, onClick: () => openExternal(app.url) },
     );
     if (app.github_url) {
