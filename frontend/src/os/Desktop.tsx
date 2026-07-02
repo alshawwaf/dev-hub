@@ -50,7 +50,7 @@ const DesktopSurface: React.FC<{
     setPlacement, getPlacement, desktopApps, dockApps, resetLayout, hasLocalOverrides, widgets, toggleWidget,
     createFolder, snapFreePos, clipboardAppId, folderOf, removeFromFolder,
   } = useLayout();
-  const { openFolderView } = useHub();
+  const { setRenamingFolder } = useHub();
   const { open: openMenu } = useContextMenu();
 
   const onDrop = (e: React.DragEvent) => {
@@ -70,8 +70,10 @@ const DesktopSurface: React.FC<{
 
     const items: MenuItem[] = [
       { label: 'New Folder', icon: <FolderPlus size={15} />, onClick: () => {
-        const id = createFolder('New Folder', [], snapFreePos(cx, cy, 0));
-        openFolderView(id, true);
+        // macOS: a folder appears on the desktop with its name highlighted for editing
+        // (inline on the icon) — not an opened panel.
+        const id = createFolder('untitled folder', [], snapFreePos(cx, cy, 0));
+        setRenamingFolder(id);
       } },
     ];
     // Pasting on the desktop moves a foldered app back out, at the click point.
@@ -170,6 +172,7 @@ const Desktop: React.FC = () => {
   const [launchpadOpen, setLaunchpadOpen] = useState(false);
   const [spotlightOpen, setSpotlightOpen] = useState(false);
   const [viewingFolder, setViewingFolder] = useState<{ id: number; focusTitle: boolean } | null>(null);
+  const [renamingFolderId, setRenamingFolderId] = useState<number | null>(null);
 
   const fetchApps = useCallback(async () => {
     try {
@@ -204,6 +207,8 @@ const Desktop: React.FC = () => {
           openDeleteApp={app => setDeletingApp(app)}
           openLaunchpad={() => setLaunchpadOpen(true)}
           openFolderView={(id, focusTitle = false) => setViewingFolder({ id, focusTitle })}
+          renamingFolderId={renamingFolderId}
+          setRenamingFolder={setRenamingFolderId}
           refetch={fetchApps}
         >
           <ContextMenuProvider>

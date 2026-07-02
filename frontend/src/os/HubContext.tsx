@@ -11,6 +11,9 @@ interface HubContextType {
   openLaunchpad: () => void;
   /** open the macOS-style folder panel; focusTitle puts the name into edit mode (rename / just-created) */
   openFolderView: (folderId: number, focusTitle?: boolean) => void;
+  /** which folder icon is in inline-rename mode on the desktop (macOS "New Folder" flow); null = none */
+  renamingFolderId: number | null;
+  setRenamingFolder: (id: number | null) => void;
   refetch: () => void;
 }
 

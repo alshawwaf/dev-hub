@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ExternalLink, Pin, PinOff, EyeOff, Play, Pencil, Trash2, SlidersHorizontal, Github, Copy, FolderPlus, FolderOpen, ClipboardPaste, Folder as FolderGlyph } from 'lucide-react';
 import type { AppInfo, FolderInfo } from './types';
 import { useWindows } from './WindowManager';
@@ -7,7 +7,7 @@ import { useContextMenu, type MenuItem } from './ContextMenu';
 import { useHub } from './HubContext';
 import { openExternal } from './url';
 import AppGlyph from './AppGlyph';
-import { tintFor } from './iconStyle';
+import { tintFor, FOLDER_COLORS, folderTileBg } from './iconStyle';
 import { flowPositions, snapToFreeCell, rowsPerColumn, type Pos } from './iconGrid';
 
 // Tile hit box (matches .os-deskicon CSS).
@@ -133,23 +133,52 @@ const DesktopIcon: React.FC<{ app: AppInfo } & ItemDragProps> = ({ app, pos, isD
   );
 };
 
+// A row of color swatches for the folder context menu.
+const FolderSwatches: React.FC<{ current?: string; onPick: (c: string | undefined) => void }> = ({ current, onPick }) => (
+  <div className="os-folder-swatches">
+    <button type="button" className={`os-swatch os-swatch-none ${!current ? 'on' : ''}`} title="Default" aria-label="Default color" onClick={() => onPick(undefined)} />
+    {FOLDER_COLORS.map(c => (
+      <button key={c.key} type="button" className={`os-swatch ${current === c.key ? 'on' : ''}`} style={{ background: c.hex }} title={c.label} aria-label={c.label} onClick={() => onPick(c.key)} />
+    ))}
+  </div>
+);
+
 const FolderIcon: React.FC<{ folder: FolderInfo } & ItemDragProps> = ({ folder, pos, isDropTarget, onDragMove, onRelease }) => {
-  const { deleteFolder, addToFolder, clipboardAppId } = useLayout();
-  const { open: openMenu, openAt } = useContextMenu();
-  const { apps, openFolderView } = useHub();
+  const { deleteFolder, addToFolder, clipboardAppId, renameFolder, setFolderColor } = useLayout();
+  const { open: openMenu, openAt, close: closeMenu } = useContextMenu();
+  const { apps, openFolderView, renamingFolderId, setRenamingFolder } = useHub();
   const { drag, movedRef, onPointerDown } = useIconDrag(folder.id, pos, onDragMove, onRelease);
 
   const members = folder.appIds.map(id => apps.find(a => a.id === id)).filter((a): a is AppInfo => !!a);
   const clipApp = clipboardAppId != null ? apps.find(a => a.id === clipboardAppId) : undefined;
 
+  // Inline rename (macOS "New Folder" flow + Rename…): the label becomes an input.
+  const renaming = renamingFolderId === folder.id;
+  const [nameDraft, setNameDraft] = useState(folder.name);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!renaming) return;
+    setNameDraft(folder.name);
+    // Focus now AND again on the next tick — the context menu that triggered this
+    // restores focus to the body synchronously as it closes, so a one-shot focus can
+    // be stolen. The delayed pass wins.
+    const focusIt = () => { const el = inputRef.current; if (el) { el.focus(); el.select(); } };
+    focusIt();
+    const t = window.setTimeout(focusIt, 0);
+    return () => window.clearTimeout(t);
+  }, [renaming, folder.name]);
+  const commitRename = () => { if (nameDraft.trim()) renameFolder(folder.id, nameDraft); setRenamingFolder(null); };
+
   const menuItems = (): MenuItem[] => {
     const items: MenuItem[] = [
       { label: 'Open', icon: <FolderOpen size={15} />, onClick: () => openFolderView(folder.id) },
       { separator: true, label: '' },
-      { label: 'Rename…', icon: <Pencil size={15} />, onClick: () => openFolderView(folder.id, true) },
+      { label: 'Rename', icon: <Pencil size={15} />, onClick: () => setRenamingFolder(folder.id) },
+      { heading: 'Color', label: '' },
+      { content: <FolderSwatches current={folder.color} onPick={c => { setFolderColor(folder.id, c); closeMenu(); }} />, label: '' },
     ];
     if (clipApp && !folder.appIds.includes(clipApp.id)) {
-      items.push({ label: `Paste “${clipApp.name}”`, icon: <ClipboardPaste size={15} />, onClick: () => addToFolder(folder.id, clipApp.id) });
+      items.push({ separator: true, label: '' }, { label: `Paste “${clipApp.name}”`, icon: <ClipboardPaste size={15} />, onClick: () => addToFolder(folder.id, clipApp.id) });
     }
     items.push(
       { separator: true, label: '' },
@@ -166,6 +195,9 @@ const FolderIcon: React.FC<{ folder: FolderInfo } & ItemDragProps> = ({ folder, 
       e.preventDefault();
       const r = e.currentTarget.getBoundingClientRect();
       openAt(r.left + 8, r.bottom, menuItems());
+    } else if (e.key === 'Enter' || e.key === 'F2') {
+      e.preventDefault();
+      setRenamingFolder(folder.id);
     } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'v' && clipApp && !folder.appIds.includes(clipApp.id)) {
       e.preventDefault();
       addToFolder(folder.id, clipApp.id);
@@ -174,20 +206,21 @@ const FolderIcon: React.FC<{ folder: FolderInfo } & ItemDragProps> = ({ folder, 
 
   const onClick = () => {
     if (movedRef.current) { movedRef.current = false; return; }
+    if (renaming) return;
     openFolderView(folder.id);
   };
 
   return (
     <button
-      className={`os-deskicon os-folder ${drag ? 'dragging' : ''} ${isDropTarget ? 'drop-hover' : ''}`}
+      className={`os-deskicon os-folder ${drag ? 'dragging' : ''} ${isDropTarget ? 'drop-hover' : ''} ${renaming ? 'renaming' : ''}`}
       style={{ left: pos.x, top: pos.y, transform: drag ? `translate(${drag.dx}px, ${drag.dy}px)` : undefined }}
-      onPointerDown={onPointerDown}
+      onPointerDown={renaming ? undefined : onPointerDown}
       onClick={onClick}
       onContextMenu={onContextMenu}
       onKeyDown={onKeyDown}
       title={`${folder.name} — ${members.length} app${members.length === 1 ? '' : 's'}`}
     >
-      <span className="os-deskicon-tile os-folder-tile">
+      <span className="os-deskicon-tile os-folder-tile" style={{ background: folderTileBg(folder.color) }}>
         {members.length === 0 ? (
           <FolderGlyph size={24} className="os-folder-empty-glyph" />
         ) : (
@@ -200,7 +233,26 @@ const FolderIcon: React.FC<{ folder: FolderInfo } & ItemDragProps> = ({ folder, 
           </span>
         )}
       </span>
-      <span className="os-deskicon-label">{folder.name}</span>
+      {renaming ? (
+        <input
+          ref={inputRef}
+          className="os-folder-rename"
+          value={nameDraft}
+          maxLength={60}
+          aria-label="Folder name"
+          onChange={e => setNameDraft(e.target.value)}
+          onBlur={commitRename}
+          onPointerDown={e => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
+          onKeyDown={e => {
+            e.stopPropagation();
+            if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
+            else if (e.key === 'Escape') { e.preventDefault(); setRenamingFolder(null); }
+          }}
+        />
+      ) : (
+        <span className="os-deskicon-label">{folder.name}</span>
+      )}
     </button>
   );
 };

@@ -1884,6 +1884,42 @@ svg {
 }
 .os-folder-empty-glyph { color: var(--text-muted); }
 
+/* Inline folder rename (on the desktop icon, macOS New Folder / F2 flow) */
+.os-folder.renaming { cursor: default; background: rgba(255, 255, 255, 0.06); }
+.os-folder-rename {
+  width: 100%;
+  max-width: 88px;
+  margin-top: 1px;
+  padding: 1px 4px;
+  border: 1px solid var(--primary-light);
+  border-radius: 5px;
+  background: rgba(20, 22, 34, 0.98);
+  color: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  line-height: 1.3;
+  text-align: center;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+[data-theme="light"] .os-folder-rename { background: #fff; color: #10172a; }
+
+/* Context-menu custom row (folder color swatches) */
+.os-ctxmenu-row { padding: 4px 12px 8px; }
+.os-folder-swatches { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+.os-swatch {
+  width: 18px; height: 18px; border-radius: 50%; border: 2px solid transparent;
+  cursor: pointer; padding: 0; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.28);
+  transition: transform var(--transition-fast);
+}
+.os-swatch:hover { transform: scale(1.15); }
+.os-swatch.on { border-color: #fff; box-shadow: 0 0 0 2px var(--primary-light); }
+.os-swatch-none { background: var(--glass-bg-strong); position: relative; overflow: hidden; }
+.os-swatch-none::after {
+  content: ''; position: absolute; left: 50%; top: -1px; bottom: -1px; width: 2px;
+  background: #ef4444; transform: rotate(45deg); transform-origin: center;
+}
+
 /* Expanded folder: Launchpad-style blurred overlay with a centered panel. */
 .os-folderview {
   position: fixed;

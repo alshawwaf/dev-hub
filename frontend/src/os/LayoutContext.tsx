@@ -40,7 +40,7 @@ function cleanGeometry(parsed: unknown): GeometryMap {
   if (parsed && typeof parsed === 'object') {
     for (const [k, v] of Object.entries(parsed as Record<string, any>)) {
       if (Number.isFinite(Number(k)) && v && ['x', 'y', 'w', 'h'].every(p => Number.isFinite(Number(v[p])))) {
-        out[Number(k)] = { x: Number(v.x), y: Number(v.y), w: Number(v.w), h: Number(v.h) };
+        out[Number(k)] = { x: Number(v.x), y: Number(v.y), w: Number(v.w), h: Number(v.h), max: !!v.max };
       }
     }
   }
@@ -88,8 +88,10 @@ function cleanFolders(parsed: unknown): FolderInfo[] {
           if (Number.isInteger(n) && n > 0 && !seenApps.has(n)) { seenApps.add(n); appIds.push(n); }
         }
       }
+      const rawColor = (f as any).color;
+      const color = typeof rawColor === 'string' && rawColor ? rawColor.slice(0, 24) : undefined;
       seenIds.add(id);
-      out.push({ id, name, appIds });
+      out.push({ id, name, appIds, color });
       if (out.length >= 64) break;
     }
   }
@@ -100,7 +102,7 @@ const loadLS = <T,>(key: string, fn: (p: unknown) => T): T => {
 };
 const saveLS = (key: string, val: unknown) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch { /* unavailable */ } };
 
-const foldersWire = (folders: FolderInfo[]) => folders.map(f => ({ id: f.id, name: f.name, app_ids: f.appIds }));
+const foldersWire = (folders: FolderInfo[]) => folders.map(f => ({ id: f.id, name: f.name, app_ids: f.appIds, color: f.color }));
 
 const resolve = (app: AppInfo, overrides: Overrides): Placement =>
   overrides[app.id] ?? app.placement ?? 'desktop';
@@ -127,6 +129,7 @@ interface LayoutContextType {
   folders: FolderInfo[];
   createFolder: (name: string, appIds: number[], pos?: Pos) => number;
   renameFolder: (folderId: number, name: string) => void;
+  setFolderColor: (folderId: number, color: string | undefined) => void;
   deleteFolder: (folderId: number) => void;
   addToFolder: (folderId: number, appId: number) => void;
   removeFromFolder: (appId: number, pos?: Pos) => void;
@@ -339,6 +342,11 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
     scheduleFlush('folders');
   }, [scheduleFlush]);
 
+  const setFolderColor = useCallback((folderId: number, color: string | undefined) => {
+    setFolders(prev => prev.map(f => (f.id === folderId ? { ...f, color } : f)));
+    scheduleFlush('folders');
+  }, [scheduleFlush]);
+
   const deleteFolder = useCallback((folderId: number) => {
     setFolders(prev => prev.filter(f => f.id !== folderId));
     setIconPositions(prev => {
@@ -394,7 +402,7 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
     () => ({
       getPlacement, desktopApps, desktopRootApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry,
       iconPositions, setIconPos, widgets, toggleWidget, theme, setTheme, toggleTheme,
-      folders, createFolder, renameFolder, deleteFolder, addToFolder, removeFromFolder, folderOf, snapFreePos,
+      folders, createFolder, renameFolder, setFolderColor, deleteFolder, addToFolder, removeFromFolder, folderOf, snapFreePos,
       clipboardAppId, copyApp,
       hasLocalOverrides: Object.keys(overrides).length > 0,
     }),

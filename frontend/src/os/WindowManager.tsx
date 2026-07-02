@@ -26,7 +26,7 @@ const MIN_H = 240;
 const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
 
 export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { getGeometry } = useLayout();
+  const { getGeometry, saveGeometry } = useLayout();
   const [windows, setWindows] = useState<WindowState[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const zTop = useRef(10);
@@ -79,7 +79,9 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       const next: WindowState = {
         id: targetId, app, x, y, width, height, z,
         minimized: false,
-        maximized: mobile,
+        // Restore the remembered maximized state (x/y/w/h above are the restore-down
+        // geometry); on mobile every window opens maximized.
+        maximized: mobile || (!!saved && !!saved.max),
       };
       return [...prev, next];
     });
@@ -100,9 +102,14 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const toggleMaximize = useCallback((id: string) => {
-    setWindows(prev => prev.map(w => (w.id === id ? { ...w, maximized: !w.maximized } : w)));
+    const w = windowsRef.current.find(x => x.id === id);
+    const maximized = w ? !w.maximized : true;
+    setWindows(prev => prev.map(x => (x.id === id ? { ...x, maximized } : x)));
     focusWindow(id);
-  }, [focusWindow]);
+    // Persist the maximized state (with the current restore-down geometry) so the
+    // window reopens the way it was left.
+    if (w) saveGeometry(w.app.id, { x: w.x, y: w.y, w: w.width, h: w.height, max: maximized });
+  }, [focusWindow, saveGeometry]);
 
   const moveWindow = useCallback((id: string, x: number, y: number) => {
     setWindows(prev => prev.map(w => (w.id === id ? { ...w, x, y } : w)));

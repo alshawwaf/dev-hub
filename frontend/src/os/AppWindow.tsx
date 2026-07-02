@@ -31,21 +31,6 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
   const [probeChecking, setProbeChecking] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Hold the iframe's src until the window-open scale animation (os-window-in,
-  // 160ms) has finished. A CROSS-ORIGIN iframe that first paints WHILE an ancestor
-  // is mid-transform can get stranded in a stale compositing layer — its body stays
-  // blank while the app's background still shows (seen with Policy Pilot, which
-  // redirects on load so its real content paints late, right during the animation).
-  // Deferring first paint past the animation removes that race deterministically;
-  // .os-iframe's translateZ(0) own-layer is the backstop. The loading overlay covers
-  // the brief gap. (Anonymous/system windows and same-origin proxies are unaffected
-  // by the strand but the small delay is harmless.)
-  const [openReady, setOpenReady] = useState(false);
-  useEffect(() => {
-    const t = window.setTimeout(() => setOpenReady(true), 220);
-    return () => window.clearTimeout(t);
-  }, []);
-
   // Directly-framed apps (real URL / token URL, not the same-origin proxy) are the
   // hub's blind spot: a cross-origin 404 or blocked frame can't be inspected from
   // JS, so a raw vendor error page would just sit inside the window. Probe them
@@ -168,13 +153,18 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
     window.addEventListener('pointerup', onUp);
   };
 
-  const style: React.CSSProperties = win.maximized
+  const style: React.CSSProperties = {
     // .os-desktop (the offset parent) already sits between the menubar and the
     // dock in the flex column, so maximizing just fills it fully.
-    ? { left: 0, top: 0, width: '100%', height: '100%', zIndex: win.z }
-    : { left: win.x, top: win.y, width: win.width, height: win.height, zIndex: win.z };
-
-  if (win.minimized) return null;
+    ...(win.maximized
+      ? { left: 0, top: 0, width: '100%', height: '100%' }
+      : { left: win.x, top: win.y, width: win.width, height: win.height }),
+    zIndex: win.z,
+    // Keep minimized windows MOUNTED but hidden so their iframe (and the running app)
+    // survives — restoring is instant with no reload. Matters for heavy apps that are
+    // slow to boot (e.g. the Lakera demo). Closing (not minimizing) still unmounts.
+    ...(win.minimized ? { display: 'none' } : null),
+  };
 
   const safeUrl = safeHttpUrl(app.url);
   const proxied = !!app.proxy_embed && !!safeUrl;
@@ -229,7 +219,7 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
             <iframe
               key={reloadKey}
               ref={iframeRef}
-              src={openReady ? (embedSrc ?? undefined) : undefined}
+              src={embedSrc ?? undefined}
               title={app.name}
               className="os-iframe"
               onLoad={onIframeLoad}

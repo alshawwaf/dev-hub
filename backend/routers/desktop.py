@@ -105,6 +105,7 @@ def _clean_geometry(raw: Optional[dict]) -> dict:
             "y": _clamp(v.get("y"), 28, 8000, 28),
             "w": _clamp(v.get("w"), 360, 8000, 880),
             "h": _clamp(v.get("h"), 240, 8000, 560),
+            "max": bool(v.get("max")),   # remembered maximized state
         }
         if len(clean) >= 64:
             break
@@ -169,8 +170,10 @@ def _clean_folders(raw) -> list:
                     app_ids.append(aid)
                 if len(app_ids) >= 128:
                     break
+        color = f.get("color")
+        color = color[:24] if isinstance(color, str) and color else None
         seen_ids.add(fid)
-        out.append({"id": fid, "name": name, "app_ids": app_ids})
+        out.append({"id": fid, "name": name, "app_ids": app_ids, "color": color})
         if len(out) >= 64:
             break
     return out

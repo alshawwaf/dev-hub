@@ -15,6 +15,8 @@ export interface MenuItem {
   heading?: string;
   /** non-interactive muted note row */
   note?: string;
+  /** custom row content (e.g. a folder-color swatch strip); rendered as-is */
+  content?: React.ReactNode;
 }
 
 interface MenuState {
@@ -96,6 +98,7 @@ export const ContextMenuProvider: React.FC<{ children: React.ReactNode }> = ({ c
             if (item.separator) return <div key={i} className="os-ctxmenu-sep" role="separator" />;
             if (item.heading !== undefined) return <div key={i} className="os-ctxmenu-head">{item.heading}</div>;
             if (item.note !== undefined) return <div key={i} className="os-ctxmenu-note">{item.note}</div>;
+            if (item.content !== undefined) return <div key={i} className="os-ctxmenu-row">{item.content}</div>;
             const checkable = item.checked !== undefined;
             return (
               <button

@@ -44,3 +44,20 @@ export function tintFor(app: AppInfo): string | undefined {
   const key = (app.name || '').trim().toLowerCase();
   return TINTS[key] ?? fallbackTint(key || 'app');
 }
+
+// macOS-tag-style folder colors. `undefined` color = the default translucent tile.
+export const FOLDER_COLORS: { key: string; label: string; hex: string }[] = [
+  { key: 'blue', label: 'Blue', hex: '#3b82f6' },
+  { key: 'purple', label: 'Purple', hex: '#8b5cf6' },
+  { key: 'pink', label: 'Pink', hex: '#ec4899' },
+  { key: 'red', label: 'Red', hex: '#ef4444' },
+  { key: 'orange', label: 'Orange', hex: '#f97316' },
+  { key: 'green', label: 'Green', hex: '#22c55e' },
+  { key: 'graphite', label: 'Graphite', hex: '#64748b' },
+];
+export const folderColorHex = (key?: string): string | undefined => FOLDER_COLORS.find(c => c.key === key)?.hex;
+// Tile fill for a colored folder (subtle gradient of the color); undefined → CSS default.
+export const folderTileBg = (key?: string): string | undefined => {
+  const hex = folderColorHex(key);
+  return hex ? `linear-gradient(145deg, ${hex}59, ${hex}22)` : undefined;
+};

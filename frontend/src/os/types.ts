@@ -1,6 +1,6 @@
 export type Placement = 'desktop' | 'dock' | 'both' | 'hidden';
 
-export interface WinGeometry { x: number; y: number; w: number; h: number; }
+export interface WinGeometry { x: number; y: number; w: number; h: number; max?: boolean; }
 export type GeometryMap = Record<number, WinGeometry>;
 
 export type SystemKey = 'launchpad' | 'settings' | 'logs' | 'guide' | 'about';
@@ -33,6 +33,8 @@ export interface FolderInfo {
   id: number;
   name: string;
   appIds: number[];
+  /** optional folder tint (one of the FOLDER_COLORS keys); undefined = default */
+  color?: string;
 }
 
 export type WidgetId = 'clock' | 'apps' | 'activity' | 'errors' | 'latency' | 'recent' | 'notifications' | 'lastapp' | 'quick' | 'system';
