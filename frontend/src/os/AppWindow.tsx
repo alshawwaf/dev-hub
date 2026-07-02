@@ -31,6 +31,21 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
   const [probeChecking, setProbeChecking] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  // Hold the iframe's src until the window-open scale animation (os-window-in,
+  // 160ms) has finished. A CROSS-ORIGIN iframe that first paints WHILE an ancestor
+  // is mid-transform can get stranded in a stale compositing layer — its body stays
+  // blank while the app's background still shows (seen with Policy Pilot, which
+  // redirects on load so its real content paints late, right during the animation).
+  // Deferring first paint past the animation removes that race deterministically;
+  // .os-iframe's translateZ(0) own-layer is the backstop. The loading overlay covers
+  // the brief gap. (Anonymous/system windows and same-origin proxies are unaffected
+  // by the strand but the small delay is harmless.)
+  const [openReady, setOpenReady] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setOpenReady(true), 220);
+    return () => window.clearTimeout(t);
+  }, []);
+
   // Directly-framed apps (real URL / token URL, not the same-origin proxy) are the
   // hub's blind spot: a cross-origin 404 or blocked frame can't be inspected from
   // JS, so a raw vendor error page would just sit inside the window. Probe them
@@ -214,7 +229,7 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
             <iframe
               key={reloadKey}
               ref={iframeRef}
-              src={embedSrc ?? undefined}
+              src={openReady ? (embedSrc ?? undefined) : undefined}
               title={app.name}
               className="os-iframe"
               onLoad={onIframeLoad}
