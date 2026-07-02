@@ -9,6 +9,8 @@ interface HubContextType {
   openRenameApp: (app: AppInfo) => void;
   openDeleteApp: (app: AppInfo) => void;
   openLaunchpad: () => void;
+  /** open the macOS-style folder panel; focusTitle puts the name into edit mode (rename / just-created) */
+  openFolderView: (folderId: number, focusTitle?: boolean) => void;
   refetch: () => void;
 }
 

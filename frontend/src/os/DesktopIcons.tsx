@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { ExternalLink, Pin, PinOff, EyeOff, Play, Pencil, Trash2, SlidersHorizontal, Github } from 'lucide-react';
-import type { AppInfo } from './types';
+import { ExternalLink, Pin, PinOff, EyeOff, Play, Pencil, Trash2, SlidersHorizontal, Github, Copy, FolderPlus, FolderOpen, ClipboardPaste, Folder as FolderGlyph } from 'lucide-react';
+import type { AppInfo, FolderInfo } from './types';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
 import { useContextMenu, type MenuItem } from './ContextMenu';
@@ -10,15 +10,66 @@ import AppGlyph from './AppGlyph';
 import { tintFor } from './iconStyle';
 import { flowPositions, snapToFreeCell, rowsPerColumn, type Pos } from './iconGrid';
 
-const DesktopIcon: React.FC<{ app: AppInfo; pos: Pos; onMove: (id: number, x: number, y: number) => void }> = ({ app, pos, onMove }) => {
+// Tile hit box (matches .os-deskicon CSS).
+const TILE_W = 92;
+const TILE_H = 108;
+
+// Shared pointer-drag for desktop items (apps + folders). Reports the dragged
+// tile's CENTER while moving (for drop-target detection) and both the raw
+// top-left and the center on release. A plain click (<4px movement) is left to
+// the button's onClick (movedRef suppresses the click that follows a drag).
+function useIconDrag(
+  id: number,
+  pos: Pos,
+  onDragMove: (id: number, cx: number, cy: number) => void,
+  onRelease: (id: number, x: number, y: number, cx: number, cy: number) => void,
+) {
+  const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
+  const movedRef = useRef(false);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    const sx = e.clientX, sy = e.clientY;
+    movedRef.current = false;
+    const onPointerMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if (!movedRef.current && Math.hypot(dx, dy) > 4) movedRef.current = true;
+      if (movedRef.current) {
+        setDrag({ dx, dy });
+        onDragMove(id, pos.x + dx + TILE_W / 2, pos.y + dy + TILE_H / 2);
+      }
+    };
+    const onPointerUp = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      setDrag(null);
+      if (movedRef.current) {
+        const dx = ev.clientX - sx, dy = ev.clientY - sy;
+        onRelease(id, pos.x + dx, pos.y + dy, pos.x + dx + TILE_W / 2, pos.y + dy + TILE_H / 2);
+      }
+    };
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
+  return { drag, movedRef, onPointerDown };
+}
+
+interface ItemDragProps {
+  pos: Pos;
+  isDropTarget: boolean;
+  onDragMove: (id: number, cx: number, cy: number) => void;
+  onRelease: (id: number, x: number, y: number, cx: number, cy: number) => void;
+}
+
+const DesktopIcon: React.FC<{ app: AppInfo } & ItemDragProps> = ({ app, pos, isDropTarget, onDragMove, onRelease }) => {
   const { openApp, isOpen } = useWindows();
-  const { getPlacement, setPlacement } = useLayout();
+  const { getPlacement, setPlacement, copyApp, createFolder } = useLayout();
   const { open: openMenu, openAt } = useContextMenu();
   const { isAdmin, openEditApp, openRenameApp, openDeleteApp } = useHub();
   const placement = getPlacement(app);
   const running = isOpen(app.id);
-  const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
-  const movedRef = useRef(false);
+  const { drag, movedRef, onPointerDown } = useIconDrag(app.id, pos, onDragMove, onRelease);
 
   const menuItems = (): MenuItem[] => {
     const items: MenuItem[] = [
@@ -28,6 +79,9 @@ const DesktopIcon: React.FC<{ app: AppInfo; pos: Pos; onMove: (id: number, x: nu
         ? { label: 'Remove from Dock', icon: <PinOff size={15} />, onClick: () => setPlacement(app, 'desktop') }
         : { label: 'Keep in Dock', icon: <Pin size={15} />, onClick: () => setPlacement(app, 'both') },
       { label: 'Remove from Desktop', icon: <EyeOff size={15} />, onClick: () => setPlacement(app, placement === 'both' ? 'dock' : 'hidden') },
+      { separator: true, label: '' },
+      { label: 'Copy', icon: <Copy size={15} />, onClick: () => copyApp(app.id) },
+      { label: `New Folder with “${app.name}”`, icon: <FolderPlus size={15} />, onClick: () => createFolder(app.category || 'New Folder', [app.id], pos) },
       { separator: true, label: '' },
       { label: 'Open in new tab', icon: <ExternalLink size={15} />, onClick: () => openExternal(app.url) },
     ];
@@ -52,27 +106,10 @@ const DesktopIcon: React.FC<{ app: AppInfo; pos: Pos; onMove: (id: number, x: nu
       e.preventDefault();
       const r = e.currentTarget.getBoundingClientRect();
       openAt(r.left + 8, r.bottom, menuItems());
+    } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'c') {
+      e.preventDefault();
+      copyApp(app.id);
     }
-  };
-
-  // Pointer-drag to reposition; a plain click (no movement) opens the app.
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0) return;
-    const sx = e.clientX, sy = e.clientY;
-    movedRef.current = false;
-    const onPointerMove = (ev: PointerEvent) => {
-      const dx = ev.clientX - sx, dy = ev.clientY - sy;
-      if (!movedRef.current && Math.hypot(dx, dy) > 4) movedRef.current = true;
-      if (movedRef.current) setDrag({ dx, dy });
-    };
-    const onPointerUp = (ev: PointerEvent) => {
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-      setDrag(null);
-      if (movedRef.current) onMove(app.id, pos.x + (ev.clientX - sx), pos.y + (ev.clientY - sy));
-    };
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
   };
 
   const onClick = () => {
@@ -82,7 +119,7 @@ const DesktopIcon: React.FC<{ app: AppInfo; pos: Pos; onMove: (id: number, x: nu
 
   return (
     <button
-      className={`os-deskicon ${running ? 'running' : ''} ${drag ? 'dragging' : ''}`}
+      className={`os-deskicon ${running ? 'running' : ''} ${drag ? 'dragging' : ''} ${isDropTarget ? 'drop-hover' : ''}`}
       style={{ left: pos.x, top: pos.y, transform: drag ? `translate(${drag.dx}px, ${drag.dy}px)` : undefined }}
       onPointerDown={onPointerDown}
       onClick={onClick}
@@ -96,19 +133,144 @@ const DesktopIcon: React.FC<{ app: AppInfo; pos: Pos; onMove: (id: number, x: nu
   );
 };
 
-const DesktopIcons: React.FC = () => {
-  const { desktopApps, iconPositions, setIconPos } = useLayout();
-  if (!desktopApps.length) return null;
+const FolderIcon: React.FC<{ folder: FolderInfo } & ItemDragProps> = ({ folder, pos, isDropTarget, onDragMove, onRelease }) => {
+  const { deleteFolder, addToFolder, clipboardAppId } = useLayout();
+  const { open: openMenu, openAt } = useContextMenu();
+  const { apps, openFolderView } = useHub();
+  const { drag, movedRef, onPointerDown } = useIconDrag(folder.id, pos, onDragMove, onRelease);
 
+  const members = folder.appIds.map(id => apps.find(a => a.id === id)).filter((a): a is AppInfo => !!a);
+  const clipApp = clipboardAppId != null ? apps.find(a => a.id === clipboardAppId) : undefined;
+
+  const menuItems = (): MenuItem[] => {
+    const items: MenuItem[] = [
+      { label: 'Open', icon: <FolderOpen size={15} />, onClick: () => openFolderView(folder.id) },
+      { separator: true, label: '' },
+      { label: 'Rename…', icon: <Pencil size={15} />, onClick: () => openFolderView(folder.id, true) },
+    ];
+    if (clipApp && !folder.appIds.includes(clipApp.id)) {
+      items.push({ label: `Paste “${clipApp.name}”`, icon: <ClipboardPaste size={15} />, onClick: () => addToFolder(folder.id, clipApp.id) });
+    }
+    items.push(
+      { separator: true, label: '' },
+      { label: 'Remove Folder', icon: <Trash2 size={15} />, danger: true, onClick: () => deleteFolder(folder.id) },
+      { note: 'Apps go back to the desktop', label: '' },
+    );
+    return items;
+  };
+
+  const onContextMenu = (e: React.MouseEvent) => openMenu(e, menuItems());
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+      e.preventDefault();
+      const r = e.currentTarget.getBoundingClientRect();
+      openAt(r.left + 8, r.bottom, menuItems());
+    } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'v' && clipApp && !folder.appIds.includes(clipApp.id)) {
+      e.preventDefault();
+      addToFolder(folder.id, clipApp.id);
+    }
+  };
+
+  const onClick = () => {
+    if (movedRef.current) { movedRef.current = false; return; }
+    openFolderView(folder.id);
+  };
+
+  return (
+    <button
+      className={`os-deskicon os-folder ${drag ? 'dragging' : ''} ${isDropTarget ? 'drop-hover' : ''}`}
+      style={{ left: pos.x, top: pos.y, transform: drag ? `translate(${drag.dx}px, ${drag.dy}px)` : undefined }}
+      onPointerDown={onPointerDown}
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+      onKeyDown={onKeyDown}
+      title={`${folder.name} — ${members.length} app${members.length === 1 ? '' : 's'}`}
+    >
+      <span className="os-deskicon-tile os-folder-tile">
+        {members.length === 0 ? (
+          <FolderGlyph size={24} className="os-folder-empty-glyph" />
+        ) : (
+          <span className="os-folder-grid">
+            {members.slice(0, 9).map(a => (
+              <span key={a.id} className="os-folder-mini" style={{ background: tintFor(a) }}>
+                <AppGlyph app={a} size={12} />
+              </span>
+            ))}
+          </span>
+        )}
+      </span>
+      <span className="os-deskicon-label">{folder.name}</span>
+    </button>
+  );
+};
+
+const DesktopIcons: React.FC = () => {
+  const { desktopRootApps, folders, iconPositions, setIconPos, addToFolder, createFolder } = useLayout();
+  const [dropTarget, setDropTarget] = useState<number | null>(null);
+
+  const ids = [...desktopRootApps.map(a => a.id), ...folders.map(f => f.id)];
   const rows = rowsPerColumn(window.innerHeight);
-  const ids = desktopApps.map(a => a.id);
   const positions = flowPositions(ids, iconPositions, rows);
-  const onMove = (id: number, x: number, y: number) => setIconPos(id, snapToFreeCell(x, y, id, positions, rows));
+
+  // Which item (app or folder) the dragged tile's center is currently over.
+  const hitTest = (draggedId: number, cx: number, cy: number): number | null => {
+    for (const id of ids) {
+      if (id === draggedId) continue;
+      const p = positions[id];
+      if (p && cx >= p.x + 6 && cx <= p.x + TILE_W - 6 && cy >= p.y + 6 && cy <= p.y + TILE_H - 6) return id;
+    }
+    return null;
+  };
+
+  // Folders only reposition (no folder-in-folder, same as macOS); apps can land
+  // on a folder (add) or on another app (create a folder holding both).
+  const onDragMove = (id: number, cx: number, cy: number) => {
+    setDropTarget(id > 0 ? hitTest(id, cx, cy) : null);
+  };
+
+  const onRelease = (id: number, x: number, y: number, cx: number, cy: number) => {
+    setDropTarget(null);
+    if (id > 0) {
+      const target = hitTest(id, cx, cy);
+      if (target != null) {
+        if (target < 0) {
+          addToFolder(target, id);
+          return;
+        }
+        // app dropped onto app → new folder at the target's cell, auto-named from
+        // the shared category (macOS Launchpad behavior)
+        const a = desktopRootApps.find(ap => ap.id === id);
+        const b = desktopRootApps.find(ap => ap.id === target);
+        const name = a?.category && a.category === b?.category ? a.category : 'New Folder';
+        createFolder(name, [id, target], positions[target]);
+        return;
+      }
+    }
+    setIconPos(id, snapToFreeCell(x, y, id, positions, rows));
+  };
 
   return (
     <div className="os-deskicons">
-      {desktopApps.map(app => (
-        <DesktopIcon key={app.id} app={app} pos={positions[app.id]} onMove={onMove} />
+      {desktopRootApps.map(app => (
+        <DesktopIcon
+          key={app.id}
+          app={app}
+          pos={positions[app.id]}
+          isDropTarget={dropTarget === app.id}
+          onDragMove={onDragMove}
+          onRelease={onRelease}
+        />
+      ))}
+      {folders.map(folder => (
+        <FolderIcon
+          key={folder.id}
+          folder={folder}
+          pos={positions[folder.id]}
+          isDropTarget={dropTarget === folder.id}
+          onDragMove={onDragMove}
+          onRelease={onRelease}
+        />
       ))}
     </div>
   );

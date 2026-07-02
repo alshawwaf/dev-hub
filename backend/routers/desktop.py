@@ -63,6 +63,7 @@ class PrefsIn(BaseModel):
     widgets: Optional[list] = None    # None = leave unchanged; [] = explicitly none
     theme: Optional[str] = None       # "dark" | "light"; None = leave unchanged
     icon_positions: Optional[dict] = None  # { appId: {x,y} }; None = leave unchanged
+    folders: Optional[list] = None    # [{id, name, app_ids}]; None = leave unchanged; [] = no folders
 
 
 class DefaultIn(BaseModel):
@@ -82,9 +83,11 @@ def _clean_overrides(raw: Optional[dict]) -> dict:
 
 
 def _clamp(v, lo, hi, default):
+    # OverflowError guards against JSON Infinity/-Infinity (stdlib json.loads accepts
+    # them): int(float('inf')) raises OverflowError, which would otherwise 500 the PUT.
     try:
         return max(lo, min(hi, int(v)))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return default
 
 
@@ -135,6 +138,44 @@ def _clean_widgets(raw) -> list:
     return out
 
 
+def _clean_folders(raw) -> list:
+    """Desktop folders: [{id, name, app_ids}]. Folder ids are negative (client
+    allocates from -1001 down); names capped at 60 chars; an app can live in at
+    most one folder (first wins). Caps keep a hostile payload small."""
+    if not isinstance(raw, list):
+        return []
+    out, seen_ids, seen_apps = [], set(), set()
+    for f in raw:
+        if not isinstance(f, dict):
+            continue
+        try:
+            fid = int(f.get("id"))
+        except (TypeError, ValueError, OverflowError):   # OverflowError: JSON Infinity id
+            continue
+        if fid >= 0 or fid in seen_ids:
+            continue
+        name = f.get("name")
+        name = name.strip()[:60] if isinstance(name, str) and name.strip() else "Folder"
+        app_ids = []
+        raw_ids = f.get("app_ids")
+        if isinstance(raw_ids, list):
+            for v in raw_ids:
+                try:
+                    aid = int(v)
+                except (TypeError, ValueError, OverflowError):   # OverflowError: JSON Infinity app id
+                    continue
+                if aid > 0 and aid not in seen_apps:
+                    seen_apps.add(aid)
+                    app_ids.append(aid)
+                if len(app_ids) >= 128:
+                    break
+        seen_ids.add(fid)
+        out.append({"id": fid, "name": name, "app_ids": app_ids})
+        if len(out) >= 64:
+            break
+    return out
+
+
 @router.get("/prefs")
 def get_prefs(db: Session = Depends(get_db), user: schemas.User = Depends(read_users_me)):
     row = db.query(models.UserDesktopPref).filter(models.UserDesktopPref.owner_id == user.id).first()
@@ -145,6 +186,7 @@ def get_prefs(db: Session = Depends(get_db), user: schemas.User = Depends(read_u
         "widgets": (row.widgets if row and row.widgets is not None else None),
         "theme": (row.theme if row and row.theme else "dark"),
         "icon_positions": (row.icon_positions if row and row.icon_positions else {}),
+        "folders": (row.folders if row and row.folders else []),
     }
 
 
@@ -164,9 +206,12 @@ def put_prefs(body: PrefsIn, db: Session = Depends(get_db), user: schemas.User =
         row.theme = body.theme
     if body.icon_positions is not None:
         row.icon_positions = _clean_icon_positions(body.icon_positions)
+    if body.folders is not None:
+        row.folders = _clean_folders(body.folders)
     db.commit()
     return {"overrides": row.overrides or {}, "geometry": row.geometry or {}, "widgets": row.widgets or [],
-            "theme": row.theme or "dark", "icon_positions": row.icon_positions or {}}
+            "theme": row.theme or "dark", "icon_positions": row.icon_positions or {},
+            "folders": row.folders or []}
 
 
 @router.post("/default")
