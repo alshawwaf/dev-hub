@@ -17,6 +17,7 @@ import Widgets from './Widgets';
 import AppWindow from './AppWindow';
 import Launchpad from './Launchpad';
 import FolderView from './FolderView';
+import Spotlight from './Spotlight';
 import { buildCustomizeItems } from './widgets/customizeMenu';
 import { readDrag } from './drag';
 import { getSystemApp } from './systemApps';
@@ -29,8 +30,22 @@ const DesktopSurface: React.FC<{
   isAdmin: boolean;
   onAddApp: () => void;
   onOpenLaunchpad: () => void;
-}> = ({ apps, loading, error, isAdmin, onAddApp, onOpenLaunchpad }) => {
+  onOpenSpotlight: () => void;
+}> = ({ apps, loading, error, isAdmin, onAddApp, onOpenLaunchpad, onOpenSpotlight }) => {
   const { windows, openApp } = useWindows();
+
+  // Global Cmd/Ctrl+K opens the Spotlight command palette. (Cmd+W/Cmd+M can't be
+  // used — browsers reserve them for close-tab / minimize-window.)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        onOpenSpotlight();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onOpenSpotlight]);
   const {
     setPlacement, getPlacement, desktopApps, dockApps, resetLayout, hasLocalOverrides, widgets, toggleWidget,
     createFolder, snapFreePos, clipboardAppId, folderOf, removeFromFolder,
@@ -97,7 +112,7 @@ const DesktopSurface: React.FC<{
         <span className="os-mesh-blob m2" />
         <span className="os-mesh-blob m3" />
       </div>
-      <MenuBar onAddApp={onAddApp} onOpenLaunchpad={onOpenLaunchpad} />
+      <MenuBar onAddApp={onAddApp} onOpenLaunchpad={onOpenLaunchpad} onOpenSpotlight={onOpenSpotlight} />
 
       <div
         className="os-desktop"
@@ -153,6 +168,7 @@ const Desktop: React.FC = () => {
   const [renamingApp, setRenamingApp] = useState<AppInfo | null>(null);
   const [deletingApp, setDeletingApp] = useState<AppInfo | null>(null);
   const [launchpadOpen, setLaunchpadOpen] = useState(false);
+  const [spotlightOpen, setSpotlightOpen] = useState(false);
   const [viewingFolder, setViewingFolder] = useState<{ id: number; focusTitle: boolean } | null>(null);
 
   const fetchApps = useCallback(async () => {
@@ -198,8 +214,10 @@ const Desktop: React.FC = () => {
               isAdmin={isAdmin}
               onAddApp={() => setAddOpen(true)}
               onOpenLaunchpad={() => setLaunchpadOpen(true)}
+              onOpenSpotlight={() => setSpotlightOpen(true)}
             />
             {launchpadOpen && <Launchpad apps={apps} onClose={() => setLaunchpadOpen(false)} />}
+            {spotlightOpen && <Spotlight onClose={() => setSpotlightOpen(false)} />}
             {viewingFolder && (
               <FolderViewHost viewing={viewingFolder} apps={apps} onClose={() => setViewingFolder(null)} />
             )}

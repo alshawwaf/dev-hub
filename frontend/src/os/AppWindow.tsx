@@ -194,7 +194,7 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
 
   return (
     <div
-      className={`os-window ${active ? 'active' : ''} ${interacting ? 'interacting' : ''}`}
+      className={`os-window ${active ? 'active' : ''} ${interacting ? 'interacting' : ''} ${win.closing ? 'closing' : ''}`}
       style={style}
       onPointerDown={() => focusWindow(win.id)}
     >

@@ -87,8 +87,11 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [getGeometry]);
 
   const closeWindow = useCallback((id: string) => {
-    setWindows(prev => prev.filter(w => w.id !== id));
+    // Play a short scale/fade-out (os-window-out) before removing, instead of the
+    // window vanishing instantly. Mark it closing now; drop it after the animation.
+    setWindows(prev => prev.map(w => (w.id === id ? { ...w, closing: true } : w)));
     setActiveId(prev => (prev === id ? null : prev));
+    window.setTimeout(() => setWindows(prev => prev.filter(w => w.id !== id)), 150);
   }, []);
 
   const minimizeWindow = useCallback((id: string) => {

@@ -10,7 +10,10 @@ const LS_THEME = 'devhub.theme';
 const LS_ICONPOS = 'devhub.icon.positions';
 const LS_FOLDERS = 'devhub.desktop.folders';
 
-type Theme = 'dark' | 'light';
+type Theme = 'dark' | 'light' | 'auto';   // 'auto' follows the OS appearance
+
+const prefersDark = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+const resolveTheme = (t: Theme): 'dark' | 'light' => (t === 'auto' ? (prefersDark() ? 'dark' : 'light') : t);
 
 const DEFAULT_WIDGETS: WidgetId[] = ['clock', 'activity'];
 const VALID_WIDGETS: string[] = ['clock', 'apps', 'activity', 'errors', 'latency', 'recent', 'notifications', 'lastapp', 'quick', 'system'];
@@ -171,14 +174,21 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
   // Theme is seeded from LS regardless (mirrors the pre-paint script in index.html
   // to avoid a flash); the GET corrects it for personal users.
   const [theme, setThemeState] = useState<Theme>(() => {
-    try { return localStorage.getItem(LS_THEME) === 'light' ? 'light' : 'dark'; } catch { return 'dark'; }
+    try { const t = localStorage.getItem(LS_THEME); return t === 'light' || t === 'auto' ? t : 'dark'; } catch { return 'dark'; }
   });
 
   // Apply + persist theme locally on every change (instant, no flash). Server
-  // sync (cross-device) rides the debounced writer below.
+  // sync (cross-device) rides the debounced writer below. In 'auto' mode the
+  // resolved appearance follows the OS and re-applies live on system changes.
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    const apply = () => document.documentElement.setAttribute('data-theme', resolveTheme(theme));
+    apply();
     try { localStorage.setItem(LS_THEME, theme); } catch { /* unavailable */ }
+    if (theme === 'auto' && typeof window !== 'undefined' && window.matchMedia) {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      mq.addEventListener('change', apply);
+      return () => mq.removeEventListener('change', apply);
+    }
   }, [theme]);
 
   // Latest state, read by the debounced writer at fire time.
@@ -228,7 +238,7 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
       if (!dk.has('folders')) setFolders(cleanFolders(r.data?.folders));
       // null/undefined (never set) → default; [] → respected (all off).
       if (!dk.has('widgets')) setWidgets(r.data?.widgets != null ? cleanWidgets(r.data.widgets) : DEFAULT_WIDGETS);
-      if (!dk.has('theme') && (r.data?.theme === 'light' || r.data?.theme === 'dark')) setThemeState(r.data.theme);
+      if (!dk.has('theme') && ['light', 'dark', 'auto'].includes(r.data?.theme)) setThemeState(r.data.theme);
     }).catch(() => { /* keep current */ }).finally(() => {
       if (cancelled) return;
       serverLoadedRef.current = true;

@@ -32,18 +32,25 @@ const ago = (s: string) => {
 interface MenuBarProps {
   onAddApp: () => void;
   onOpenLaunchpad: () => void;
+  onOpenSpotlight: () => void;
 }
 
 const useClock = () => {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
-    const t = window.setInterval(() => setNow(new Date()), 30_000);
-    return () => window.clearInterval(t);
+    let timer: number;
+    // Re-tick exactly at each minute boundary so the displayed minute is never stale
+    // (a fixed 30s interval could lag the minute by up to ~30s).
+    const schedule = () => {
+      timer = window.setTimeout(() => { setNow(new Date()); schedule(); }, 60_000 - (Date.now() % 60_000) + 50);
+    };
+    schedule();
+    return () => window.clearTimeout(timer);
   }, []);
   return now;
 };
 
-const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad }) => {
+const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad, onOpenSpotlight }) => {
   const { user, logout } = useAuth();
   const { openApp } = useWindows();
   const { widgets, toggleWidget, theme, toggleTheme } = useLayout();
@@ -105,6 +112,19 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad }) => {
     .then(() => setNotifs(n => (n ? { items: n.items.filter(i => i.id !== id), unread: n.unread } : n)))
     .catch(() => {});
 
+  // Keyboard navigation for the app menu (WAI-ARIA menu pattern): arrows roam,
+  // Home/End jump. Focus the first item when the menu opens.
+  useEffect(() => { if (menuOpen) menuRef.current?.querySelector<HTMLElement>('.os-menu .os-menu-item')?.focus(); }, [menuOpen]);
+  const onMenuKeyDown = (e: React.KeyboardEvent) => {
+    const items = [...(menuRef.current?.querySelectorAll<HTMLElement>('.os-menu .os-menu-item') || [])];
+    if (!items.length) return;
+    const cur = items.indexOf(document.activeElement as HTMLElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); items[(cur + 1) % items.length].focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); items[(cur - 1 + items.length) % items.length].focus(); }
+    else if (e.key === 'Home') { e.preventDefault(); items[0].focus(); }
+    else if (e.key === 'End') { e.preventDefault(); items[items.length - 1].focus(); }
+  };
+
   const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const day = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 
@@ -130,36 +150,36 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad }) => {
         </button>
 
         {menuOpen && (
-          <div className="os-menu">
-            <button className="os-menu-item" onClick={() => { onOpenLaunchpad(); setMenuOpen(false); }}>
+          <div className="os-menu" role="menu" aria-label="DevHub menu" onKeyDown={onMenuKeyDown}>
+            <button role="menuitem" className="os-menu-item" onClick={() => { onOpenLaunchpad(); setMenuOpen(false); }}>
               <LayoutGrid size={15} /> Launchpad
             </button>
             {user && (
-              <button className="os-menu-item" onClick={() => { onAddApp(); setMenuOpen(false); }}>
+              <button role="menuitem" className="os-menu-item" onClick={() => { onAddApp(); setMenuOpen(false); }}>
                 <Plus size={15} /> Add application
               </button>
             )}
             {user?.is_admin && (
-              <a className="os-menu-item" href="/admin">
+              <a role="menuitem" className="os-menu-item" href="/admin">
                 <Shield size={15} /> Admin dashboard
               </a>
             )}
-            <button className="os-menu-item" onClick={() => openSystem('guide')}>
+            <button role="menuitem" className="os-menu-item" onClick={() => openSystem('guide')}>
               <BookOpen size={15} /> Guide
             </button>
-            <button className="os-menu-item" onClick={() => openSystem('about')}>
+            <button role="menuitem" className="os-menu-item" onClick={() => openSystem('about')}>
               <Info size={15} /> About DevHub
             </button>
-            <a className="os-menu-item" href="https://github.com/alshawwaf/dev-hub" target="_blank" rel="noopener noreferrer">
+            <a role="menuitem" className="os-menu-item" href="https://github.com/alshawwaf/dev-hub" target="_blank" rel="noopener noreferrer">
               <Github size={15} /> Source on GitHub
             </a>
             <div className="os-menu-sep" />
             {user ? (
-              <button className="os-menu-item danger" onClick={logout}>
+              <button role="menuitem" className="os-menu-item danger" onClick={logout}>
                 <LogOut size={15} /> Sign out
               </button>
             ) : (
-              <a className="os-menu-item" href="/login">
+              <a role="menuitem" className="os-menu-item" href="/login">
                 <LogOut size={15} /> Sign in
               </a>
             )}
@@ -209,10 +229,12 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad }) => {
         <button className="os-menubar-btn" onClick={openCustomize} title="Customize desktop — widgets" aria-label="Customize desktop widgets">
           <SlidersHorizontal size={15} />
         </button>
-        <button className="os-menubar-btn" onClick={onOpenLaunchpad} title="Search apps" aria-label="Search apps">
+        <button className="os-menubar-btn" onClick={onOpenSpotlight} title="Search apps (⌘K)" aria-label="Search apps">
           <Search size={15} />
         </button>
-        <span className="os-clock">{day}&nbsp;&nbsp;{time}</span>
+        {user
+          ? <button className="os-clock os-clock-btn" onClick={toggleBell} title="Notifications" aria-label="Notifications">{day}&nbsp;&nbsp;{time}</button>
+          : <span className="os-clock">{day}&nbsp;&nbsp;{time}</span>}
       </div>
     </div>
   );

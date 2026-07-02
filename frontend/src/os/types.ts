@@ -64,4 +64,6 @@ export interface WindowState {
   z: number;
   minimized: boolean;
   maximized: boolean;
+  /** set briefly during the close-out animation, before the window is removed */
+  closing?: boolean;
 }

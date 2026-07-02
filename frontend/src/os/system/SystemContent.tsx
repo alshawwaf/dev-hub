@@ -81,7 +81,7 @@ const SettingsApp: React.FC = () => {
             </Group>
             <Group>
               <button className="os-set-jump" onClick={() => setActive('appearance')}>
-                <span>Appearance</span><small>{theme === 'dark' ? 'Dark' : 'Light'}{reduceMotion ? ' · Reduced motion' : ''}</small><ChevronRight size={15} />
+                <span>Appearance</span><small>{theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : 'Auto'}{reduceMotion ? ' · Reduced motion' : ''}</small><ChevronRight size={15} />
               </button>
               <button className="os-set-jump" onClick={() => setActive('apps')}>
                 <span>Apps &amp; Layout</span><small>{desktopApps.filter(a => a.id > 0).length} on desktop · {dockApps.filter(a => a.id > 0).length} in dock</small><ChevronRight size={15} />
@@ -99,10 +99,10 @@ const SettingsApp: React.FC = () => {
           <>
             <div className="os-set-head"><h1>Appearance</h1><p>Theme and how the desktop looks.</p></div>
             <Group>
-              <Row label="Theme" help="Switch the whole desktop between dark and light.">
+              <Row label="Theme" help="Dark, light, or Auto — Auto follows your system appearance.">
                 <div className="os-place-seg" role="radiogroup" aria-label="Theme">
-                  {(['dark', 'light'] as const).map(t => (
-                    <button key={t} role="radio" aria-checked={theme === t} className={`os-place-opt ${theme === t ? 'on' : ''}`} onClick={() => setTheme(t)}>{t === 'dark' ? 'Dark' : 'Light'}</button>
+                  {(['auto', 'dark', 'light'] as const).map(t => (
+                    <button key={t} role="radio" aria-checked={theme === t} className={`os-place-opt ${theme === t ? 'on' : ''}`} onClick={() => setTheme(t)}>{t === 'dark' ? 'Dark' : t === 'light' ? 'Light' : 'Auto'}</button>
                   ))}
                 </div>
               </Row>

@@ -1987,8 +1987,112 @@ svg {
 [data-theme="light"] .os-fv-item:hover { background: rgba(16, 24, 40, 0.05); }
 [data-theme="light"] .os-folder-tile { background: rgba(16, 24, 40, 0.08); }
 
+/* ---------- Window close-out animation ---------- */
+.os-window.closing { animation: os-window-out 0.15s ease forwards; pointer-events: none; }
+@keyframes os-window-out { to { opacity: 0; transform: scale(0.965); } }
+
+/* ---------- Unfocused window: traffic lights dim to grey (macOS) ---------- */
+.os-window:not(.active) .os-traffic .tl { background: rgba(255, 255, 255, 0.22); box-shadow: none; }
+[data-theme="light"] .os-window:not(.active) .os-traffic .tl { background: rgba(16, 24, 40, 0.22); }
+/* hovering the cluster restores the colors + reveals the glyphs */
+.os-window:not(.active) .os-traffic:hover .tl-close { background: #ff5f57; }
+.os-window:not(.active) .os-traffic:hover .tl-min { background: #febc2e; }
+.os-window:not(.active) .os-traffic:hover .tl-max { background: #28c840; }
+
+/* ---------- Spotlight command palette (⌘K) ---------- */
+.os-spotlight {
+  position: fixed;
+  inset: 0;
+  z-index: 9900;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+  background: rgba(7, 7, 11, 0.42);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  animation: os-fv-fade 0.12s ease;
+}
+.os-spot-panel {
+  width: min(560px, 92vw);
+  border-radius: 16px;
+  background: rgba(24, 24, 35, 0.94);
+  border: 1px solid var(--glass-border-strong);
+  box-shadow: var(--shadow-elevated);
+  overflow: hidden;
+  animation: os-spot-in 0.14s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes os-spot-in { from { opacity: 0; transform: translateY(-8px) scale(0.985); } }
+.os-spot-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--glass-border);
+}
+.os-spot-search input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-family: inherit;
+}
+.os-spot-search input::placeholder { color: var(--text-muted); }
+.os-spot-kbd {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+}
+.os-spot-list { max-height: 45vh; overflow-y: auto; padding: 6px; }
+.os-spot-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-secondary);
+}
+.os-spot-item.sel { background: var(--primary); color: #fff; }
+.os-spot-ic {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: #fff;
+}
+.os-spot-ic img { width: 62%; height: 62%; object-fit: contain; }
+.os-spot-name { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.os-spot-cat { margin-left: auto; font-size: 0.72rem; opacity: 0.7; white-space: nowrap; }
+.os-spot-item.sel .os-spot-cat { opacity: 0.85; }
+.os-spot-enter { margin-left: 8px; opacity: 0.85; flex: none; }
+.os-spot-empty { padding: 22px 16px; text-align: center; color: var(--text-muted); font-size: 0.9rem; }
+[data-theme="light"] .os-spotlight { background: rgba(233, 237, 246, 0.5); }
+[data-theme="light"] .os-spot-panel { background: rgba(255, 255, 255, 0.96); }
+/* Clock as a button (opens Notification Center) — keep it visually identical. */
+.os-clock-btn { background: none; border: none; font: inherit; color: inherit; cursor: pointer; padding: 0; }
+
 @media (prefers-reduced-motion: reduce) {
   .os-dock-icon.bouncing { animation: none; }
   .os-menu, .os-bell-menu, .os-ctxmenu { animation: none; }
   .os-folderview, .os-folderview-panel { animation: none; }
+  .os-window.closing { animation: none; }
+  .os-spotlight, .os-spot-panel { animation: none; }
 }

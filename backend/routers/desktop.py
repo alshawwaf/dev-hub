@@ -202,7 +202,7 @@ def put_prefs(body: PrefsIn, db: Session = Depends(get_db), user: schemas.User =
         row.geometry = _clean_geometry(body.geometry)
     if body.widgets is not None:
         row.widgets = _clean_widgets(body.widgets)
-    if body.theme in ("dark", "light"):
+    if body.theme in ("dark", "light", "auto"):
         row.theme = body.theme
     if body.icon_positions is not None:
         row.icon_positions = _clean_icon_positions(body.icon_positions)

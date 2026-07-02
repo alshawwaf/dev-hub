@@ -7,7 +7,12 @@
     <title>AI DevHub | Premium AI Developer Ecosystem</title>
     <script>
       // Pre-paint the saved theme before first render to avoid a flash.
-      try { document.documentElement.setAttribute('data-theme', localStorage.getItem('devhub.theme') || 'dark'); } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+      // 'auto' resolves to the OS appearance.
+      try {
+        var t = localStorage.getItem('devhub.theme') || 'dark';
+        if (t === 'auto') t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+      } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
     </script>
   </head>
   <body>
