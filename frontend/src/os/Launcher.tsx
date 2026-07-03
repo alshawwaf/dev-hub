@@ -57,6 +57,10 @@ const Launcher: React.FC<LauncherProps> = ({ app, embedBlocked, embedStatus, onR
         <p className="os-launcher-note">
           This app can’t be embedded in a window, so it opens in its own tab.
         </p>
+      ) : (!app.embeddable && !app.proxy_embed) ? (
+        <p className="os-launcher-note">
+          This app runs best on its own, so it opens in a new tab.
+        </p>
       ) : null}
 
       <p className="os-launcher-desc">{app.description}</p>

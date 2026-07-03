@@ -213,8 +213,10 @@ def seed():
         # an edge frame-ancestors allowance (a Traefik hubframe middleware on each
         # app's route, or one default middleware on the entrypoint) is the reliable
         # path for ALL apps.
+        # NOTE: Open WebUI is deliberately NOT here — it opens in its own tab (see
+        # the correction below). Framing it cross-origin starves its socket.io auth.
         embed_direct = {
-            "Docs to Swagger", "Open WebUI", "Flowise",
+            "Docs to Swagger", "Flowise",
             "Training Portal", "IDP Simulator", "Lakera Guard Demo",
             "n8n Workflow", "Langflow", "OpenClaw",
             "AI Basic Training", "Threat Prevention Server", "Script Builder",
@@ -278,6 +280,20 @@ def seed():
         if proxy_retired:
             db.commit()
             print(f"Retired proxy embedding for {proxy_retired} app(s) -> direct.")
+
+        # Open WebUI must NOT be framed. It streams the chat response over a
+        # socket.io channel it authenticates from a localStorage token, which a
+        # cross-origin iframe can't hand to the framed app — so the socket connects
+        # but never joins the user's room and the answer never arrives (REST still
+        # works via cookie, so it looks logged in). It works perfectly first-party,
+        # so it opens in its own tab. Runs last, after the retire-proxy pass, to
+        # override any embed flag a prior deploy set.
+        owui = db.query(models.Application).filter(models.Application.name == "Open WebUI").first()
+        if owui and (owui.embeddable or owui.proxy_embed):
+            owui.embeddable = False
+            owui.proxy_embed = False
+            db.commit()
+            print("Open WebUI set to open-in-new-tab (a cross-origin frame can't carry its socket auth).")
 
     finally:
         db.close()
