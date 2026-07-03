@@ -3,7 +3,7 @@ import { ExternalLink, Github, RotateCw } from 'lucide-react';
 import type { AppInfo } from './types';
 import { safeHttpUrl } from './url';
 import AppGlyph from './AppGlyph';
-import { tintFor } from './iconStyle';
+import { useLayout } from './LayoutContext';
 
 export interface EmbedStatus { ok: boolean; category: string; status: number | null; reason: string; }
 
@@ -25,13 +25,14 @@ const CATEGORY_LABEL: Record<string, string> = {
 };
 
 const Launcher: React.FC<LauncherProps> = ({ app, embedBlocked, embedStatus, onRetry }) => {
+  const { iconTileBg } = useLayout();
   const appUrl = safeHttpUrl(app.url);
   const repoUrl = safeHttpUrl(app.github_url);
   const probe = embedStatus && !embedStatus.ok ? embedStatus : null;
 
   return (
     <div className="os-launcher">
-      <div className="os-launcher-icon" style={{ background: tintFor(app) }}>
+      <div className="os-launcher-icon" style={{ background: iconTileBg(app) }}>
         <AppGlyph app={app} size={48} />
       </div>
 

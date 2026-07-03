@@ -6,7 +6,7 @@ import { useWindows } from './WindowManager';
 import { useContextMenu, type MenuItem } from './ContextMenu';
 import { openExternal } from './url';
 import AppGlyph from './AppGlyph';
-import { tintFor } from './iconStyle';
+import ColorSwatches from './ColorSwatches';
 
 const TILE_W = 92;
 const TILE_H = 108;
@@ -22,7 +22,7 @@ const FolderItem: React.FC<{
   onDragState: (dragging: boolean) => void;
   onDragOut: (app: AppInfo, clientX: number, clientY: number) => boolean;
 }> = ({ app, onOpen, onMenu, onMenuKey, onDragState, onDragOut }) => {
-  const { copyApp } = useLayout();
+  const { copyApp, iconTileBg } = useLayout();
   const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
   const movedRef = useRef(false);
 
@@ -74,7 +74,7 @@ const FolderItem: React.FC<{
       onKeyDown={onKeyDown}
       title={app.description || app.name}
     >
-      <span className="os-deskicon-tile" style={{ background: tintFor(app) }}><AppGlyph app={app} size={30} /></span>
+      <span className="os-deskicon-tile" style={{ background: iconTileBg(app) }}><AppGlyph app={app} size={30} /></span>
       <span className="os-fv-label">{app.name}</span>
     </button>
   );
@@ -86,9 +86,9 @@ const FolderView: React.FC<{
   focusTitle?: boolean;
   onClose: () => void;
 }> = ({ folder, apps, focusTitle, onClose }) => {
-  const { getPlacement, renameFolder, removeFromFolder, addToFolder, snapFreePos, clipboardAppId, copyApp } = useLayout();
+  const { getPlacement, renameFolder, removeFromFolder, addToFolder, snapFreePos, clipboardAppId, copyApp, iconColorOf, setIconColor } = useLayout();
   const { openApp } = useWindows();
-  const { open: openMenu, openAt } = useContextMenu();
+  const { open: openMenu, openAt, close: closeMenu } = useContextMenu();
   const panelRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(folder.name);
@@ -135,6 +135,9 @@ const FolderView: React.FC<{
   const buildItemMenu = (app: AppInfo): MenuItem[] => [
     { label: 'Open', icon: <Play size={15} />, onClick: () => launch(app) },
     { label: 'Open in new tab', icon: <ExternalLink size={15} />, onClick: () => openExternal(app.url) },
+    { separator: true, label: '' },
+    { heading: 'Icon Color', label: '' },
+    { content: <ColorSwatches current={iconColorOf(app.id)} onPick={c => setIconColor(app.id, c)} onClose={closeMenu} allowCustom />, label: '' },
     { separator: true, label: '' },
     { label: 'Copy', icon: <Copy size={15} />, onClick: () => copyApp(app.id) },
     { label: 'Move out of folder', icon: <FolderMinus size={15} />, onClick: () => removeFromFolder(app.id) },

@@ -64,7 +64,8 @@ class UserDesktopPref(Base):
     widgets = Column(JSON, default=list)                  # enabled desktop widget ids, e.g. ["clock","activity"]
     theme = Column(String, default="dark")                # "dark" | "light"
     icon_positions = Column(JSON, default=dict)           # { appId: {x,y} } free-positioned desktop icons
-    folders = Column(JSON, default=list)                  # macOS-style desktop folders: [{id, name, app_ids}]
+    folders = Column(JSON, default=list)                  # macOS-style desktop folders: [{id, name, app_ids, color}]
+    icon_colors = Column(JSON, default=dict)              # per-app icon tint: { appId: "blue" | "#3b82f6" }
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 class Notification(Base):

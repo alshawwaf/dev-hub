@@ -8,12 +8,12 @@ import { useHub } from './HubContext';
 import { SYSTEM_APPS } from './systemApps';
 import { openExternal } from './url';
 import AppGlyph from './AppGlyph';
-import { tintFor } from './iconStyle';
+import ColorSwatches from './ColorSwatches';
 
 const Launchpad: React.FC<{ apps: AppInfo[]; onClose: () => void }> = ({ apps, onClose }) => {
   const { openApp } = useWindows();
-  const { getPlacement, setPlacement, copyApp } = useLayout();
-  const { open: openMenu, openAt } = useContextMenu();
+  const { getPlacement, setPlacement, copyApp, iconColorOf, setIconColor, iconTileBg } = useLayout();
+  const { open: openMenu, openAt, close: closeMenu } = useContextMenu();
   const { isAdmin, openEditApp, openRenameApp, openDeleteApp } = useHub();
   const [q, setQ] = useState('');
   const restoreFocus = useRef<HTMLElement | null>(null);
@@ -46,6 +46,9 @@ const Launchpad: React.FC<{ apps: AppInfo[]; onClose: () => void }> = ({ apps, o
       { separator: true, label: '' },
       { label: 'In Dock', checked: inDock, keepOpen: true, onClick: () => setPlacement(app, inDock ? (onDesk ? 'desktop' : 'hidden') : (onDesk ? 'both' : 'dock')) },
       { label: 'On Desktop', checked: onDesk, keepOpen: true, onClick: () => setPlacement(app, onDesk ? (inDock ? 'dock' : 'hidden') : (inDock ? 'both' : 'desktop')) },
+      { separator: true, label: '' },
+      { heading: 'Icon Color', label: '' },
+      { content: <ColorSwatches current={iconColorOf(app.id)} onPick={c => setIconColor(app.id, c)} onClose={closeMenu} allowCustom />, label: '' },
       { separator: true, label: '' },
       { label: 'Copy', icon: <Copy size={15} />, onClick: () => copyApp(app.id) },
       { label: 'Open in new tab', icon: <ExternalLink size={15} />, onClick: () => openExternal(app.url) },
@@ -83,7 +86,7 @@ const Launchpad: React.FC<{ apps: AppInfo[]; onClose: () => void }> = ({ apps, o
       <div className="os-launchpad-grid" onMouseDown={e => e.stopPropagation()}>
         {filtered.map(app => (
           <button key={app.id} className="os-launchpad-item" onClick={() => launch(app)} onContextMenu={onItemMenu(app)}>
-            <span className="os-launchpad-icon" style={{ background: tintFor(app) }}>
+            <span className="os-launchpad-icon" style={{ background: iconTileBg(app) }}>
               <AppGlyph app={app} size={40} />
               {!app.system && (
                 <span className="os-launchpad-more" role="button" tabIndex={-1} aria-label={`Options for ${app.name}`} onClick={onMore(app)}>

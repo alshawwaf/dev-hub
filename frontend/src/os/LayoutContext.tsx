@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type { AppInfo, Placement, WinGeometry, GeometryMap, WidgetId, FolderInfo } from './types';
 import { flowPositions, snapToFreeCell, rowsPerColumn, type Pos } from './iconGrid';
+import { tintFor, appTileBg, resolveColorHex } from './iconStyle';
 import api from '../services/api';
 
 const LS_OVERRIDES = 'devhub.layout.overrides';
@@ -9,6 +10,7 @@ const LS_WIDGETS = 'devhub.layout.widgets';
 const LS_THEME = 'devhub.theme';
 const LS_ICONPOS = 'devhub.icon.positions';
 const LS_FOLDERS = 'devhub.desktop.folders';
+const LS_ICONCOLORS = 'devhub.icon.colors';
 
 type Theme = 'dark' | 'light' | 'auto';   // 'auto' follows the OS appearance
 
@@ -19,9 +21,11 @@ const DEFAULT_WIDGETS: WidgetId[] = ['clock', 'activity'];
 const VALID_WIDGETS: string[] = ['clock', 'apps', 'activity', 'errors', 'latency', 'recent', 'notifications', 'lastapp', 'quick', 'system'];
 
 type Overrides = Record<number, Placement>;
+// Per-app icon color override: appId → a FOLDER_COLORS key or a raw hex ("#rrggbb").
+type IconColors = Record<number, string>;
 
 // Which persisted key a mutation touched — drives the per-key merge on initial load.
-type DirtyKey = 'overrides' | 'geometry' | 'iconPositions' | 'folders' | 'widgets' | 'theme';
+type DirtyKey = 'overrides' | 'geometry' | 'iconPositions' | 'folders' | 'widgets' | 'theme' | 'iconColors';
 
 const PLACEMENTS: Placement[] = ['desktop', 'dock', 'both', 'hidden'];
 const isPlacement = (v: unknown): v is Placement => typeof v === 'string' && (PLACEMENTS as string[]).includes(v);
@@ -97,6 +101,18 @@ function cleanFolders(parsed: unknown): FolderInfo[] {
   }
   return out;
 }
+// Per-app icon colors: { appId: "blue" | "#3b82f6" }. Keep only entries whose
+// value resolves to a real palette key or hex (drops anything hostile/stale).
+function cleanIconColors(parsed: unknown): IconColors {
+  const out: IconColors = {};
+  if (parsed && typeof parsed === 'object') {
+    for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+      if (Number.isFinite(Number(k)) && typeof v === 'string' && resolveColorHex(v)) out[Number(k)] = v.slice(0, 24);
+      if (Object.keys(out).length >= 256) break;
+    }
+  }
+  return out;
+}
 const loadLS = <T,>(key: string, fn: (p: unknown) => T): T => {
   try { return fn(JSON.parse(localStorage.getItem(key) || '{}')); } catch { return fn({}); }
 };
@@ -131,6 +147,11 @@ interface LayoutContextType {
   renameFolder: (folderId: number, name: string) => void;
   setFolderColor: (folderId: number, color: string | undefined) => void;
   deleteFolder: (folderId: number) => void;
+  // per-app icon color customization (palette key or custom hex; undefined = auto tint)
+  iconColorOf: (appId: number) => string | undefined;
+  setIconColor: (appId: number, color: string | undefined) => void;
+  /** resolved squircle background for an app tile (chosen color, else auto tint) */
+  iconTileBg: (app: AppInfo) => string | undefined;
   addToFolder: (folderId: number, appId: number) => void;
   removeFromFolder: (appId: number, pos?: Pos) => void;
   folderOf: (appId: number) => FolderInfo | undefined;
@@ -165,6 +186,7 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
   const [geometry, setGeometry] = useState<GeometryMap>(() => (isPersonalUser ? {} : loadLS(LS_GEOMETRY, cleanGeometry)));
   const [iconPositions, setIconPositions] = useState<Record<number, Pos>>(() => (isPersonalUser ? {} : loadLS(LS_ICONPOS, cleanIconPos)));
   const [folders, setFolders] = useState<FolderInfo[]>(() => (isPersonalUser ? [] : loadLS(LS_FOLDERS, cleanFolders)));
+  const [iconColors, setIconColors] = useState<IconColors>(() => (isPersonalUser ? {} : loadLS(LS_ICONCOLORS, cleanIconColors)));
   const [clipboardAppId, setClipboardAppId] = useState<number | null>(null);
   const [widgets, setWidgets] = useState<WidgetId[]>(() => {
     if (isPersonalUser) return DEFAULT_WIDGETS;   // GET fills; a server [] is respected there
@@ -195,8 +217,8 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
   }, [theme]);
 
   // Latest state, read by the debounced writer at fire time.
-  const stateRef = useRef({ overrides, geometry, iconPositions, folders, widgets, theme, isPersonalUser });
-  useEffect(() => { stateRef.current = { overrides, geometry, iconPositions, folders, widgets, theme, isPersonalUser }; }, [overrides, geometry, iconPositions, folders, widgets, theme, isPersonalUser]);
+  const stateRef = useRef({ overrides, geometry, iconPositions, folders, iconColors, widgets, theme, isPersonalUser });
+  useEffect(() => { stateRef.current = { overrides, geometry, iconPositions, folders, iconColors, widgets, theme, isPersonalUser }; }, [overrides, geometry, iconPositions, folders, iconColors, widgets, theme, isPersonalUser]);
 
   // Save-race guards for personal (server-persisted) users:
   //  - serverLoaded: never PUT before the initial GET settles.
@@ -216,13 +238,14 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
       const s = stateRef.current;
       if (s.isPersonalUser) {
         if (!serverLoadedRef.current) return;   // the GET's finally-block reflushes dirty state
-        api.put('desktop/prefs', { overrides: s.overrides, geometry: s.geometry, widgets: s.widgets, theme: s.theme, icon_positions: s.iconPositions, folders: foldersWire(s.folders) }).catch(() => {});
+        api.put('desktop/prefs', { overrides: s.overrides, geometry: s.geometry, widgets: s.widgets, theme: s.theme, icon_positions: s.iconPositions, folders: foldersWire(s.folders), icon_colors: s.iconColors }).catch(() => {});
       } else {
         saveLS(LS_OVERRIDES, s.overrides);
         saveLS(LS_GEOMETRY, s.geometry);
         saveLS(LS_WIDGETS, s.widgets);
         saveLS(LS_ICONPOS, s.iconPositions);
         saveLS(LS_FOLDERS, foldersWire(s.folders));
+        saveLS(LS_ICONCOLORS, s.iconColors);
       }
     }, 450);
   }, []);
@@ -239,6 +262,7 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
       if (!dk.has('geometry')) setGeometry(cleanGeometry(r.data?.geometry));
       if (!dk.has('iconPositions')) setIconPositions(cleanIconPos(r.data?.icon_positions));
       if (!dk.has('folders')) setFolders(cleanFolders(r.data?.folders));
+      if (!dk.has('iconColors')) setIconColors(cleanIconColors(r.data?.icon_colors));
       // null/undefined (never set) → default; [] → respected (all off).
       if (!dk.has('widgets')) setWidgets(r.data?.widgets != null ? cleanWidgets(r.data.widgets) : DEFAULT_WIDGETS);
       if (!dk.has('theme') && ['light', 'dark', 'auto'].includes(r.data?.theme)) setThemeState(r.data.theme);
@@ -347,6 +371,20 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
     scheduleFlush('folders');
   }, [scheduleFlush]);
 
+  // ---- per-app icon colors ----
+  const setIconColor = useCallback((appId: number, color: string | undefined) => {
+    setIconColors(prev => {
+      const next = { ...prev };
+      if (color && resolveColorHex(color)) next[appId] = color;
+      else delete next[appId];   // undefined / invalid → back to the auto tint
+      return next;
+    });
+    scheduleFlush('iconColors');
+  }, [scheduleFlush]);
+  const iconColorOf = useCallback((appId: number) => iconColors[appId], [iconColors]);
+  // The squircle background for an app tile: the user's chosen color, else the auto tint.
+  const iconTileBg = useCallback((app: AppInfo) => appTileBg(iconColors[app.id]) ?? tintFor(app), [iconColors]);
+
   const deleteFolder = useCallback((folderId: number) => {
     setFolders(prev => prev.filter(f => f.id !== folderId));
     setIconPositions(prev => {
@@ -403,12 +441,14 @@ export const LayoutProvider: React.FC<ProviderProps> = ({ apps, isAdmin, userId,
       getPlacement, desktopApps, desktopRootApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry,
       iconPositions, setIconPos, widgets, toggleWidget, theme, setTheme, toggleTheme,
       folders, createFolder, renameFolder, setFolderColor, deleteFolder, addToFolder, removeFromFolder, folderOf, snapFreePos,
+      iconColorOf, setIconColor, iconTileBg,
       clipboardAppId, copyApp,
       hasLocalOverrides: Object.keys(overrides).length > 0,
     }),
     [getPlacement, desktopApps, desktopRootApps, dockApps, setPlacement, resetLayout, getGeometry, saveGeometry,
      iconPositions, setIconPos, widgets, toggleWidget, theme, setTheme, toggleTheme,
-     folders, createFolder, renameFolder, deleteFolder, addToFolder, removeFromFolder, folderOf, snapFreePos,
+     folders, createFolder, renameFolder, setFolderColor, deleteFolder, addToFolder, removeFromFolder, folderOf, snapFreePos,
+     iconColorOf, setIconColor, iconTileBg,
      clipboardAppId, copyApp, overrides],
   );
 

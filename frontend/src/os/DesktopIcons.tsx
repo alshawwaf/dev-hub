@@ -7,7 +7,8 @@ import { useContextMenu, type MenuItem } from './ContextMenu';
 import { useHub } from './HubContext';
 import { openExternal } from './url';
 import AppGlyph from './AppGlyph';
-import { tintFor, FOLDER_COLORS, folderTileBg } from './iconStyle';
+import ColorSwatches from './ColorSwatches';
+import { folderTileBg } from './iconStyle';
 import { flowPositions, snapToFreeCell, rowsPerColumn, type Pos } from './iconGrid';
 
 // Tile hit box (matches .os-deskicon CSS).
@@ -64,8 +65,8 @@ interface ItemDragProps {
 
 const DesktopIcon: React.FC<{ app: AppInfo } & ItemDragProps> = ({ app, pos, isDropTarget, onDragMove, onRelease }) => {
   const { openApp, isOpen } = useWindows();
-  const { getPlacement, setPlacement, copyApp, createFolder } = useLayout();
-  const { open: openMenu, openAt } = useContextMenu();
+  const { getPlacement, setPlacement, copyApp, createFolder, iconColorOf, setIconColor, iconTileBg } = useLayout();
+  const { open: openMenu, openAt, close: closeMenu } = useContextMenu();
   const { isAdmin, openEditApp, openRenameApp, openDeleteApp } = useHub();
   const placement = getPlacement(app);
   const running = isOpen(app.id);
@@ -79,6 +80,9 @@ const DesktopIcon: React.FC<{ app: AppInfo } & ItemDragProps> = ({ app, pos, isD
         ? { label: 'Remove from Dock', icon: <PinOff size={15} />, onClick: () => setPlacement(app, 'desktop') }
         : { label: 'Keep in Dock', icon: <Pin size={15} />, onClick: () => setPlacement(app, 'both') },
       { label: 'Remove from Desktop', icon: <EyeOff size={15} />, onClick: () => setPlacement(app, placement === 'both' ? 'dock' : 'hidden') },
+      { separator: true, label: '' },
+      { heading: 'Icon Color', label: '' },
+      { content: <ColorSwatches current={iconColorOf(app.id)} onPick={c => setIconColor(app.id, c)} onClose={closeMenu} allowCustom />, label: '' },
       { separator: true, label: '' },
       { label: 'Copy', icon: <Copy size={15} />, onClick: () => copyApp(app.id) },
       { label: `New Folder with “${app.name}”`, icon: <FolderPlus size={15} />, onClick: () => createFolder(app.category || 'New Folder', [app.id], pos) },
@@ -127,24 +131,14 @@ const DesktopIcon: React.FC<{ app: AppInfo } & ItemDragProps> = ({ app, pos, isD
       onKeyDown={onKeyDown}
       title={app.description || app.name}
     >
-      <span className="os-deskicon-tile" style={{ background: tintFor(app) }}><AppGlyph app={app} size={30} /></span>
+      <span className="os-deskicon-tile" style={{ background: iconTileBg(app) }}><AppGlyph app={app} size={30} /></span>
       <span className="os-deskicon-label">{app.name}</span>
     </button>
   );
 };
 
-// A row of color swatches for the folder context menu.
-const FolderSwatches: React.FC<{ current?: string; onPick: (c: string | undefined) => void }> = ({ current, onPick }) => (
-  <div className="os-folder-swatches">
-    <button type="button" className={`os-swatch os-swatch-none ${!current ? 'on' : ''}`} title="Default" aria-label="Default color" onClick={() => onPick(undefined)} />
-    {FOLDER_COLORS.map(c => (
-      <button key={c.key} type="button" className={`os-swatch ${current === c.key ? 'on' : ''}`} style={{ background: c.hex }} title={c.label} aria-label={c.label} onClick={() => onPick(c.key)} />
-    ))}
-  </div>
-);
-
 const FolderIcon: React.FC<{ folder: FolderInfo } & ItemDragProps> = ({ folder, pos, isDropTarget, onDragMove, onRelease }) => {
-  const { deleteFolder, addToFolder, clipboardAppId, renameFolder, setFolderColor } = useLayout();
+  const { deleteFolder, addToFolder, clipboardAppId, renameFolder, setFolderColor, iconTileBg } = useLayout();
   const { open: openMenu, openAt, close: closeMenu } = useContextMenu();
   const { apps, openFolderView, renamingFolderId, setRenamingFolder } = useHub();
   const { drag, movedRef, onPointerDown } = useIconDrag(folder.id, pos, onDragMove, onRelease);
@@ -175,7 +169,7 @@ const FolderIcon: React.FC<{ folder: FolderInfo } & ItemDragProps> = ({ folder, 
       { separator: true, label: '' },
       { label: 'Rename', icon: <Pencil size={15} />, onClick: () => setRenamingFolder(folder.id) },
       { heading: 'Color', label: '' },
-      { content: <FolderSwatches current={folder.color} onPick={c => { setFolderColor(folder.id, c); closeMenu(); }} />, label: '' },
+      { content: <ColorSwatches current={folder.color} onPick={c => setFolderColor(folder.id, c)} onClose={closeMenu} allowCustom />, label: '' },
     ];
     if (clipApp && !folder.appIds.includes(clipApp.id)) {
       items.push({ separator: true, label: '' }, { label: `Paste “${clipApp.name}”`, icon: <ClipboardPaste size={15} />, onClick: () => addToFolder(folder.id, clipApp.id) });
@@ -226,7 +220,7 @@ const FolderIcon: React.FC<{ folder: FolderInfo } & ItemDragProps> = ({ folder, 
         ) : (
           <span className="os-folder-grid">
             {members.slice(0, 9).map(a => (
-              <span key={a.id} className="os-folder-mini" style={{ background: tintFor(a) }}>
+              <span key={a.id} className="os-folder-mini" style={{ background: iconTileBg(a) }}>
                 <AppGlyph app={a} size={12} />
               </span>
             ))}

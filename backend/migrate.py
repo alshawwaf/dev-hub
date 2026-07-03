@@ -38,6 +38,8 @@ def _add_missing_columns():
             pending.append("ALTER TABLE user_desktop_prefs ADD COLUMN icon_positions JSON")
         if "folders" not in upcols:
             pending.append("ALTER TABLE user_desktop_prefs ADD COLUMN folders JSON")
+        if "icon_colors" not in upcols:
+            pending.append("ALTER TABLE user_desktop_prefs ADD COLUMN icon_colors JSON")
 
     is_pg = engine.dialect.name != "sqlite"
     for stmt in pending:

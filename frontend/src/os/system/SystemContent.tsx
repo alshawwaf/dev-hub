@@ -7,7 +7,6 @@ import api from '../../services/api';
 import GuidePage from '../../pages/GuidePage';
 import ApiReference from '../../pages/ApiReference';
 import AppGlyph from '../AppGlyph';
-import { tintFor } from '../iconStyle';
 
 const PLACEMENTS: { value: Placement; label: string }[] = [
   { value: 'desktop', label: 'Desktop' },
@@ -37,7 +36,7 @@ const SECTIONS = [
 ];
 
 const SettingsApp: React.FC = () => {
-  const { resetLayout, hasLocalOverrides, getPlacement, setPlacement, theme, setTheme, desktopApps, dockApps } = useLayout();
+  const { resetLayout, hasLocalOverrides, getPlacement, setPlacement, theme, setTheme, desktopApps, dockApps, iconTileBg } = useLayout();
   const { isAdmin, openAddApp, apps } = useHub();
   const catalog = apps.filter(a => a.id > 0);
   const [active, setActive] = useState('overview');
@@ -123,7 +122,7 @@ const SettingsApp: React.FC = () => {
                 const current = getPlacement(app);
                 return (
                   <div key={app.id} className="os-place-row">
-                    <span className="os-place-icon" style={{ background: tintFor(app) }}><AppGlyph app={app} size={18} /></span>
+                    <span className="os-place-icon" style={{ background: iconTileBg(app) }}><AppGlyph app={app} size={18} /></span>
                     <span className="os-place-name">{app.name}</span>
                     <div className="os-place-seg" role="radiogroup" aria-label={`Placement for ${app.name}`}>
                       {PLACEMENTS.map(p => (

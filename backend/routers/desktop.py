@@ -3,6 +3,7 @@ overrides (which apps sit on the desktop vs dock) follow them across devices,
 layered on top of the admin-set baseline (the Application.placement column).
 """
 import os
+import re
 import time
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends
@@ -23,6 +24,9 @@ _STARTED = time.monotonic()
 VALID = {"desktop", "dock", "both", "hidden"}
 # Widget ids the desktop rail knows how to render (see frontend os/widgets/registry).
 VALID_WIDGETS = {"clock", "apps", "activity", "errors", "latency", "recent", "notifications", "lastapp", "quick", "system"}
+# Icon/folder color values accepted from the client: a macOS-tag palette key or a raw hex.
+FOLDER_COLOR_KEYS = {"blue", "purple", "pink", "red", "orange", "green", "graphite"}
+_HEX_COLOR_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 
 
 def _system_stats() -> dict:
@@ -64,6 +68,7 @@ class PrefsIn(BaseModel):
     theme: Optional[str] = None       # "dark" | "light"; None = leave unchanged
     icon_positions: Optional[dict] = None  # { appId: {x,y} }; None = leave unchanged
     folders: Optional[list] = None    # [{id, name, app_ids}]; None = leave unchanged; [] = no folders
+    icon_colors: Optional[dict] = None  # { appId: "blue"|"#rrggbb" }; None = leave unchanged; {} = clear all
 
 
 class DefaultIn(BaseModel):
@@ -171,12 +176,33 @@ def _clean_folders(raw) -> list:
                 if len(app_ids) >= 128:
                     break
         color = f.get("color")
-        color = color[:24] if isinstance(color, str) and color else None
+        color = color if _is_valid_color(color) else None
         seen_ids.add(fid)
         out.append({"id": fid, "name": name, "app_ids": app_ids, "color": color})
         if len(out) >= 64:
             break
     return out
+
+
+def _is_valid_color(v) -> bool:
+    # fullmatch (not match): match + "$" would accept a trailing newline (#3b82f6\n).
+    return isinstance(v, str) and (v in FOLDER_COLOR_KEYS or bool(_HEX_COLOR_RE.fullmatch(v)))
+
+
+def _clean_icon_colors(raw) -> dict:
+    """Per-app icon tints: { appId: "blue" | "#3b82f6" }. Values must be a known
+    palette key or a valid hex; ids must be ints. Caps keep a hostile payload small."""
+    clean = {}
+    for k, v in (raw or {}).items():
+        try:
+            kid = int(k)
+        except (TypeError, ValueError):
+            continue
+        if _is_valid_color(v):
+            clean[str(kid)] = v
+        if len(clean) >= 256:
+            break
+    return clean
 
 
 @router.get("/prefs")
@@ -190,6 +216,7 @@ def get_prefs(db: Session = Depends(get_db), user: schemas.User = Depends(read_u
         "theme": (row.theme if row and row.theme else "dark"),
         "icon_positions": (row.icon_positions if row and row.icon_positions else {}),
         "folders": (row.folders if row and row.folders else []),
+        "icon_colors": (row.icon_colors if row and row.icon_colors else {}),
     }
 
 
@@ -211,10 +238,12 @@ def put_prefs(body: PrefsIn, db: Session = Depends(get_db), user: schemas.User =
         row.icon_positions = _clean_icon_positions(body.icon_positions)
     if body.folders is not None:
         row.folders = _clean_folders(body.folders)
+    if body.icon_colors is not None:
+        row.icon_colors = _clean_icon_colors(body.icon_colors)
     db.commit()
     return {"overrides": row.overrides or {}, "geometry": row.geometry or {}, "widgets": row.widgets or [],
             "theme": row.theme or "dark", "icon_positions": row.icon_positions or {},
-            "folders": row.folders or []}
+            "folders": row.folders or [], "icon_colors": row.icon_colors or {}}
 
 
 @router.post("/default")

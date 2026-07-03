@@ -1919,6 +1919,16 @@ svg {
   content: ''; position: absolute; left: 50%; top: -1px; bottom: -1px; width: 2px;
   background: #ef4444; transform: rotate(45deg); transform-origin: center;
 }
+/* Custom-color well: a rainbow swatch wrapping a hidden native color input.
+   When a custom hue is active, an inline background overrides the rainbow. */
+.os-swatch-custom {
+  position: relative; overflow: hidden; display: inline-flex;
+  background: conic-gradient(from 90deg, #ef4444, #f97316, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444);
+}
+.os-swatch-custom input[type="color"] {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; cursor: pointer; border: 0; padding: 0; background: none;
+}
 
 /* Expanded folder: Launchpad-style blurred overlay with a centered panel. */
 .os-folderview {

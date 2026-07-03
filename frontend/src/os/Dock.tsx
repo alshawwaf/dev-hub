@@ -10,10 +10,11 @@ import { SYSTEM_APPS } from './systemApps';
 import { DRAG_MIME } from './drag';
 import { openExternal } from './url';
 import AppGlyph from './AppGlyph';
-import { tintFor } from './iconStyle';
+import ColorSwatches from './ColorSwatches';
 
 const DockTile: React.FC<{ app: AppInfo; draggable?: boolean; onMenu?: (e: React.MouseEvent) => void }> = ({ app, draggable, onMenu }) => {
   const { openApp, isOpen } = useWindows();
+  const { iconTileBg } = useLayout();
   const running = isOpen(app.id);
   const [bouncing, setBouncing] = useState(false);
 
@@ -35,7 +36,7 @@ const DockTile: React.FC<{ app: AppInfo; draggable?: boolean; onMenu?: (e: React
       <span className="os-dock-tooltip">{app.name}</span>
       <span
         className={`os-dock-icon ${app.system ? 'system' : ''} ${bouncing ? 'bouncing' : ''}`}
-        style={{ background: tintFor(app) }}
+        style={{ background: iconTileBg(app) }}
         onAnimationEnd={() => setBouncing(false)}
       >
         <AppGlyph app={app} size={26} emojiClass="os-dock-emoji" />
@@ -52,8 +53,8 @@ interface DockProps {
 
 const Dock: React.FC<DockProps> = ({ apps, onOpenLaunchpad }) => {
   const { windows, openApp } = useWindows();
-  const { dockApps, getPlacement, setPlacement, copyApp } = useLayout();
-  const { open: openMenu } = useContextMenu();
+  const { dockApps, getPlacement, setPlacement, copyApp, iconColorOf, setIconColor } = useLayout();
+  const { open: openMenu, close: closeMenu } = useContextMenu();
   const { isAdmin, openEditApp, openRenameApp, openDeleteApp } = useHub();
 
   const pinnedIds = new Set(dockApps.map(a => a.id));
@@ -79,6 +80,9 @@ const Dock: React.FC<DockProps> = ({ apps, onOpenLaunchpad }) => {
       items.push({ label: 'Keep in Dock', icon: <Pin size={15} />, onClick: () => setPlacement(app, placement === 'desktop' ? 'both' : 'dock') });
     }
     items.push(
+      { separator: true, label: '' },
+      { heading: 'Icon Color', label: '' },
+      { content: <ColorSwatches current={iconColorOf(app.id)} onPick={c => setIconColor(app.id, c)} onClose={closeMenu} allowCustom />, label: '' },
       { separator: true, label: '' },
       { label: 'Copy', icon: <Copy size={15} />, onClick: () => copyApp(app.id) },
       { label: 'Open in new tab', icon: <ExternalLink size={15} />, onClick: () => openExternal(app.url) },

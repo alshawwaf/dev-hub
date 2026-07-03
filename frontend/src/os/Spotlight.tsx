@@ -3,9 +3,9 @@ import { Search, CornerDownLeft } from 'lucide-react';
 import type { AppInfo } from './types';
 import { useWindows } from './WindowManager';
 import { useHub } from './HubContext';
+import { useLayout } from './LayoutContext';
 import { SYSTEM_APPS } from './systemApps';
 import AppGlyph from './AppGlyph';
-import { tintFor } from './iconStyle';
 
 const MAX_RESULTS = 8;
 
@@ -14,6 +14,7 @@ const MAX_RESULTS = 8;
 const Spotlight: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { openApp } = useWindows();
   const { apps } = useHub();
+  const { iconTileBg } = useLayout();
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -83,7 +84,7 @@ const Spotlight: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 onMouseMove={() => setSel(i)}
                 onClick={() => launch(a)}
               >
-                <span className="os-spot-ic" style={{ background: tintFor(a) }}><AppGlyph app={a} size={18} /></span>
+                <span className="os-spot-ic" style={{ background: iconTileBg(a) }}><AppGlyph app={a} size={18} /></span>
                 <span className="os-spot-name">{a.name}</span>
                 {a.category && <span className="os-spot-cat">{a.category}</span>}
                 {i === sel && <CornerDownLeft size={14} className="os-spot-enter" aria-hidden="true" />}

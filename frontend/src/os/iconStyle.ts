@@ -46,7 +46,8 @@ export function tintFor(app: AppInfo): string | undefined {
   return TINTS[key] ?? fallbackTint(key || 'app');
 }
 
-// macOS-tag-style folder colors. `undefined` color = the default translucent tile.
+// macOS-tag-style color palette, shared by folders AND per-app icon tints.
+// `undefined` = the app's auto tint / the default translucent folder tile.
 export const FOLDER_COLORS: { key: string; label: string; hex: string }[] = [
   { key: 'blue', label: 'Blue', hex: '#3b82f6' },
   { key: 'purple', label: 'Purple', hex: '#8b5cf6' },
@@ -56,9 +57,39 @@ export const FOLDER_COLORS: { key: string; label: string; hex: string }[] = [
   { key: 'green', label: 'Green', hex: '#22c55e' },
   { key: 'graphite', label: 'Graphite', hex: '#64748b' },
 ];
-export const folderColorHex = (key?: string): string | undefined => FOLDER_COLORS.find(c => c.key === key)?.hex;
+export const FOLDER_COLOR_KEYS = FOLDER_COLORS.map(c => c.key);
+
+const HEX_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+// A stored color is EITHER a palette key (e.g. "blue") OR a raw hex ("#3b82f6",
+// from the custom picker). Resolve either to a hex; unknown/invalid → undefined.
+export function resolveColorHex(val?: string): string | undefined {
+  if (!val) return undefined;
+  if (HEX_RE.test(val)) return val;
+  return FOLDER_COLORS.find(c => c.key === val)?.hex;
+}
+
+// Lighten (pct > 0) / darken (pct < 0) a hex toward white/black by pct%.
+function shade(hex: string, pct: number): string {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+  const n = parseInt(full, 16);
+  const t = pct < 0 ? 0 : 255;
+  const p = Math.abs(pct) / 100;
+  const mix = (c: number) => Math.round((t - c) * p) + c;
+  const r = mix((n >> 16) & 255), g = mix((n >> 8) & 255), b = mix(n & 255);
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+export const folderColorHex = (val?: string): string | undefined => resolveColorHex(val);
 // Tile fill for a colored folder (subtle gradient of the color); undefined → CSS default.
-export const folderTileBg = (key?: string): string | undefined => {
-  const hex = folderColorHex(key);
+export const folderTileBg = (val?: string): string | undefined => {
+  const hex = folderColorHex(val);
   return hex ? `linear-gradient(145deg, ${hex}59, ${hex}22)` : undefined;
+};
+// Vibrant squircle background for an app icon the user has recolored; undefined →
+// caller falls back to the auto tintFor(app).
+export const appTileBg = (val?: string): string | undefined => {
+  const hex = resolveColorHex(val);
+  return hex ? `linear-gradient(145deg, ${shade(hex, 16)}, ${shade(hex, -24)})` : undefined;
 };
