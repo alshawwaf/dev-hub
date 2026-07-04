@@ -11,6 +11,7 @@ import GuidePage from '../../pages/GuidePage';
 import ApiReference from '../../pages/ApiReference';
 import AdminApp from './AdminApp';
 import ApiKeysApp from './ApiKeysApp';
+import McpApp from './McpApp';
 import AppGlyph from '../AppGlyph';
 
 // ---- Settings deep link --------------------------------------------------------
@@ -428,6 +429,7 @@ const SystemContent: React.FC<{ appKey: SystemKey }> = ({ appKey }) => {
     case 'api': return <ApiReference />;
     case 'admin': return <AdminApp />;
     case 'apikeys': return <ApiKeysApp />;
+    case 'mcp': return <McpApp />;
     default: return null;
   }
 };

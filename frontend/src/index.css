@@ -1012,6 +1012,7 @@ svg {
 }
 .os-menu-item.danger:hover { background: rgba(239, 68, 68, 0.5); }
 .os-menu-sep { height: 1px; background: var(--glass-border); margin: 4px 6px; }
+.os-menu-build { padding: 5px 12px 3px; font-size: 0.68rem; color: var(--text-muted); letter-spacing: 0.02em; }
 
 .os-clock { color: var(--text-primary); font-variant-numeric: tabular-nums; }
 
@@ -2240,6 +2241,12 @@ svg {
 .os-callout.tip { background: rgba(16,185,129,0.10); border-color: rgba(16,185,129,0.30); color: #a7f3d0; }
 .os-callout.warn { background: rgba(245,158,11,0.10); border-color: rgba(245,158,11,0.30); color: #fde68a; }
 .os-callout code { color: inherit; background: rgba(0,0,0,0.25); padding: 1px 5px; border-radius: 5px; }
+/* Light mode: the pastel text colors above are tuned for a dark surface and wash
+   out on the light callout background — use dark, high-contrast ink instead. */
+[data-theme="light"] .os-callout.info { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.40); color: #1e3a8a; }
+[data-theme="light"] .os-callout.tip { background: rgba(16,185,129,0.14); border-color: rgba(16,185,129,0.42); color: #065f46; }
+[data-theme="light"] .os-callout.warn { background: rgba(245,158,11,0.16); border-color: rgba(245,158,11,0.45); color: #92400e; }
+[data-theme="light"] .os-callout code { background: rgba(16,24,40,0.09); }
 
 /* numbered steps */
 .os-guide-steps { list-style: none; margin: 8px 0; padding: 0; counter-reset: step; }
@@ -2431,8 +2438,14 @@ svg {
 .os-keys-warn { display: flex; align-items: center; gap: 6px; font-size: 0.76rem; color: var(--warning); }
 .os-keys-done { align-self: flex-start; }
 .os-keys-form { border: 1px solid var(--glass-border); background: var(--glass-bg); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
-.os-keys-form-row { display: grid; grid-template-columns: 1fr 210px; gap: 10px; }
+.os-keys-form-row { display: grid; grid-template-columns: 1fr 210px; gap: 10px; align-items: end; }
 @media (max-width: 560px) { .os-keys-form-row { grid-template-columns: 1fr; } }
+.os-keys-expiry { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.os-keys-expiry > span { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+.os-keys-expiry > input { width: 100%; }
+.os-keys-hint { display: block; font-size: 0.72rem; color: var(--text-muted); margin-top: 6px; }
+[data-theme="dark"] .os-keys-expiry input[type="date"] { color-scheme: dark; }
+[data-theme="light"] .os-keys-expiry input[type="date"] { color-scheme: light; }
 .os-keys-scopes { display: flex; gap: 16px; flex-wrap: wrap; }
 .os-keys-scopelbl { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; text-transform: capitalize; }
 .os-keys-scopelbl input { accent-color: var(--primary); }
@@ -2481,3 +2494,139 @@ svg {
 .os-set-status.err { color: var(--error); }
 .os-set-signout { color: var(--error); }
 .os-set-signout:hover { border-color: rgba(239,68,68,0.45); background: rgba(239,68,68,0.08); color: var(--error); }
+
+/* Small "Connect an agent (MCP)" inline link in the API Keys footer note. */
+.os-keys-mcplink {
+  display: inline-flex; align-items: center; gap: 4px; vertical-align: baseline;
+  background: none; border: none; padding: 0; cursor: pointer; font: inherit;
+  color: var(--accent); font-weight: 600;
+}
+.os-keys-mcplink:hover { text-decoration: underline; }
+
+/* ------------------------------------------------------------------ MCP app */
+.os-mcp {
+  height: 100%; overflow-y: auto; padding: 1.5rem 1.75rem 2rem;
+  color: var(--text-secondary); display: flex; flex-direction: column; gap: 16px;
+}
+.os-mcp-hero { display: flex; gap: 14px; align-items: flex-start; }
+.os-mcp-hero-chip {
+  flex: none; width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center;
+  color: #fff; background: linear-gradient(145deg,#14b8a6,#0e7490);
+  box-shadow: 0 6px 18px -6px rgba(20,184,166,0.6);
+}
+.os-mcp-hero h1 { font-size: 1.35rem; color: var(--text-primary); margin-bottom: 4px; }
+.os-mcp-hero p { font-size: 0.85rem; line-height: 1.55; color: var(--text-muted); max-width: 68ch; }
+
+.os-mcp-card {
+  border: 1px solid var(--glass-border); background: var(--glass-bg); border-radius: 14px;
+  padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;
+}
+.os-mcp-cardhead { display: flex; align-items: center; gap: 10px; }
+.os-mcp-cardhead h3 { font-size: 1rem; color: var(--text-primary); }
+.os-mcp-ic {
+  flex: none; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+  color: var(--primary-light); background: var(--glass-bg-strong); border: 1px solid var(--glass-border);
+}
+
+.os-mcp-field { display: flex; flex-direction: column; gap: 6px; }
+.os-mcp-lab { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; }
+
+.os-mcp-endpoint {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--bg-surface); border: 1px solid var(--glass-border); border-radius: 10px; padding: 8px 10px;
+}
+.os-mcp-endpoint code {
+  flex: 1; min-width: 0; word-break: break-all; user-select: text;
+  font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.8rem; color: var(--text-primary);
+}
+
+.os-mcp-tokrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.os-mcp-input {
+  flex: 1 1 260px; min-width: 0;
+  background: var(--bg-surface); border: 1px solid var(--glass-border); border-radius: 9px;
+  padding: 8px 11px; color: var(--text-primary); font-size: 0.82rem;
+  font-family: var(--font-mono, ui-monospace, monospace); outline: none; transition: var(--transition-fast);
+}
+.os-mcp-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+.os-mcp-input::placeholder { color: var(--text-dim); font-family: 'Inter', system-ui, sans-serif; }
+.os-mcp-btn { padding: 0.5rem 0.85rem; font-size: 0.8rem; flex: none; }
+
+.os-mcp-scoperow { display: flex; flex-direction: column; gap: 4px; }
+.os-mcp-scopehint { font-size: 0.76rem; color: var(--text-muted); }
+.os-mcp-adminopt { display: inline-flex; align-items: center; gap: 7px; font-size: 0.76rem; color: var(--text-secondary); cursor: pointer; }
+.os-mcp-adminopt input { accent-color: var(--primary); }
+
+.os-mcp-msg { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; }
+.os-mcp-msg.ok { color: var(--success); }
+.os-mcp-msg.err { color: var(--error); }
+
+.os-mcp-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.os-mcp-tab {
+  padding: 6px 13px; border: 1px solid var(--glass-border); border-radius: 9px; background: transparent;
+  color: var(--text-secondary); font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: var(--transition-fast);
+}
+.os-mcp-tab:hover { border-color: var(--glass-border-strong); color: var(--text-primary); }
+.os-mcp-tab.on {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: #fff; border-color: transparent;
+}
+
+.os-mcp-code { position: relative; }
+.os-mcp-code pre {
+  background: var(--bg-surface); border: 1px solid var(--glass-border); border-radius: 11px;
+  padding: 13px 74px 13px 13px; margin: 0; overflow: auto; user-select: text;
+  font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.78rem; line-height: 1.55; color: var(--text-primary);
+}
+.os-mcp-code pre.one { white-space: pre-wrap; word-break: break-all; }
+.os-mcp-code pre.wrap { white-space: pre-wrap; overflow-wrap: break-word; padding: 13px; }
+.os-mcp-code-copy { position: absolute; right: 8px; top: 8px; }
+
+.os-mcp-copy {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border: 1px solid var(--glass-border); border-radius: 8px; background: transparent;
+  color: var(--text-secondary); font-weight: 600; font-size: 0.78rem; cursor: pointer; transition: var(--transition-fast);
+}
+.os-mcp-copy:hover { border-color: var(--glass-border-strong); color: var(--text-primary); }
+.os-mcp-copy.copied { background: var(--success); border-color: transparent; color: #fff; }
+
+.os-mcp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.os-mcp-note { font-size: 0.8rem; color: var(--text-muted); line-height: 1.55; }
+.os-mcp-note.dim { color: var(--text-dim); }
+.os-mcp-note code, .os-mcp-scopehint code {
+  font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.76em;
+  background: var(--glass-bg-strong); border: 1px solid var(--glass-border); border-radius: 5px; padding: 0 5px; color: var(--text-secondary);
+}
+.os-mcp-note b, .os-mcp-note code { color: var(--text-secondary); }
+
+.os-mcp-expand {
+  margin-left: auto; padding: 4px 11px; border: 1px solid var(--glass-border); border-radius: 8px;
+  background: transparent; color: var(--text-muted); font-size: 0.76rem; font-weight: 600; cursor: pointer; transition: var(--transition-fast);
+}
+.os-mcp-expand:hover { border-color: var(--primary); color: var(--primary-light); }
+
+.os-mcp-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; align-items: start; }
+.os-mcp-tool { border: 1px solid var(--glass-border); border-radius: 11px; background: var(--glass-bg-strong); }
+.os-mcp-tool > summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 11px;
+}
+.os-mcp-tool > summary::-webkit-details-marker { display: none; }
+.os-mcp-tool code { font-size: 0.8rem; font-weight: 700; color: var(--primary-light); }
+.os-mcp-tool > summary:hover code { text-decoration: underline; }
+.os-mcp-tool p { margin: 0; padding: 0 12px 11px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; }
+.os-mcp-chip {
+  margin-left: auto; flex: none; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 2px 7px; border-radius: 100px; border: 1px solid var(--glass-border); background: var(--glass-bg-strong); color: var(--text-muted);
+}
+.os-mcp-chip.s-read { color: var(--accent); border-color: rgba(6,182,212,0.35); }
+.os-mcp-chip.s-admin { color: var(--error); border-color: rgba(239,68,68,0.35); }
+
+/* Light-theme fixes: the dark code/token surfaces would wash out on the light bg. */
+[data-theme="light"] .os-mcp-ic { background: rgba(124,58,237,0.10); color: var(--primary); }
+[data-theme="light"] .os-mcp-tool { background: rgba(16,24,40,0.03); }
+[data-theme="light"] .os-mcp-tool code { color: var(--primary); }
+[data-theme="light"] .os-mcp-endpoint,
+[data-theme="light"] .os-mcp-input,
+[data-theme="light"] .os-mcp-code pre { background: #f6f8fd; }
+[data-theme="light"] .os-mcp-note code,
+[data-theme="light"] .os-mcp-scopehint code { background: rgba(16,24,40,0.06); }

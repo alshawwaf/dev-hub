@@ -39,6 +39,7 @@ const SYSTEM_TINTS: Record<string, string> = {
   api: 'linear-gradient(145deg,#06b6d4,#0e7490)',        // cyan (REST API)
   admin: 'linear-gradient(145deg,#6366f1,#4338ca)',      // indigo (Shield)
   apikeys: 'linear-gradient(145deg,#f59e0b,#b45309)',    // amber (KeyRound)
+  mcp: 'linear-gradient(145deg,#14b8a6,#0e7490)',        // teal→cyan (Plug)
 };
 
 export function tintFor(app: AppInfo): string | undefined {

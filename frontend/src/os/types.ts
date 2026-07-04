@@ -3,7 +3,7 @@ export type Placement = 'desktop' | 'dock' | 'both' | 'hidden';
 export interface WinGeometry { x: number; y: number; w: number; h: number; max?: boolean; }
 export type GeometryMap = Record<number, WinGeometry>;
 
-export type SystemKey = 'launchpad' | 'settings' | 'logs' | 'guide' | 'api' | 'admin' | 'apikeys';
+export type SystemKey = 'launchpad' | 'settings' | 'logs' | 'guide' | 'api' | 'admin' | 'apikeys' | 'mcp';
 
 export interface AppInfo {
   id: number;
