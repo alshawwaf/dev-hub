@@ -76,6 +76,12 @@ const DesktopSurface: React.FC<{
   };
 
   const onDesktopContextMenu = (e: React.MouseEvent) => {
+    // Only the desktop background/icons get the desktop menu. A right-click that
+    // lands inside a window or a floating panel bubbles up here — ignore it so the
+    // app window gets the native menu (copy/paste in a form) instead of the wrong
+    // desktop menu.
+    if ((e.target as HTMLElement).closest('.os-window, .os-launchpad, .os-spotlight, .os-folderview')) return;
+
     // Where on the icon canvas the user clicked (centered on a would-be tile),
     // so New Folder / Paste land under the cursor like macOS.
     const canvas = document.querySelector('.os-deskicons')?.getBoundingClientRect();
