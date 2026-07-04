@@ -20,7 +20,7 @@ import FolderView from './FolderView';
 import Spotlight from './Spotlight';
 import { buildCustomizeItems } from './widgets/customizeMenu';
 import { readDrag } from './drag';
-import { getSystemApp } from './systemApps';
+import { getSystemApp, systemAppsFor } from './systemApps';
 import type { AppInfo, Placement } from './types';
 
 const DesktopSurface: React.FC<{
@@ -33,6 +33,22 @@ const DesktopSurface: React.FC<{
   onOpenSpotlight: () => void;
 }> = ({ apps, loading, error, isAdmin, onAddApp, onOpenLaunchpad, onOpenSpotlight }) => {
   const { windows, openApp } = useWindows();
+
+  // Deep link: /?open=<systemKey> (the retired /admin and /guide routes redirect
+  // here) opens that system window once, gated to what this user may see, then
+  // strips the param so refresh/back don't re-trigger it. Runs once on mount —
+  // auth is already resolved (ProtectedRoute gates the desktop).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get('open');
+    if (key == null) return;
+    const app = systemAppsFor(isAdmin).find(a => a.system === key);
+    if (app) openApp(app);
+    params.delete('open');
+    const qs = params.toString();
+    window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : ''));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Global Cmd/Ctrl+K opens the Spotlight command palette. (Cmd+W/Cmd+M can't be
   // used — browsers reserve them for close-tab / minimize-window.)

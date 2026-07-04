@@ -47,7 +47,7 @@ def excluded(path: str) -> bool:
 def classify(method: str, path: str) -> str:
     if path.startswith("/auth"):
         return "auth"
-    if path.startswith("/apps") and method in ("POST", "PUT", "DELETE", "PATCH"):
+    if path.startswith(("/apps", "/keys", "/infra")) and method in ("POST", "PUT", "DELETE", "PATCH"):
         return "admin"
     if path.startswith("/embed"):
         return "embed"
@@ -57,8 +57,13 @@ def classify(method: str, path: str) -> str:
 def actor_from_auth(authorization):
     if not authorization or not authorization.lower().startswith("bearer "):
         return "anon"
+    token = authorization.split(" ", 1)[1]
+    # API keys: log the display prefix (the same first-12 shown in the keys UI),
+    # never the key itself.
+    if token.startswith("devhub_"):
+        return f"key:{token[:12]}"
     try:
-        payload = jwt.decode(authorization.split(" ", 1)[1], SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload.get("sub") or "anon"
     except JWTError:
         return "anon"

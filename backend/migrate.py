@@ -25,6 +25,11 @@ def _add_missing_columns():
         pending.append(f"ALTER TABLE applications ADD COLUMN proxy_embed BOOLEAN DEFAULT {bool_false}")
     if "embed_url" not in existing:
         pending.append("ALTER TABLE applications ADD COLUMN embed_url VARCHAR")
+    # Dokploy service mapping (lifecycle: status / start / stop / restart / redeploy)
+    if "deploy_kind" not in existing:
+        pending.append("ALTER TABLE applications ADD COLUMN deploy_kind VARCHAR")
+    if "deploy_id" not in existing:
+        pending.append("ALTER TABLE applications ADD COLUMN deploy_id VARCHAR")
     # remembered window geometry, added after the prefs table first shipped
     if inspector.has_table("user_desktop_prefs"):
         upcols = {col["name"] for col in inspector.get_columns("user_desktop_prefs")}

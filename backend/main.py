@@ -1,10 +1,14 @@
 import time
+from typing import Optional
 from urllib.parse import parse_qsl, urlencode
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
+from fastapi.responses import HTMLResponse
 from migrate import init_db
-from routers import auth, apps, embed, activity, desktop, notifications
+from routers import auth, apps, embed, activity, desktop, notifications, api_keys, infra, mcp_server
 from activity_log import write_activity, actor_from_auth, classify, excluded, SENSITIVE_SUBSTR
+from docs_page import render_docs_page
 from seed import seed
 
 # Create tables + apply column migrations before anything queries the DB.
@@ -16,7 +20,11 @@ try:
 except Exception as e:
     print(f"Seeding error (may be normal on first run): {e}")
 
-app = FastAPI(title="Dev-Hub API")
+# root_path="/api": nginx serves the backend under /api/ with the prefix
+# stripped, so the OpenAPI document must advertise that base or the docs page's
+# Try-it (and any generated client) targets the SPA instead of the API. The
+# stock docs are disabled in favour of the themed page below.
+app = FastAPI(title="Dev-Hub API", root_path="/api", docs_url=None, redoc_url=None)
 
 # Configure CORS
 app.add_middleware(
@@ -70,6 +78,39 @@ app.include_router(embed.router, prefix="/embed", tags=["embed"])
 app.include_router(activity.router, prefix="/activity", tags=["activity"])
 app.include_router(desktop.router, prefix="/desktop", tags=["desktop"])
 app.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+app.include_router(api_keys.router, prefix="/keys", tags=["keys"])
+app.include_router(infra.router, prefix="/infra", tags=["infra"])
+app.include_router(mcp_server.router, tags=["mcp"])  # POST/DELETE /mcp
+
+
+@app.get("/docs", include_in_schema=False)
+def swagger_docs(theme: Optional[str] = None):
+    """Themed Swagger UI. The spec is loaded via a RELATIVE url so it resolves
+    under /api/ through the proxy and also when hitting the backend directly."""
+    return HTMLResponse(render_docs_page(theme))
+
+
+def _openapi_with_auth():
+    """Default schema + a bearer security scheme, so the docs page's Authorize
+    button accepts a pasted JWT or devhub_ API key and Try-it sends it as an
+    Authorization header. Public read endpoints still work without it."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(
+        title=app.title, version=app.version, description=app.description,
+        routes=app.routes, servers=app.servers,
+    )
+    schema.setdefault("components", {}).setdefault("securitySchemes", {})["bearerAuth"] = {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "A JWT from POST /auth/login, or a devhub_ API key from POST /keys/.",
+    }
+    schema["security"] = [{"bearerAuth": []}]
+    app.openapi_schema = schema
+    return schema
+
+
+app.openapi = _openapi_with_auth
 
 @app.on_event("startup")
 async def _tune_threadpool():

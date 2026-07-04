@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Search, ChevronDown, Plus, Shield, BookOpen, LogOut, Github, LayoutGrid, Info, Bell, Trash2, SlidersHorizontal, Sun, Moon, X } from 'lucide-react';
+import { Search, ChevronDown, Plus, Shield, BookOpen, LogOut, LogIn, Github, LayoutGrid, Bell, Trash2, SlidersHorizontal, Sun, Moon, X, UserRound, KeyRound } from 'lucide-react';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
 import { useContextMenu } from './ContextMenu';
 import { buildCustomizeItems } from './widgets/customizeMenu';
 import { getSystemApp } from './systemApps';
+import { requestSettingsSection } from './system/SystemContent';
 import api from '../services/api';
 
 // Build stamp baked in at build time (vite define) — lets you see at a glance
@@ -69,6 +70,9 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad, onOpenSpot
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const brandRef = useRef<HTMLButtonElement>(null);
+  const [userOpen, setUserOpen] = useState(false);
+  const userRef = useRef<HTMLDivElement>(null);
+  const userBtnRef = useRef<HTMLButtonElement>(null);
   const [notifs, setNotifs] = useState<{ items: Notif[]; unread: number } | null>(null);
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
@@ -76,10 +80,15 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad, onOpenSpot
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+      if (userRef.current && !userRef.current.contains(e.target as Node)) setUserOpen(false);
       if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { if (menuOpen) { setMenuOpen(false); brandRef.current?.focus(); } setBellOpen(false); }
+      if (e.key === 'Escape') {
+        if (menuOpen) { setMenuOpen(false); brandRef.current?.focus(); }
+        if (userOpen) { setUserOpen(false); userBtnRef.current?.focus(); }
+        setBellOpen(false);
+      }
     };
     document.addEventListener('mousedown', onClick);
     document.addEventListener('keydown', onKey);
@@ -87,7 +96,7 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad, onOpenSpot
       document.removeEventListener('mousedown', onClick);
       document.removeEventListener('keydown', onKey);
     };
-  }, [menuOpen]);
+  }, [menuOpen, userOpen]);
 
   // Poll notifications while signed in.
   useEffect(() => {
@@ -112,11 +121,12 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad, onOpenSpot
     .then(() => setNotifs(n => (n ? { items: n.items.filter(i => i.id !== id), unread: n.unread } : n)))
     .catch(() => {});
 
-  // Keyboard navigation for the app menu (WAI-ARIA menu pattern): arrows roam,
-  // Home/End jump. Focus the first item when the menu opens.
+  // Keyboard navigation for both drop-downs (WAI-ARIA menu pattern): arrows roam,
+  // Home/End jump. Focus the first item when a menu opens.
   useEffect(() => { if (menuOpen) menuRef.current?.querySelector<HTMLElement>('.os-menu .os-menu-item')?.focus(); }, [menuOpen]);
-  const onMenuKeyDown = (e: React.KeyboardEvent) => {
-    const items = [...(menuRef.current?.querySelectorAll<HTMLElement>('.os-menu .os-menu-item') || [])];
+  useEffect(() => { if (userOpen) userRef.current?.querySelector<HTMLElement>('.os-menu .os-menu-item')?.focus(); }, [userOpen]);
+  const menuKeyNav = (ref: React.RefObject<HTMLDivElement | null>) => (e: React.KeyboardEvent) => {
+    const items = [...(ref.current?.querySelectorAll<HTMLElement>('.os-menu .os-menu-item') || [])];
     if (!items.length) return;
     const cur = items.indexOf(document.activeElement as HTMLElement);
     if (e.key === 'ArrowDown') { e.preventDefault(); items[(cur + 1) % items.length].focus(); }
@@ -124,6 +134,8 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad, onOpenSpot
     else if (e.key === 'Home') { e.preventDefault(); items[0].focus(); }
     else if (e.key === 'End') { e.preventDefault(); items[items.length - 1].focus(); }
   };
+  const onMenuKeyDown = menuKeyNav(menuRef);
+  const onUserKeyDown = menuKeyNav(userRef);
 
   const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const day = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
@@ -132,6 +144,17 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad, onOpenSpot
     const app = getSystemApp(key);
     if (app) openApp(app);
     setMenuOpen(false);
+  };
+
+  // User-menu launchers: system windows + the Settings deep link to Account.
+  const openUserSystem = (key: string) => {
+    const app = getSystemApp(key);
+    if (app) openApp(app);
+    setUserOpen(false);
+  };
+  const openAccount = () => {
+    requestSettingsSection('account');
+    openUserSystem('settings');
   };
 
   return (
@@ -159,39 +182,69 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad, onOpenSpot
                 <Plus size={15} /> Add application
               </button>
             )}
-            {user?.is_admin && (
-              <a role="menuitem" className="os-menu-item" href="/admin">
-                <Shield size={15} /> Admin dashboard
-              </a>
-            )}
             <button role="menuitem" className="os-menu-item" onClick={() => openSystem('guide')}>
               <BookOpen size={15} /> Guide
-            </button>
-            <button role="menuitem" className="os-menu-item" onClick={() => openSystem('about')}>
-              <Info size={15} /> About DevHub
             </button>
             <a role="menuitem" className="os-menu-item" href="https://github.com/alshawwaf/dev-hub" target="_blank" rel="noopener noreferrer">
               <Github size={15} /> Source on GitHub
             </a>
-            <div className="os-menu-sep" />
-            {user ? (
-              <button role="menuitem" className="os-menu-item danger" onClick={logout}>
-                <LogOut size={15} /> Sign out
-              </button>
-            ) : (
-              <a role="menuitem" className="os-menu-item" href="/login">
-                <LogOut size={15} /> Sign in
-              </a>
+            {!user && (
+              <>
+                <div className="os-menu-sep" />
+                <a role="menuitem" className="os-menu-item" href="/login">
+                  <LogIn size={15} /> Sign in
+                </a>
+              </>
             )}
           </div>
         )}
-
-        {user?.is_admin && <a className="os-menu-link" href="/admin">Admin</a>}
       </div>
 
       <div className="os-menubar-right">
         <span className="os-build" title={buildStampTitle}>{buildStampLabel}</span>
-        {user && <span className="os-user">{user.email.split('@')[0]}</span>}
+        {user ? (
+          <div className="os-user-wrap" ref={userRef}>
+            <button
+              ref={userBtnRef}
+              className="os-user-btn"
+              onClick={() => setUserOpen(o => !o)}
+              aria-haspopup="menu"
+              aria-expanded={userOpen}
+            >
+              <span className="os-user-avatar" aria-hidden="true">{user.email.charAt(0)}</span>
+              {user.email.split('@')[0]}
+            </button>
+            {userOpen && (
+              <div className="os-menu os-menu-right" role="menu" aria-label="User menu" onKeyDown={onUserKeyDown}>
+                <div className="os-menu-head">
+                  <span className="os-menu-head-mail">{user.email}</span>
+                  <span className="os-menu-head-role">{user.is_admin ? 'Administrator' : 'Developer'}</span>
+                </div>
+                <div className="os-menu-sep" />
+                <button role="menuitem" className="os-menu-item" onClick={openAccount}>
+                  <UserRound size={15} /> Account
+                </button>
+                <button role="menuitem" className="os-menu-item" onClick={() => openUserSystem('apikeys')}>
+                  <KeyRound size={15} /> API Keys
+                </button>
+                <button role="menuitem" className="os-menu-item" onClick={() => { onOpenLaunchpad(); setUserOpen(false); }}>
+                  <LayoutGrid size={15} /> Launchpad
+                </button>
+                {user.is_admin && (
+                  <button role="menuitem" className="os-menu-item" onClick={() => openUserSystem('admin')}>
+                    <Shield size={15} /> Admin
+                  </button>
+                )}
+                <div className="os-menu-sep" />
+                <button role="menuitem" className="os-menu-item danger" onClick={logout}>
+                  <LogOut size={15} /> Sign out
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <a className="os-user-btn" href="/login"><LogIn size={13} /> Sign in</a>
+        )}
         {user && (
           <div className="os-bell-wrap" ref={bellRef}>
             <button className="os-menubar-btn" onClick={toggleBell} aria-label="Notifications" aria-expanded={bellOpen}>

@@ -4,7 +4,7 @@ import type { AppInfo } from './types';
 import { useWindows } from './WindowManager';
 import { useHub } from './HubContext';
 import { useLayout } from './LayoutContext';
-import { SYSTEM_APPS } from './systemApps';
+import { systemAppsFor } from './systemApps';
 import AppGlyph from './AppGlyph';
 
 const MAX_RESULTS = 8;
@@ -13,14 +13,14 @@ const MAX_RESULTS = 8;
 // ↑/↓ to move, Enter launches the selection, Esc closes.
 const Spotlight: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { openApp } = useWindows();
-  const { apps } = useHub();
+  const { apps, isAdmin } = useHub();
   const { iconTileBg } = useLayout();
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const all = useMemo(() => [...apps, ...SYSTEM_APPS], [apps]);
+  const all = useMemo(() => [...apps, ...systemAppsFor(isAdmin)], [apps, isAdmin]);
 
   const results = useMemo(() => {
     const s = q.trim().toLowerCase();

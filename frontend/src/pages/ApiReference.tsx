@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Braces, ExternalLink, Lock, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Braces, ExternalLink, Lock, ChevronRight, AlertTriangle, PlayCircle } from 'lucide-react';
 import api from '../services/api';
+import { useLayout } from '../os/LayoutContext';
 
 // Minimal shapes we read from the OpenAPI spec (rendered defensively).
 interface OpenApiParam { name: string; in: string; required?: boolean; schema?: { type?: string }; }
@@ -18,8 +19,23 @@ const reqBodyLabel = (rb: unknown): string => {
 };
 
 const ApiReference: React.FC = () => {
+  const { theme } = useLayout();
   const [spec, setSpec] = useState<OpenApiSpec | null>(null);
   const [error, setError] = useState('');
+  const [tab, setTab] = useState<'reference' | 'try'>('reference');
+
+  // Resolve 'auto' against the OS appearance (LayoutContext applies the resolved
+  // value as data-theme on <html>; we mirror that logic for the Swagger iframe and
+  // track live OS flips while in auto).
+  const [osDark, setOsDark] = useState(() => typeof window !== 'undefined' && (window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true));
+  useEffect(() => {
+    if (theme !== 'auto' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = (e: MediaQueryListEvent) => setOsDark(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [theme]);
+  const effectiveTheme = theme === 'auto' ? (osDark ? 'dark' : 'light') : theme;
 
   useEffect(() => {
     let cancelled = false;
@@ -42,14 +58,25 @@ const ApiReference: React.FC = () => {
   const tags = Object.keys(groups).sort();
 
   return (
-    <div className="os-guide os-api">
+    <div className="os-api-shell">
+      <div className="os-api-tabs" role="tablist" aria-label="API documentation views">
+        <button role="tab" aria-selected={tab === 'reference'} className={`os-api-tab ${tab === 'reference' ? 'on' : ''}`} onClick={() => setTab('reference')}>Reference</button>
+        <button role="tab" aria-selected={tab === 'try'} className={`os-api-tab ${tab === 'try' ? 'on' : ''}`} onClick={() => setTab('try')}>Try it (Swagger)</button>
+      </div>
+
+      {tab === 'try' ? (
+        // Same-origin Swagger UI, themed to match the desktop.
+        <iframe className="os-api-tryframe" src={`/api/docs?theme=${effectiveTheme}`} title="Interactive Swagger" />
+      ) : (
+      <div className="os-api-body">
+      <div className="os-guide os-api">
       <div className="os-guide-hero">
         <span className="os-guide-eyebrow"><Braces size={14} /> API Reference</span>
         <h1>{(spec?.info?.title || 'DevHub').replace(/ ?API$/i, '')} <span className="text-gradient">API</span></h1>
         <p>The REST API behind the hub — everything the desktop does runs through these endpoints{spec?.info?.version ? ` (v${spec.info.version})` : ''}.</p>
         <div className="os-guide-resources" style={{ justifyContent: 'center', marginTop: 16 }}>
-          <a href="/api/docs" target="_blank" rel="noopener noreferrer"><ExternalLink size={15} /> Interactive Swagger (try it)</a>
-          <a href="/api/openapi.json" target="_blank" rel="noopener noreferrer"><ExternalLink size={15} /> OpenAPI JSON</a>
+          <button onClick={() => setTab('try')}><PlayCircle size={15} /> Interactive Swagger (try it)</button>
+          <a href="/api/openapi.json"><ExternalLink size={15} /> OpenAPI JSON</a>
         </div>
       </div>
 
@@ -61,7 +88,7 @@ const ApiReference: React.FC = () => {
       {error && (
         <div className="os-callout warn os-api-auth">
           <AlertTriangle size={17} />
-          <div>{error} You can still use the <a className="inline" href="/api/docs" target="_blank" rel="noopener noreferrer">interactive Swagger</a>.</div>
+          <div>{error} You can still use the <button className="inline os-api-inlinebtn" onClick={() => setTab('try')}>interactive Swagger</button>.</div>
         </div>
       )}
       {!spec && !error && <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Loading the API spec…</p>}
@@ -110,6 +137,9 @@ const ApiReference: React.FC = () => {
           ))}
         </section>
       ))}
+      </div>
+      </div>
+      )}
     </div>
   );
 };

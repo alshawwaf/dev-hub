@@ -3,7 +3,7 @@ export type Placement = 'desktop' | 'dock' | 'both' | 'hidden';
 export interface WinGeometry { x: number; y: number; w: number; h: number; max?: boolean; }
 export type GeometryMap = Record<number, WinGeometry>;
 
-export type SystemKey = 'launchpad' | 'settings' | 'logs' | 'guide' | 'about' | 'api';
+export type SystemKey = 'launchpad' | 'settings' | 'logs' | 'guide' | 'api' | 'admin' | 'apikeys';
 
 export interface AppInfo {
   id: number;
@@ -20,15 +20,20 @@ export interface AppInfo {
   /** an encrypted override URL exists; fetch it from GET /apps/{id}/embed to frame (carries a token) */
   has_embed_url?: boolean;
   placement?: Placement;
-  /** Set on synthetic built-in apps (Settings, Logs, Guide, About). */
+  /** Set on synthetic built-in apps (Settings, Logs, Guide, Admin, …). */
   system?: SystemKey;
   /** lucide-react icon name used to render system apps in the dock/desktop. */
   iconName?: string;
+  /** system apps visible to admins only (filtered by systemAppsFor) */
+  adminOnly?: boolean;
+  /** Dokploy lifecycle mapping (admin-set in Edit app): which Dokploy target this app deploys as */
+  deploy_kind?: 'application' | 'compose' | null;
+  deploy_id?: string | null;
 }
 
 /** A macOS-style desktop folder grouping catalog apps. Ids are negative
  *  (allocated from -1001 down) so they share the numeric icon-grid key space
- *  with app ids (positive) without colliding with system apps (-1..-5). */
+ *  with app ids (positive) without colliding with system apps (-1..-8). */
 export interface FolderInfo {
   id: number;
   name: string;

@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ExternalLink, Pin, PinOff, EyeOff, Play, Pencil, Trash2, SlidersHorizontal, Github, Copy, FolderPlus, FolderOpen, ClipboardPaste, Folder as FolderGlyph } from 'lucide-react';
+import { ExternalLink, Pin, PinOff, EyeOff, Play, Pencil, Trash2, SlidersHorizontal, Github, Copy, FolderPlus, FolderOpen, ClipboardPaste, Folder as FolderGlyph, RotateCw, Rocket } from 'lucide-react';
 import type { AppInfo, FolderInfo } from './types';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
 import { useContextMenu, type MenuItem } from './ContextMenu';
 import { useHub } from './HubContext';
 import { openExternal } from './url';
+import { hasDeployMapping, powerApp } from './power';
 import AppGlyph from './AppGlyph';
 import ColorSwatches from './ColorSwatches';
 import { folderTileBg } from './iconStyle';
@@ -93,6 +94,19 @@ const DesktopIcon: React.FC<{ app: AppInfo } & ItemDragProps> = ({ app, pos, isD
       items.push({ label: 'View source on GitHub', icon: <Github size={15} />, onClick: () => openExternal(app.github_url) });
     }
     if (isAdmin) {
+      // Quick lifecycle ops for Dokploy-mapped apps — full controls live in the Admin window.
+      if (hasDeployMapping(app)) {
+        const runPower = async (action: 'restart' | 'redeploy') => {
+          const r = await powerApp(app, action);
+          if (r && !r.ok) window.alert(r.message);
+        };
+        items.push({ separator: true, label: '' });
+        // Compose services have no restart in Dokploy — offer redeploy only.
+        if (app.deploy_kind !== 'compose') {
+          items.push({ label: 'Restart', icon: <RotateCw size={15} />, onClick: () => { void runPower('restart'); } });
+        }
+        items.push({ label: 'Redeploy', icon: <Rocket size={15} />, onClick: () => { void runPower('redeploy'); } });
+      }
       items.push(
         { separator: true, label: '' },
         { label: 'Rename…', icon: <Pencil size={15} />, onClick: () => openRenameApp(app) },
