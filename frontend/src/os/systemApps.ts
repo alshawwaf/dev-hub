@@ -24,12 +24,16 @@ export const SYSTEM_APPS: AppInfo[] = [
     description: 'REST API reference', url: '', github_url: '', category: 'System', icon: '', is_live: true,
   },
   {
-    id: -7, name: 'Admin', system: 'admin', iconName: 'Shield', adminOnly: true,
+    id: -7, name: 'Application Settings', system: 'admin', iconName: 'Shield', adminOnly: true,
     description: 'Manage applications', url: '', github_url: '', category: 'System', icon: '', is_live: true,
   },
   {
     id: -8, name: 'API Keys', system: 'apikeys', iconName: 'KeyRound',
     description: 'Programmatic access tokens', url: '', github_url: '', category: 'System', icon: '', is_live: true,
+  },
+  {
+    id: -9, name: 'MCP', system: 'mcp', iconName: 'Plug',
+    description: 'Connect agents (Claude, n8n, …)', url: '', github_url: '', category: 'System', icon: '', is_live: true,
   },
 ];
 

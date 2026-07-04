@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Search, ChevronDown, Plus, Shield, BookOpen, LogOut, LogIn, Github, LayoutGrid, Bell, Trash2, SlidersHorizontal, Sun, Moon, X, UserRound, KeyRound } from 'lucide-react';
+import { Search, ChevronDown, Plus, Shield, BookOpen, LogOut, LogIn, Github, LayoutGrid, Bell, Trash2, SlidersHorizontal, Sun, Moon, X, UserRound, KeyRound, Plug } from 'lucide-react';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
 import { useContextMenu } from './ContextMenu';
@@ -196,12 +196,13 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad, onOpenSpot
                 </a>
               </>
             )}
+            <div className="os-menu-sep" />
+            <div className="os-menu-build" title={buildStampTitle}>Build · {buildStampLabel}</div>
           </div>
         )}
       </div>
 
       <div className="os-menubar-right">
-        <span className="os-build" title={buildStampTitle}>{buildStampLabel}</span>
         {user ? (
           <div className="os-user-wrap" ref={userRef}>
             <button
@@ -227,12 +228,15 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad, onOpenSpot
                 <button role="menuitem" className="os-menu-item" onClick={() => openUserSystem('apikeys')}>
                   <KeyRound size={15} /> API Keys
                 </button>
+                <button role="menuitem" className="os-menu-item" onClick={() => openUserSystem('mcp')}>
+                  <Plug size={15} /> Connect an agent (MCP)
+                </button>
                 <button role="menuitem" className="os-menu-item" onClick={() => { onOpenLaunchpad(); setUserOpen(false); }}>
                   <LayoutGrid size={15} /> Launchpad
                 </button>
                 {user.is_admin && (
                   <button role="menuitem" className="os-menu-item" onClick={() => openUserSystem('admin')}>
-                    <Shield size={15} /> Admin
+                    <Shield size={15} /> Application Settings
                   </button>
                 )}
                 <div className="os-menu-sep" />
