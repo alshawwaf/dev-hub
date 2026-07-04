@@ -2180,6 +2180,34 @@ svg {
 /* Clock as a button (opens Notification Center) — keep it visually identical. */
 .os-clock-btn { background: none; border: none; font: inherit; color: inherit; cursor: pointer; padding: 0; }
 
+/* Menu-bar clock calendar popover (macOS-style: date/time header + month grid + tz). */
+.os-cal-wrap { position: relative; display: inline-flex; }
+.os-cal-menu {
+  position: absolute; top: calc(100% + 10px); right: 0; z-index: 300; width: 288px; padding: 16px;
+  border-radius: 16px; background: rgba(24, 24, 35, 0.97);
+  backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--glass-border-strong); box-shadow: var(--shadow-elevated);
+}
+[data-theme="light"] .os-cal-menu { background: rgba(255, 255, 255, 0.97); }
+.os-cal-time { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text-primary); line-height: 1.1; }
+.os-cal-date { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
+.os-cal-nav { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 6px; }
+.os-cal-nav button { display: inline-flex; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 7px; }
+.os-cal-nav button:hover { background: var(--glass-border); color: var(--text-primary); }
+.os-cal-month { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+.os-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.os-cal-wd { text-align: center; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; color: var(--text-dim); padding: 3px 0; }
+.os-cal-day { text-align: center; font-size: 0.8rem; color: var(--text-secondary); padding: 6px 0; border-radius: 8px; font-variant-numeric: tabular-nums; }
+.os-cal-day.blank { visibility: hidden; }
+.os-cal-day.today { background: linear-gradient(135deg, #7c3aed, #ec4899); color: #fff; font-weight: 700; }
+.os-cal-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--glass-border); }
+.os-cal-today { background: none; border: 1px solid var(--glass-border); color: var(--text-secondary); font-size: 0.75rem; font-weight: 600; padding: 5px 12px; border-radius: 8px; cursor: pointer; }
+.os-cal-today:hover { border-color: var(--primary); color: var(--text-primary); }
+.os-cal-tz { display: flex; align-items: center; gap: 5px; min-width: 0; color: var(--text-muted); }
+.os-cal-tz select { max-width: 158px; background: var(--glass-bg-strong); border: 1px solid var(--glass-border); color: var(--text-secondary); border-radius: 8px; padding: 4px 6px; font-size: 0.72rem; cursor: pointer; }
+[data-theme="dark"] .os-cal-tz select { color-scheme: dark; }
+[data-theme="light"] .os-cal-tz select { color-scheme: light; }
+
 @media (prefers-reduced-motion: reduce) {
   .os-dock-icon.bouncing { animation: none; }
   .os-menu, .os-bell-menu, .os-ctxmenu { animation: none; }
@@ -2501,6 +2529,97 @@ svg {
 .os-set-status.err { color: var(--error); }
 .os-set-signout { color: var(--error); }
 .os-set-signout:hover { border-color: rgba(239,68,68,0.45); background: rgba(239,68,68,0.08); color: var(--error); }
+
+/* ------------------------------------------------- Add / Edit app form window
+   The bodies of the Add/Edit Application windows (os/system/AddAppForm.tsx,
+   EditAppForm.tsx). Rendered inside AppWindow's chrome, so these style only the
+   form itself. Everything is theme-aware via CSS vars; the tinted surfaces
+   (head icon, upload button, error box) get an explicit light treatment below. */
+.os-form-scroll { width: 100%; height: 100%; overflow-y: auto; }
+.os-form { width: 100%; max-width: 640px; margin: 0 auto; padding: 22px 26px 26px; }
+.os-form-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.os-form-head-ic {
+  width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  box-shadow: 0 8px 24px -6px var(--primary-glow);
+}
+.os-form-head h2 { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); margin: 0; }
+.os-form-head p { font-size: 0.82rem; color: var(--text-muted); margin: 2px 0 0; }
+
+.os-form-error {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+  padding: 10px 13px; border-radius: 10px; font-size: 0.84rem;
+  background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: var(--error);
+}
+
+.os-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.os-form-grid-checks { grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+@media (max-width: 520px) { .os-form-grid, .os-form-grid-checks { grid-template-columns: 1fr; } }
+.os-form-field { display: flex; flex-direction: column; margin-bottom: 14px; }
+.os-form-grid .os-form-field { margin-bottom: 0; }
+
+.os-form-label {
+  display: flex; align-items: center; gap: 7px; margin-bottom: 6px;
+  font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+/* Full-width inputs inside the form (override os-set-input's 420px cap). */
+.os-form-input { max-width: none; }
+.os-form-textarea { resize: none; line-height: 1.4; }
+.os-form-select { cursor: pointer; }
+
+.os-form-hint { display: block; font-size: 0.72rem; color: var(--text-dim); margin-top: 6px; line-height: 1.45; }
+.os-form-note {
+  display: block; font-size: 0.78rem; color: var(--text-muted); padding: 9px 12px;
+  border-radius: 9px; background: var(--bg-surface); border: 1px solid var(--glass-border);
+}
+
+.os-form-iconrow { display: flex; gap: 10px; align-items: center; }
+.os-form-iconprev {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--glass-bg-strong); border: 1px solid var(--glass-border);
+}
+.os-form-iconinput { flex: 1; }
+.os-form-iconchip {
+  flex: 1; display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  border-radius: 9px; font-size: 0.85rem; color: var(--text-secondary);
+  background: var(--bg-surface); border: 1px solid var(--glass-border);
+}
+.os-form-iconclear {
+  margin-left: auto; background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 0.8rem; font: inherit; padding: 0;
+}
+.os-form-iconclear:hover { color: var(--text-primary); }
+.os-form-upload {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  padding: 8px 14px; border-radius: 9px; font-size: 0.83rem; font-weight: 600;
+  color: var(--primary-light); background: rgba(124, 58, 237, 0.14); border: 1px solid rgba(124, 58, 237, 0.4);
+}
+.os-form-upload:hover { background: rgba(124, 58, 237, 0.2); }
+
+.os-form-check { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.os-form-check input { width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0; accent-color: var(--primary); cursor: pointer; }
+.os-form-check-txt { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.35; }
+.os-form-check-txt small { display: block; font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
+
+.os-form-actions { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+.os-form-cancel { flex-shrink: 0; }
+.os-form-submit {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 9px;
+  padding: 12px 24px; border: none; border-radius: 11px; cursor: pointer;
+  font-size: 0.9rem; font-weight: 700; letter-spacing: 0.04em; color: #fff;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  box-shadow: 0 8px 28px -6px var(--primary-glow); transition: var(--transition-fast);
+}
+.os-form-submit:hover:not(:disabled) { box-shadow: 0 10px 34px -6px var(--primary-glow); transform: translateY(-1px); }
+.os-form-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Light-mode: the accent-tinted surfaces need a lighter fill to stay legible. */
+[data-theme="light"] .os-form-upload { color: var(--primary); background: rgba(124, 58, 237, 0.08); border-color: rgba(124, 58, 237, 0.3); }
+[data-theme="light"] .os-form-upload:hover { background: rgba(124, 58, 237, 0.14); }
+[data-theme="light"] .os-form-error { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.28); }
 
 /* Small "Connect an agent (MCP)" inline link in the API Keys footer note. */
 .os-keys-mcplink {

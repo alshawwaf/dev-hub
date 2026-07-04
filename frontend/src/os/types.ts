@@ -3,7 +3,7 @@ export type Placement = 'desktop' | 'dock' | 'both' | 'hidden';
 export interface WinGeometry { x: number; y: number; w: number; h: number; max?: boolean; }
 export type GeometryMap = Record<number, WinGeometry>;
 
-export type SystemKey = 'launchpad' | 'settings' | 'logs' | 'guide' | 'api' | 'admin' | 'apikeys' | 'mcp';
+export type SystemKey = 'launchpad' | 'settings' | 'logs' | 'guide' | 'api' | 'admin' | 'apikeys' | 'mcp' | 'addapp' | 'editapp';
 
 export interface AppInfo {
   id: number;
@@ -26,6 +26,9 @@ export interface AppInfo {
   iconName?: string;
   /** system apps visible to admins only (filtered by systemAppsFor) */
   adminOnly?: boolean;
+  /** transient system windows (Add/Edit app forms) that must never surface in
+   *  launchers (Launchpad / Dock / Spotlight). Filtered by systemAppsFor + Dock. */
+  hidden?: boolean;
   /** Dokploy lifecycle mapping (admin-set in Edit app): which Dokploy target this app deploys as */
   deploy_kind?: 'application' | 'compose' | null;
   deploy_id?: string | null;

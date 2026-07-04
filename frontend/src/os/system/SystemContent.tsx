@@ -12,6 +12,8 @@ import ApiReference from '../../pages/ApiReference';
 import AdminApp from './AdminApp';
 import ApiKeysApp from './ApiKeysApp';
 import McpApp from './McpApp';
+import AddAppForm from './AddAppForm';
+import EditAppForm from './EditAppForm';
 import AppGlyph from '../AppGlyph';
 
 // ---- Settings deep link --------------------------------------------------------
@@ -430,6 +432,8 @@ const SystemContent: React.FC<{ appKey: SystemKey }> = ({ appKey }) => {
     case 'admin': return <AdminApp />;
     case 'apikeys': return <ApiKeysApp />;
     case 'mcp': return <McpApp />;
+    case 'addapp': return <AddAppForm />;
+    case 'editapp': return <EditAppForm />;
     default: return null;
   }
 };

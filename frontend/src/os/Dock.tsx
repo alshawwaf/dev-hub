@@ -58,7 +58,14 @@ const Dock: React.FC<DockProps> = ({ apps, onOpenLaunchpad }) => {
   const { isAdmin, openEditApp, openRenameApp, openDeleteApp } = useHub();
 
   const pinnedIds = new Set(dockApps.map(a => a.id));
-  const openCatalogIds = new Set(windows.map(w => w.app.id).filter(id => id > 0));
+  // Only surface running-but-not-pinned *catalog* windows here. Exclude system
+  // windows in general and the transient Add/Edit form windows in particular
+  // (hidden / negative ids) so an open form never spawns a junk dock icon.
+  const openCatalogIds = new Set(
+    windows
+      .filter(w => w.app.id > 0 && !w.app.system && !w.app.hidden)
+      .map(w => w.app.id),
+  );
   const runningNotPinned = apps.filter(a => openCatalogIds.has(a.id) && !pinnedIds.has(a.id));
   const leftApps = [...dockApps, ...runningNotPinned];
 
