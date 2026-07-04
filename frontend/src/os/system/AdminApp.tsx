@@ -6,6 +6,9 @@ import { useLayout } from '../LayoutContext';
 import { useContextMenu } from '../ContextMenu';
 import { hasDeployMapping, powerApp, type PowerAction } from '../power';
 import { openExternal } from '../url';
+import { useWindows } from '../WindowManager';
+import { getSystemApp } from '../systemApps';
+import { requestSettingsSection } from './SystemContent';
 import AppGlyph from '../AppGlyph';
 import type { AppInfo } from '../types';
 
@@ -19,7 +22,11 @@ const AdminApp: React.FC = () => {
   const { apps, isAdmin, openAddApp, openEditApp, openDeleteApp, refetch } = useHub();
   const { iconTileBg } = useLayout();
   const { openAt } = useContextMenu();
+  const { openApp } = useWindows();
   const catalog = apps.filter(a => a.id > 0);
+
+  // Jump to Settings → Integrations (where Dokploy is connected).
+  const openIntegrations = () => { requestSettingsSection('integrations'); const s = getSystemApp('settings'); if (s) openApp(s); };
 
   const [dokploy, setDokploy] = useState<DokployInfo | null>(null);
   const [statuses, setStatuses] = useState<Record<number, AppStatus | 'loading'>>({});
@@ -120,9 +127,13 @@ const AdminApp: React.FC = () => {
         <h2>Applications</h2>
         <span className="os-admin-count">{catalog.length}</span>
         {dokploy && (
-          <span className={`os-admin-dok ${dokploy.configured ? (dokploy.ok === false ? 'err' : 'ok') : ''}`} title={dokploy.error || dokploy.url || ''}>
+          <button
+            className={`os-admin-dok ${dokploy.configured ? (dokploy.ok === false ? 'err' : 'ok') : ''}`}
+            title={dokploy.configured ? (dokploy.error || dokploy.url || 'Manage the Dokploy connection') : 'Click to connect Dokploy in Settings → Integrations'}
+            onClick={openIntegrations}
+          >
             {dokploy.configured ? (dokploy.ok === false ? 'Dokploy: error' : 'Dokploy: connected') : 'Dokploy: not configured'}
-          </span>
+          </button>
         )}
         <span className="os-admin-spacer" />
         <button className="btn btn-ghost os-admin-btn" onClick={refresh} title="Refresh apps and deploy states"><RefreshCw size={14} /> Refresh</button>
@@ -156,17 +167,33 @@ const AdminApp: React.FC = () => {
               )}
             </span>
             <span className="os-admin-actions">
-              {hasDeployMapping(app) && dokploy?.configured && (
-                <button
-                  className="os-admin-iconbtn power"
-                  title={`Power — ${app.name}`}
-                  aria-label={`Power actions for ${app.name}`}
-                  disabled={!!busy[app.id]}
-                  onClick={powerMenu(app)}
-                >
-                  {busy[app.id] ? <span className="os-admin-minispin" /> : <Power size={14} />}
-                </button>
-              )}
+              {(() => {
+                // Power controls are ALWAYS shown (this window is admin-only), but
+                // greyed with a guiding tooltip until the app can actually be
+                // controlled: click routes to whatever's missing (connect Dokploy,
+                // or link the app to a service).
+                const mapped = hasDeployMapping(app);
+                const dokOk = !!dokploy?.configured;
+                const actionable = mapped && dokOk;
+                const title = actionable ? `Power — ${app.name}`
+                  : !dokOk ? 'Dokploy isn’t connected — click to set it up in Settings → Integrations'
+                    : 'Not linked to a Dokploy service — click to link it in Edit → Deployment';
+                const onClick = actionable ? powerMenu(app)
+                  : !dokOk ? () => openIntegrations()
+                    : () => openEditApp(app);
+                return (
+                  <button
+                    className={`os-admin-iconbtn power ${actionable ? '' : 'is-off'}`}
+                    title={title}
+                    aria-label={title}
+                    aria-disabled={actionable ? undefined : true}
+                    disabled={actionable && !!busy[app.id]}
+                    onClick={onClick}
+                  >
+                    {busy[app.id] ? <span className="os-admin-minispin" /> : <Power size={14} />}
+                  </button>
+                );
+              })()}
               <button className="os-admin-iconbtn" title="Edit app" onClick={() => openEditApp(app)}><Pencil size={14} /></button>
               <button className="os-admin-iconbtn danger" title="Delete app" onClick={() => openDeleteApp(app)}><Trash2 size={14} /></button>
             </span>
