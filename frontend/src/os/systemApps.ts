@@ -35,11 +35,24 @@ export const SYSTEM_APPS: AppInfo[] = [
     id: -9, name: 'MCP', system: 'mcp', iconName: 'Plug',
     description: 'Connect agents (Claude, n8n, …)', url: '', github_url: '', category: 'System', icon: '', is_live: true,
   },
+  // Transient form windows opened via HubContext (Add/Edit app). `hidden: true`
+  // keeps them out of every launcher (Launchpad / Dock / Spotlight); they only
+  // exist as a real window while the form is open. category:'' on purpose so the
+  // titlebar reads just "Add Application" (no " — System" suffix).
+  {
+    id: -10, name: 'Add Application', system: 'addapp', iconName: 'Plus', hidden: true,
+    description: '', url: '', github_url: '', category: '', icon: '', is_live: true,
+  },
+  {
+    id: -11, name: 'Edit Application', system: 'editapp', iconName: 'SlidersHorizontal', hidden: true,
+    description: '', url: '', github_url: '', category: '', icon: '', is_live: true,
+  },
 ];
 
 export const getSystemApp = (key: string): AppInfo | undefined =>
   SYSTEM_APPS.find(a => a.system === key);
 
-/** The system apps this user may see (admin-only entries filtered out). */
+/** The system apps this user may see in launchers (admin-only + hidden
+ *  transient form windows filtered out). */
 export const systemAppsFor = (isAdmin: boolean): AppInfo[] =>
-  SYSTEM_APPS.filter(a => !a.adminOnly || isAdmin);
+  SYSTEM_APPS.filter(a => (!a.adminOnly || isAdmin) && !a.hidden);

@@ -6,6 +6,8 @@ interface HubContextType {
   isAdmin: boolean;
   openAddApp: () => void;
   openEditApp: (app: AppInfo) => void;
+  /** the app the Edit form (rendered as a window via SystemContent) is editing */
+  editingApp: AppInfo | null;
   openRenameApp: (app: AppInfo) => void;
   openDeleteApp: (app: AppInfo) => void;
   openLaunchpad: () => void;

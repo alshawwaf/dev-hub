@@ -43,7 +43,7 @@ const RenameAppModal: React.FC<Props> = ({ isOpen, app, onClose, onRenamed }) =>
   const labelStyle: React.CSSProperties = { display: 'block', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '8px' };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(8, 10, 20, 0.34)', backdropFilter: 'blur(3px)' }} onClick={onClose}>
       <div
         style={{ position: 'relative', width: '100%', maxWidth: '420px', background: 'var(--bg-elevated)', border: '1px solid var(--glass-border-strong)', borderRadius: '18px', boxShadow: 'var(--shadow-elevated)', padding: '24px 26px' }}
         onClick={e => e.stopPropagation()}

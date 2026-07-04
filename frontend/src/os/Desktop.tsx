@@ -2,8 +2,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { AlertTriangle, ClipboardPaste, FolderPlus, LayoutDashboard, LayoutGrid, MousePointerClick, Plus, RotateCcw, SlidersHorizontal, Star } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import AddAppModal from '../components/AddAppModal';
-import EditAppModal from '../components/EditAppModal';
 import RenameAppModal from '../components/RenameAppModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import { WindowManagerProvider, useWindows } from './WindowManager';
@@ -186,19 +184,80 @@ const FolderViewHost: React.FC<{
   return <FolderView key={folder.id} folder={folder} apps={apps} focusTitle={viewing.focusTitle} onClose={onClose} />;
 };
 
-const Desktop: React.FC = () => {
-  const { user } = useAuth();
-  const isAdmin = !!user?.is_admin;
-  const [apps, setApps] = useState<AppInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [addOpen, setAddOpen] = useState(false);
+// The Hub value + everything that renders inside the window system. Split out of
+// `Desktop` so it can call useWindows() (it lives INSIDE WindowManagerProvider):
+// Add/Edit are now real windows, so openAddApp/openEditApp route through openApp()
+// instead of toggling modal state. `editingApp` state stays here — the windowed
+// Edit form reads it from HubContext to know which app it's editing.
+const HubHost: React.FC<{
+  apps: AppInfo[];
+  loading: boolean;
+  error: string;
+  isAdmin: boolean;
+  refetch: () => void;
+  renamingFolderId: number | null;
+  setRenamingFolder: (id: number | null) => void;
+}> = ({ apps, loading, error, isAdmin, refetch, renamingFolderId, setRenamingFolder }) => {
+  const { openApp } = useWindows();
   const [editingApp, setEditingApp] = useState<AppInfo | null>(null);
   const [renamingApp, setRenamingApp] = useState<AppInfo | null>(null);
   const [deletingApp, setDeletingApp] = useState<AppInfo | null>(null);
   const [launchpadOpen, setLaunchpadOpen] = useState(false);
   const [spotlightOpen, setSpotlightOpen] = useState(false);
   const [viewingFolder, setViewingFolder] = useState<{ id: number; focusTitle: boolean } | null>(null);
+
+  const openAddApp = () => { const a = getSystemApp('addapp'); if (a) openApp(a); };
+  const openEditApp = (app: AppInfo) => { setEditingApp(app); const a = getSystemApp('editapp'); if (a) openApp(a); };
+
+  return (
+    <HubProvider
+      apps={apps}
+      isAdmin={isAdmin}
+      openAddApp={openAddApp}
+      openEditApp={openEditApp}
+      editingApp={editingApp}
+      openRenameApp={app => setRenamingApp(app)}
+      openDeleteApp={app => setDeletingApp(app)}
+      openLaunchpad={() => setLaunchpadOpen(true)}
+      openFolderView={(id, focusTitle = false) => setViewingFolder({ id, focusTitle })}
+      renamingFolderId={renamingFolderId}
+      setRenamingFolder={setRenamingFolder}
+      refetch={refetch}
+    >
+      <ContextMenuProvider>
+        <DesktopSurface
+          apps={apps}
+          loading={loading}
+          error={error}
+          isAdmin={isAdmin}
+          onAddApp={openAddApp}
+          onOpenLaunchpad={() => setLaunchpadOpen(true)}
+          onOpenSpotlight={() => setSpotlightOpen(true)}
+        />
+        {launchpadOpen && <Launchpad apps={apps} onClose={() => setLaunchpadOpen(false)} />}
+        {spotlightOpen && <Spotlight onClose={() => setSpotlightOpen(false)} />}
+        {viewingFolder && (
+          <FolderViewHost viewing={viewingFolder} apps={apps} onClose={() => setViewingFolder(null)} />
+        )}
+        <RenameAppModal isOpen={!!renamingApp} app={renamingApp} onClose={() => setRenamingApp(null)} onRenamed={refetch} />
+        <DeleteConfirmModal
+          isOpen={!!deletingApp}
+          appId={deletingApp?.id ?? null}
+          appName={deletingApp?.name ?? ''}
+          onClose={() => setDeletingApp(null)}
+          onDeleted={refetch}
+        />
+      </ContextMenuProvider>
+    </HubProvider>
+  );
+};
+
+const Desktop: React.FC = () => {
+  const { user } = useAuth();
+  const isAdmin = !!user?.is_admin;
+  const [apps, setApps] = useState<AppInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [renamingFolderId, setRenamingFolderId] = useState<number | null>(null);
 
   const fetchApps = useCallback(async () => {
@@ -225,46 +284,15 @@ const Desktop: React.FC = () => {
   return (
     <LayoutProvider apps={apps} isAdmin={isAdmin} userId={user?.id ?? null} persistBaseline={persistBaseline}>
       <WindowManagerProvider>
-        <HubProvider
+        <HubHost
           apps={apps}
+          loading={loading}
+          error={error}
           isAdmin={isAdmin}
-          openAddApp={() => setAddOpen(true)}
-          openEditApp={app => setEditingApp(app)}
-          openRenameApp={app => setRenamingApp(app)}
-          openDeleteApp={app => setDeletingApp(app)}
-          openLaunchpad={() => setLaunchpadOpen(true)}
-          openFolderView={(id, focusTitle = false) => setViewingFolder({ id, focusTitle })}
+          refetch={fetchApps}
           renamingFolderId={renamingFolderId}
           setRenamingFolder={setRenamingFolderId}
-          refetch={fetchApps}
-        >
-          <ContextMenuProvider>
-            <DesktopSurface
-              apps={apps}
-              loading={loading}
-              error={error}
-              isAdmin={isAdmin}
-              onAddApp={() => setAddOpen(true)}
-              onOpenLaunchpad={() => setLaunchpadOpen(true)}
-              onOpenSpotlight={() => setSpotlightOpen(true)}
-            />
-            {launchpadOpen && <Launchpad apps={apps} onClose={() => setLaunchpadOpen(false)} />}
-            {spotlightOpen && <Spotlight onClose={() => setSpotlightOpen(false)} />}
-            {viewingFolder && (
-              <FolderViewHost viewing={viewingFolder} apps={apps} onClose={() => setViewingFolder(null)} />
-            )}
-            <AddAppModal isOpen={addOpen} onClose={() => setAddOpen(false)} onAppAdded={fetchApps} />
-            <EditAppModal isOpen={!!editingApp} app={editingApp} onClose={() => setEditingApp(null)} onAppUpdated={fetchApps} />
-            <RenameAppModal isOpen={!!renamingApp} app={renamingApp} onClose={() => setRenamingApp(null)} onRenamed={fetchApps} />
-            <DeleteConfirmModal
-              isOpen={!!deletingApp}
-              appId={deletingApp?.id ?? null}
-              appName={deletingApp?.name ?? ''}
-              onClose={() => setDeletingApp(null)}
-              onDeleted={fetchApps}
-            />
-          </ContextMenuProvider>
-        </HubProvider>
+        />
       </WindowManagerProvider>
     </LayoutProvider>
   );

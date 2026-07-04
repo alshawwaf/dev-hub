@@ -35,41 +35,44 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ isOpen, appId, 
     }
   };
 
+  // Inline styles + CSS vars (theme-aware): the project ships a CSS-class SUBSET,
+  // not full Tailwind, so utility classes like text-white / bg-red-500/10 silently
+  // did nothing and left the card dark-only. Scrim matches the Add/Edit dialogs.
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-6"
-      style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}
+    <div
+      style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(8, 10, 20, 0.34)', backdropFilter: 'blur(3px)' }}
       onClick={onClose}
     >
-      <div 
-        className="bg-bg-card w-full max-w-md relative rounded-2xl border border-red-500/20 p-8"
+      <div
+        style={{ position: 'relative', width: '100%', maxWidth: '440px', background: 'var(--bg-elevated)', border: '1px solid rgba(239, 68, 68, 0.28)', borderRadius: '18px', boxShadow: 'var(--shadow-elevated)', padding: '28px 30px' }}
         onClick={e => e.stopPropagation()}
       >
-        <button 
+        <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-text-muted hover:text-white p-2 rounded-full bg-white/5"
+          aria-label="Close"
+          style={{ position: 'absolute', top: '16px', right: '16px', width: '30px', height: '30px', borderRadius: '50%', border: 'none', background: 'var(--glass-bg-strong)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
         >
-          <X size={18} />
+          <X size={16} />
         </button>
 
-        <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
-            <AlertTriangle size={28} className="text-red-400" />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '22px' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+            <AlertTriangle size={28} color="var(--error)" />
           </div>
-          <h2 className="text-xl font-bold mb-2">Delete Application</h2>
-          <p className="text-text-muted text-sm">
-            Are you sure you want to delete <span className="text-white font-semibold">{appName}</span>?
+          <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>Delete Application</h2>
+          <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', margin: 0 }}>
+            Are you sure you want to delete <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{appName}</span>?
           </p>
         </div>
 
-        {error && <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-lg mb-4 text-sm text-center">{error}</div>}
+        {error && <div style={{ marginBottom: '16px', padding: '10px 13px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: 'var(--error)', fontSize: '0.83rem', textAlign: 'center' }}>{error}</div>}
 
-        <div className="flex gap-3">
-          <button onClick={onClose} disabled={loading} className="flex-1 py-3 px-4 rounded-xl font-semibold bg-white/5 hover:bg-white/10 border border-glass-border">
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={onClose} disabled={loading} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer' }}>
             Cancel
           </button>
-          <button onClick={handleDelete} disabled={loading} className="flex-1 py-3 px-4 rounded-xl font-semibold bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 flex items-center justify-center gap-2">
-            {loading ? 'Deleting...' : <><Trash2 size={16} /> Delete</>}
+          <button onClick={handleDelete} disabled={loading} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '11px', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.35)', background: 'rgba(239, 68, 68, 0.16)', color: 'var(--error)', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1 }}>
+            {loading ? 'Deleting…' : <><Trash2 size={16} /> Delete</>}
           </button>
         </div>
       </div>

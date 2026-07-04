@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Search, ChevronDown, Plus, Shield, BookOpen, LogOut, LogIn, Github, LayoutGrid, Bell, Trash2, SlidersHorizontal, Sun, Moon, X, UserRound, KeyRound, Plug } from 'lucide-react';
+import { Search, ChevronDown, ChevronLeft, ChevronRight, Plus, Shield, BookOpen, LogOut, LogIn, Github, LayoutGrid, Bell, Trash2, SlidersHorizontal, Sun, Moon, X, UserRound, KeyRound, Plug, Globe } from 'lucide-react';
 import { useWindows } from './WindowManager';
 import { useLayout } from './LayoutContext';
 import { useContextMenu } from './ContextMenu';
@@ -36,6 +36,26 @@ interface MenuBarProps {
   onOpenSpotlight: () => void;
 }
 
+// Full IANA zone list when the browser supports it (Chromium/Safari/FF do), with
+// a small curated fallback for older engines. Computed once at module load.
+const TZ_LIST: string[] = (() => {
+  try {
+    const sv = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf;
+    if (typeof sv === 'function') return sv('timeZone');
+  } catch { /* older engine — use the fallback */ }
+  return ['UTC', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Toronto',
+    'America/Sao_Paulo', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Africa/Cairo', 'Asia/Jerusalem',
+    'Asia/Dubai', 'Asia/Kolkata', 'Asia/Singapore', 'Asia/Shanghai', 'Asia/Tokyo', 'Australia/Sydney'];
+})();
+
+// Year / month(1-12) / day AS SEEN in a given time zone, so "today" highlights the
+// right cell regardless of the viewer's own zone.
+const partsInTz = (d: Date, timeZone?: string) => {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(d);
+  const val = (t: string) => Number(parts.find(p => p.type === t)?.value);
+  return { y: val('year'), m: val('month'), d: val('day') };
+};
+
 const useClock = () => {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -57,6 +77,19 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad, onOpenSpot
   const { widgets, toggleWidget, theme, toggleTheme } = useLayout();
   const { openAt } = useContextMenu();
   const now = useClock();
+
+  // Menu-bar clock time zone (blank = this device's zone). Persisted per device.
+  const [tz, setTz] = useState(() => {
+    // Guard against a stale/invalid stored zone — Intl throws on a bad timeZone,
+    // which would white-screen the whole shell.
+    try { const s = localStorage.getItem('devhub.timezone') || ''; return (!s || TZ_LIST.includes(s)) ? s : ''; } catch { return ''; }
+  });
+  useEffect(() => {
+    try { if (tz) localStorage.setItem('devhub.timezone', tz); else localStorage.removeItem('devhub.timezone'); } catch { /* unavailable */ }
+  }, [tz]);
+  const [calOpen, setCalOpen] = useState(false);
+  const [calMonth, setCalMonth] = useState<{ y: number; m: number } | null>(null);   // null = current month
+  const calRef = useRef<HTMLDivElement>(null);
 
   const openCustomize = (e: React.MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -82,12 +115,14 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad, onOpenSpot
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
       if (userRef.current && !userRef.current.contains(e.target as Node)) setUserOpen(false);
       if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
+      if (calRef.current && !calRef.current.contains(e.target as Node)) setCalOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (menuOpen) { setMenuOpen(false); brandRef.current?.focus(); }
         if (userOpen) { setUserOpen(false); userBtnRef.current?.focus(); }
         setBellOpen(false);
+        setCalOpen(false);
       }
     };
     document.addEventListener('mousedown', onClick);
@@ -137,8 +172,22 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad, onOpenSpot
   const onMenuKeyDown = menuKeyNav(menuRef);
   const onUserKeyDown = menuKeyNav(userRef);
 
-  const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  const day = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  const tzOpt = tz || undefined;
+  const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone: tzOpt });
+  const day = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', timeZone: tzOpt });
+
+  // Calendar popover model (evaluated in the selected zone).
+  const todayP = partsInTz(now, tzOpt);
+  const view = calMonth ?? { y: todayP.y, m: todayP.m };
+  const firstWd = new Date(view.y, view.m - 1, 1).getDay();
+  const daysInMonth = new Date(view.y, view.m, 0).getDate();
+  const monthLabel = new Date(view.y, view.m - 1, 1).toLocaleDateString([], { month: 'long', year: 'numeric' });
+  const fullDate = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: tzOpt });
+  const shiftMonth = (delta: number) => setCalMonth(prev => {
+    const base = prev ?? { y: todayP.y, m: todayP.m };
+    const idx = base.y * 12 + (base.m - 1) + delta;
+    return { y: Math.floor(idx / 12), m: (idx % 12) + 1 };
+  });
 
   const openSystem = (key: string) => {
     const app = getSystemApp(key);
@@ -289,9 +338,43 @@ const MenuBar: React.FC<MenuBarProps> = ({ onAddApp, onOpenLaunchpad, onOpenSpot
         <button className="os-menubar-btn" onClick={onOpenSpotlight} title="Search apps (⌘K)" aria-label="Search apps">
           <Search size={15} />
         </button>
-        {user
-          ? <button className="os-clock os-clock-btn" onClick={toggleBell} title="Notifications" aria-label="Notifications">{day}&nbsp;&nbsp;{time}</button>
-          : <span className="os-clock">{day}&nbsp;&nbsp;{time}</span>}
+        {user ? (
+          <div className="os-cal-wrap" ref={calRef}>
+            <button className="os-clock os-clock-btn" onClick={() => setCalOpen(o => !o)} aria-haspopup="dialog" aria-expanded={calOpen} title="Calendar">{day}&nbsp;&nbsp;{time}</button>
+            {calOpen && (
+              <div className="os-cal-menu" role="dialog" aria-label="Calendar">
+                <div className="os-cal-time">{time}</div>
+                <div className="os-cal-date">{fullDate}</div>
+                <div className="os-cal-nav">
+                  <button onClick={() => shiftMonth(-1)} aria-label="Previous month"><ChevronLeft size={16} /></button>
+                  <span className="os-cal-month">{monthLabel}</span>
+                  <button onClick={() => shiftMonth(1)} aria-label="Next month"><ChevronRight size={16} /></button>
+                </div>
+                <div className="os-cal-grid">
+                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((w, i) => <span key={i} className="os-cal-wd">{w}</span>)}
+                  {Array.from({ length: firstWd }).map((_, i) => <span key={`b${i}`} className="os-cal-day blank" />)}
+                  {Array.from({ length: daysInMonth }).map((_, i) => {
+                    const d = i + 1;
+                    const isToday = view.y === todayP.y && view.m === todayP.m && d === todayP.d;
+                    return <span key={d} className={`os-cal-day ${isToday ? 'today' : ''}`}>{d}</span>;
+                  })}
+                </div>
+                <div className="os-cal-foot">
+                  <button className="os-cal-today" onClick={() => setCalMonth(null)}>Today</button>
+                  <label className="os-cal-tz">
+                    <Globe size={12} />
+                    <select value={tz} onChange={e => setTz(e.target.value)} aria-label="Time zone">
+                      <option value="">System</option>
+                      {TZ_LIST.map(z => <option key={z} value={z}>{z.replace(/_/g, ' ')}</option>)}
+                    </select>
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <span className="os-clock">{day}&nbsp;&nbsp;{time}</span>
+        )}
       </div>
     </div>
   );
