@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { AlertTriangle, ClipboardPaste, FolderPlus, MousePointerClick, Plus, RotateCcw, SlidersHorizontal, Star } from 'lucide-react';
+import { AlertTriangle, ClipboardPaste, FolderPlus, LayoutDashboard, LayoutGrid, MousePointerClick, Plus, RotateCcw, SlidersHorizontal, Star } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import AddAppModal from '../components/AddAppModal';
@@ -18,7 +18,7 @@ import AppWindow from './AppWindow';
 import Launchpad from './Launchpad';
 import FolderView from './FolderView';
 import Spotlight from './Spotlight';
-import { buildCustomizeItems } from './widgets/customizeMenu';
+import { buildWidgetItems } from './widgets/customizeMenu';
 import { readDrag } from './drag';
 import { getSystemApp, systemAppsFor } from './systemApps';
 import type { AppInfo, Placement } from './types';
@@ -97,16 +97,28 @@ const DesktopSurface: React.FC<{
     if (clipApp && folderOf(clipApp.id)) {
       items.push({ label: `Paste “${clipApp.name}” here`, icon: <ClipboardPaste size={15} />, onClick: () => removeFromFolder(clipApp.id, snapFreePos(cx, cy, clipApp.id)) });
     }
+    // Desktop widgets live in a macOS-style submenu — the checklist was too long
+    // to inline. It stays open while you toggle several (keepOpen), closing only
+    // on click-away.
     items.push({ separator: true, label: '' });
-    items.push(...buildCustomizeItems({
-      widgets,
-      toggleWidget,
-      railHidden: window.matchMedia('(max-width:1040px)').matches,
-      onOpenLaunchpad,
-    }));
+    items.push({
+      label: 'Desktop Widgets',
+      icon: <LayoutDashboard size={15} />,
+      children: buildWidgetItems({
+        widgets,
+        toggleWidget,
+        railHidden: window.matchMedia('(max-width:1040px)').matches,
+      }),
+    });
+
+    // Apps group.
     items.push({ separator: true, label: '' });
-    if (isAdmin) items.push({ label: 'Add application', icon: <Plus size={15} />, onClick: onAddApp });
+    if (isAdmin) items.push({ label: 'Add Application', icon: <Plus size={15} />, onClick: onAddApp });
+    items.push({ label: 'Add apps to Dock or Desktop…', icon: <LayoutGrid size={15} />, onClick: onOpenLaunchpad });
     items.push({ label: 'App placement…', icon: <SlidersHorizontal size={15} />, onClick: () => { const s = getSystemApp('settings'); if (s) openApp(s); } });
+
+    // Layout group (admin default + reset).
+    if (isAdmin || hasLocalOverrides) items.push({ separator: true, label: '' });
     if (isAdmin) {
       items.push({ label: 'Set as everyone’s default', icon: <Star size={15} />, onClick: async () => {
         if (!window.confirm('Make the current app layout the default for everyone?')) return;
@@ -115,7 +127,6 @@ const DesktopSurface: React.FC<{
       } });
     }
     if (hasLocalOverrides) {
-      items.push({ separator: true, label: '' });
       items.push({ label: 'Reset layout', icon: <RotateCcw size={15} />, onClick: resetLayout });
     }
     openMenu(e, items);

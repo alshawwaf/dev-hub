@@ -1498,6 +1498,13 @@ svg {
 }
 .os-ctxmenu-item.danger:hover { background: rgba(239, 68, 68, 0.5); }
 .os-ctxmenu-sep { height: 1px; background: var(--glass-border); margin: 4px 6px; }
+/* macOS-style submenu (e.g. Desktop Widgets) — a flyout beside its parent row. */
+.os-ctxmenu-subwrap { position: relative; }
+.os-ctxmenu-chev { margin-left: auto; opacity: 0.55; }
+.os-ctxmenu-item.sub-open { background: linear-gradient(135deg, rgba(124, 58, 237, 0.45) 0%, rgba(236, 72, 153, 0.32) 100%); color: #fff; }
+.os-ctxmenu-sub { position: absolute; z-index: 10001; top: -6px; max-height: 62vh; overflow-y: auto; }
+.os-ctxmenu-subwrap.right > .os-ctxmenu-sub { left: 100%; margin-left: 5px; }
+.os-ctxmenu-subwrap.left > .os-ctxmenu-sub { right: 100%; margin-right: 5px; }
 
 /* Launchpad overlay */
 .os-launchpad {
