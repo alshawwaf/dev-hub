@@ -6,7 +6,7 @@ import { useLayout } from './LayoutContext';
 import { useContextMenu } from './ContextMenu';
 import type { MenuItem } from './ContextMenu';
 import { useHub } from './HubContext';
-import { SYSTEM_APPS } from './systemApps';
+import { systemAppsFor } from './systemApps';
 import { DRAG_MIME } from './drag';
 import { openExternal } from './url';
 import AppGlyph from './AppGlyph';
@@ -131,7 +131,7 @@ const Dock: React.FC<DockProps> = ({ apps, onOpenLaunchpad }) => {
         ))}
 
         <span className="os-dock-sep" />
-        {SYSTEM_APPS.filter(a => a.system !== 'about').map(app => (
+        {systemAppsFor(isAdmin).map(app => (
           <DockTile key={app.id} app={app} />
         ))}
       </div>

@@ -1,12 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { RotateCcw, Shield, Plus, Layers, ExternalLink, Github, Trash2, Search, X, Palette, LayoutGrid, LayoutDashboard, ChevronRight } from 'lucide-react';
+import { RotateCcw, Shield, Plus, Trash2, Search, X, Palette, LayoutGrid, LayoutDashboard, ChevronRight, UserRound, PlugZap, Check, AlertTriangle, LogOut } from 'lucide-react';
 import type { SystemKey, Placement } from '../types';
 import { useLayout } from '../LayoutContext';
 import { useHub } from '../HubContext';
+import { useWindows } from '../WindowManager';
+import { useAuth } from '../../context/AuthContext';
+import { getSystemApp } from '../systemApps';
 import api from '../../services/api';
 import GuidePage from '../../pages/GuidePage';
 import ApiReference from '../../pages/ApiReference';
+import AdminApp from './AdminApp';
+import ApiKeysApp from './ApiKeysApp';
 import AppGlyph from '../AppGlyph';
+
+// ---- Settings deep link --------------------------------------------------------
+// Other surfaces (the menu-bar user menu) open Settings at a specific section via
+// requestSettingsSection: it works with the window closed (module var consumed on
+// mount) AND already open (CustomEvent picked up while mounted).
+const SETTINGS_SECTION_EVENT = 'devhub:settings-section';
+let pendingSettingsSection: string | null = null;
+export function requestSettingsSection(key: string) {
+  pendingSettingsSection = key;
+  window.dispatchEvent(new CustomEvent(SETTINGS_SECTION_EVENT, { detail: key }));
+}
 
 const PLACEMENTS: { value: Placement; label: string }[] = [
   { value: 'desktop', label: 'Desktop' },
@@ -33,11 +49,139 @@ const SECTIONS = [
   { key: 'overview', label: 'Overview', Icon: LayoutDashboard, color: 'linear-gradient(135deg,#06b6d4,#0e7490)' },
   { key: 'appearance', label: 'Appearance', Icon: Palette, color: 'linear-gradient(135deg,#ec4899,#be185d)' },
   { key: 'apps', label: 'Apps & Layout', Icon: LayoutGrid, color: 'linear-gradient(135deg,#7c3aed,#6d28d9)' },
+  { key: 'account', label: 'Account', Icon: UserRound, color: 'linear-gradient(135deg,#10b981,#047857)' },
 ];
+const ADMIN_SECTIONS = [
+  { key: 'integrations', label: 'Integrations', Icon: PlugZap, color: 'linear-gradient(135deg,#f59e0b,#d97706)' },
+  { key: 'manage', label: 'Manage', Icon: Shield, color: 'linear-gradient(135deg,#3b82f6,#1d4ed8)' },
+];
+
+// Account (all users): identity + change-password + sign out.
+const AccountSection: React.FC = () => {
+  const { user, logout } = useAuth();
+  const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pwBusy, setPwBusy] = useState(false);
+
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pw.next !== pw.confirm) { setPwMsg({ ok: false, text: 'New passwords do not match.' }); return; }
+    setPwBusy(true);
+    setPwMsg(null);
+    try {
+      await api.post('auth/change-password', { current_password: pw.current, new_password: pw.next });
+      setPw({ current: '', next: '', confirm: '' });
+      setPwMsg({ ok: true, text: 'Password updated.' });
+    } catch (err: any) {
+      setPwMsg({ ok: false, text: err?.response?.data?.detail || 'Could not change the password.' });
+    } finally {
+      setPwBusy(false);
+    }
+  };
+
+  const memberSince = user?.created_at
+    ? new Date(/[Z+]/.test(user.created_at) ? user.created_at : user.created_at + 'Z').toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })
+    : null;
+
+  return (
+    <>
+      <div className="os-set-head"><h1>Account</h1><p>Your sign-in details and security.</p></div>
+      <Group>
+        <Row label="Email"><span>{user?.email}</span></Row>
+        <Row label="Role"><span>{user?.is_admin ? 'Administrator' : 'Developer'}</span></Row>
+        {memberSince && <Row label="Member since"><span>{memberSince}</span></Row>}
+      </Group>
+      <Group>
+        <form className="os-set-formwrap" onSubmit={changePassword}>
+          <h3>Change password</h3>
+          <input className="os-set-input" type="password" value={pw.current} onChange={e => setPw(p => ({ ...p, current: e.target.value }))} placeholder="Current password" autoComplete="current-password" required />
+          <input className="os-set-input" type="password" value={pw.next} onChange={e => setPw(p => ({ ...p, next: e.target.value }))} placeholder="New password" autoComplete="new-password" required />
+          <input className="os-set-input" type="password" value={pw.confirm} onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))} placeholder="Confirm new password" autoComplete="new-password" required />
+          <div className="os-set-form-actions">
+            <button className="btn btn-primary" type="submit" disabled={pwBusy}>{pwBusy ? 'Updating…' : 'Update password'}</button>
+            {pwMsg && (
+              <span className={`os-set-status ${pwMsg.ok ? 'ok' : 'err'}`}>
+                {pwMsg.ok ? <Check size={14} /> : <AlertTriangle size={14} />} {pwMsg.text}
+              </span>
+            )}
+          </div>
+        </form>
+      </Group>
+      <Group>
+        <div className="os-set-formwrap">
+          <button className="btn btn-ghost os-set-signout" onClick={logout}><LogOut size={15} /> Sign out</button>
+        </div>
+      </Group>
+    </>
+  );
+};
+
+// Integrations (admin): the Dokploy connection behind the lifecycle controls.
+const IntegrationsSection: React.FC = () => {
+  const [info, setInfo] = useState<{ configured: boolean; url?: string; ok?: boolean; error?: string } | null>(null);
+  const [url, setUrl] = useState('');
+  const [token, setToken] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get('infra/dokploy')
+      .then(r => { if (!cancelled) { setInfo(r.data); setUrl(r.data?.url || ''); } })
+      .catch(() => { if (!cancelled) setInfo({ configured: false }); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setSaved(false);
+    try {
+      // Blank token = keep the stored one (it's never sent back to the browser).
+      const payload: { url: string; token?: string } = { url: url.trim() };
+      if (token) payload.token = token;
+      const r = await api.put('infra/dokploy', payload);
+      setInfo(r.data);
+      setToken('');
+      setSaved(true);
+    } catch (err: any) {
+      setInfo(i => ({ configured: i?.configured ?? false, url, ok: false, error: err?.response?.data?.detail || 'Could not save the Dokploy settings.' }));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const status = !info
+    ? <span className="os-set-status">Checking…</span>
+    : info.configured
+      ? (info.ok === false
+        ? <span className="os-set-status err"><AlertTriangle size={14} /> {info.error || 'Connection failed'}</span>
+        : <span className="os-set-status ok"><Check size={14} /> Connected{saved ? ' — saved' : ''}</span>)
+      : <span className="os-set-status">Not configured</span>;
+
+  return (
+    <>
+      <div className="os-set-head"><h1>Integrations</h1><p>Connect the hub to the platforms it manages.</p></div>
+      <Group>
+        <form className="os-set-formwrap" onSubmit={save}>
+          <h3>Dokploy</h3>
+          <p className="os-set-formnote">Powers the lifecycle controls (start / stop / restart / redeploy) in the Admin window. The token is stored server-side and never returned to the browser.</p>
+          <input className="os-set-input" type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://dokploy.example.com" aria-label="Dokploy URL" required />
+          <input className="os-set-input" type="password" value={token} onChange={e => setToken(e.target.value)} placeholder={info?.configured ? '••••••••  (unchanged)' : 'API token'} aria-label="Dokploy API token" autoComplete="off" />
+          <div className="os-set-form-actions">
+            <button className="btn btn-primary" type="submit" disabled={busy || !url.trim()}>{busy ? 'Testing…' : 'Save & Test'}</button>
+            {status}
+          </div>
+        </form>
+      </Group>
+    </>
+  );
+};
 
 const SettingsApp: React.FC = () => {
   const { resetLayout, hasLocalOverrides, getPlacement, setPlacement, theme, setTheme, desktopApps, dockApps, iconTileBg } = useLayout();
   const { isAdmin, openAddApp, apps } = useHub();
+  const { openApp } = useWindows();
   const catalog = apps.filter(a => a.id > 0);
   const [active, setActive] = useState('overview');
   const [q, setQ] = useState('');
@@ -48,10 +192,24 @@ const SettingsApp: React.FC = () => {
     try { localStorage.setItem('devhub.reduce-motion', reduceMotion ? '1' : '0'); } catch { /* unavailable */ }
   }, [reduceMotion]);
 
-  const sections = isAdmin
-    ? [...SECTIONS, { key: 'manage', label: 'Manage', Icon: Shield, color: 'linear-gradient(135deg,#3b82f6,#1d4ed8)' }]
-    : SECTIONS;
+  const sections = isAdmin ? [...SECTIONS, ...ADMIN_SECTIONS] : SECTIONS;
   const visible = sections.filter(s => s.label.toLowerCase().includes(q.trim().toLowerCase()));
+
+  // Deep-link consumption (see requestSettingsSection above): a pending request is
+  // honored on mount; further requests arrive as events while the window is open.
+  // Keys the user can't see (admin sections for non-admins) are ignored.
+  useEffect(() => {
+    const consume = (key: string | null) => {
+      if (key && sections.some(s => s.key === key)) setActive(key);
+      pendingSettingsSection = null;
+    };
+    consume(pendingSettingsSection);
+    const onEvent = (e: Event) => consume((e as CustomEvent<string>).detail);
+    window.addEventListener(SETTINGS_SECTION_EVENT, onEvent);
+    return () => window.removeEventListener(SETTINGS_SECTION_EVENT, onEvent);
+    // sections is stable per mount (isAdmin doesn't change mid-session)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="os-set-wrap">
@@ -141,12 +299,18 @@ const SettingsApp: React.FC = () => {
           </>
         )}
 
+        {active === 'account' && <AccountSection />}
+
+        {active === 'integrations' && isAdmin && <IntegrationsSection />}
+
         {active === 'manage' && isAdmin && (
           <>
             <div className="os-set-head"><h1>Manage</h1><p>Administrator tools.</p></div>
             <div className="os-sys-row">
               <button className="btn btn-primary" onClick={openAddApp}><Plus size={15} /> Add application</button>
-              <a className="btn btn-ghost" href="/admin"><Shield size={15} /> Admin dashboard</a>
+              <button className="btn btn-ghost" onClick={() => { const a = getSystemApp('admin'); if (a) openApp(a); }}>
+                <Shield size={15} /> Admin dashboard
+              </button>
             </div>
           </>
         )}
@@ -256,26 +420,14 @@ const ActivityFeed: React.FC = () => {
   );
 };
 
-const AboutApp: React.FC = () => (
-  <div className="os-sys os-sys-about">
-    <div className="os-sys-logo"><Layers size={34} /></div>
-    <h2>DevHub</h2>
-    <p>A macOS-style desktop for the AI and dev tools built for and with AI. Apps live as icons on the desktop and dock; open one to launch it in a window or its own tab.</p>
-    <div className="os-sys-row">
-      <a className="btn btn-ghost" href="https://hub.ai.alshawwaf.ca" target="_blank" rel="noopener noreferrer"><ExternalLink size={15} /> hub.ai.alshawwaf.ca</a>
-      <a className="btn btn-ghost" href="https://github.com/alshawwaf/dev-hub" target="_blank" rel="noopener noreferrer"><Github size={15} /> Source</a>
-    </div>
-    <p className="os-sys-hint">© 2026 AI Dev Hub • Crafted for AI by AI</p>
-  </div>
-);
-
 const SystemContent: React.FC<{ appKey: SystemKey }> = ({ appKey }) => {
   switch (appKey) {
     case 'settings': return <SettingsApp />;
     case 'logs': return <ActivityFeed />;
     case 'guide': return <div className="os-sys-guide"><GuidePage /></div>;
-    case 'api': return <div className="os-sys-guide"><ApiReference /></div>;
-    case 'about': return <AboutApp />;
+    case 'api': return <ApiReference />;
+    case 'admin': return <AdminApp />;
+    case 'apikeys': return <ApiKeysApp />;
     default: return null;
   }
 };

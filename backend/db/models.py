@@ -30,6 +30,10 @@ class Application(Base):
     # NEVER exposed in the public API; only the has_embed_url flag is, and the
     # decrypted value is served from an authenticated endpoint.
     embed_url = Column(String, nullable=True)
+    # Optional mapping onto the Dokploy service that runs this app, so the hub
+    # can show live state and offer start/stop/restart/redeploy (admin-only).
+    deploy_kind = Column(String, nullable=True)  # "application" | "compose"
+    deploy_id = Column(String, nullable=True)    # Dokploy applicationId / composeId
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -76,3 +80,31 @@ class Notification(Base):
     text = Column(String)
     read = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class ApiKey(Base):
+    """A bearer credential for scripts/agents (raw form "devhub_…"). Only the
+    SHA-256 of the raw key is stored — the raw value is shown once at creation
+    and can never be recovered, only revoked."""
+    __tablename__ = "api_keys"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, index=True)                # users.id
+    name = Column(String, nullable=False)                 # human label ("n8n agent")
+    prefix = Column(String)                               # first 12 chars of the raw key, for display
+    key_hash = Column(String, unique=True, index=True, nullable=False)  # sha256 hex of the raw key
+    scopes = Column(JSON, default=list)                   # subset of ["read","write","admin"]
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=True)   # None = never expires
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
+    revoked = Column(Boolean, default=False)
+
+class HubSetting(Base):
+    """Key/value store for hub-level configuration (e.g. the Dokploy URL+token).
+    Values are AES-256-GCM encrypted at rest via crypto.encrypt — settings can
+    carry credentials, so nothing is ever stored in the clear."""
+    __tablename__ = "hub_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, index=True, nullable=False)
+    value_enc = Column(String, nullable=True)             # encrypted value (crypto.py)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

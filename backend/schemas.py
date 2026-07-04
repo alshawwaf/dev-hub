@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
 
 class AppBase(BaseModel):
@@ -13,6 +13,10 @@ class AppBase(BaseModel):
     embeddable: bool = False
     placement: str = "desktop"
     proxy_embed: bool = False
+    # Optional Dokploy service mapping — lets the hub show live state and run
+    # start/stop/restart/redeploy. The ids are opaque Dokploy identifiers.
+    deploy_kind: Optional[Literal["application", "compose"]] = None
+    deploy_id: Optional[str] = None
 
 class AppCreate(AppBase):
     # Optional override URL for the in-window frame; may carry a token, so it is
@@ -54,3 +58,38 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: Optional[str] = None
+
+class ChangePassword(BaseModel):
+    current_password: str
+    new_password: str
+
+class ApiKeyCreate(BaseModel):
+    name: str
+    scopes: List[str] = ["read"]
+    # Days until expiry; None/omitted = the key never expires.
+    expires_days: Optional[int] = None
+
+class ApiKey(BaseModel):
+    id: int
+    name: str
+    prefix: str
+    scopes: List[str]
+    created_at: datetime
+    expires_at: Optional[datetime] = None
+    last_used_at: Optional[datetime] = None
+    revoked: bool
+
+    class Config:
+        from_attributes = True
+
+class ApiKeyCreated(ApiKey):
+    # The raw key — returned exactly ONCE at creation; only its hash is stored.
+    key: str
+
+class DokployConfigIn(BaseModel):
+    url: str
+    # Empty token + an already-stored token = keep the stored one (URL-only edit).
+    token: str = ""
+
+class PowerAction(BaseModel):
+    action: Literal["start", "stop", "restart", "redeploy"]

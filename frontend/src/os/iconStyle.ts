@@ -35,9 +35,10 @@ const SYSTEM_TINTS: Record<string, string> = {
   settings: 'linear-gradient(145deg,#64748b,#334155)',   // slate
   logs: 'linear-gradient(145deg,#10b981,#047857)',       // emerald (Activity)
   guide: 'linear-gradient(145deg,#3b82f6,#1d4ed8)',      // blue
-  about: 'linear-gradient(145deg,#a78bfa,#7c3aed)',      // purple
   launchpad: 'linear-gradient(145deg,#ec4899,#7c3aed)',  // pink→purple
   api: 'linear-gradient(145deg,#06b6d4,#0e7490)',        // cyan (REST API)
+  admin: 'linear-gradient(145deg,#6366f1,#4338ca)',      // indigo (Shield)
+  apikeys: 'linear-gradient(145deg,#f59e0b,#b45309)',    // amber (KeyRound)
 };
 
 export function tintFor(app: AppInfo): string | undefined {

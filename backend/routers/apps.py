@@ -2,6 +2,7 @@ import re
 import httpx
 from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import List
 from db import models
@@ -167,6 +168,35 @@ def probe_app(app_id: int, request: Request, db: Session = Depends(get_db),
                 "reason": "This app blocks being shown in a window — its server disables framing. "
                           "Open it in a new tab, or allow the hub in its frame-ancestors."}
     return {"ok": True, "category": "ok", "status": code, "reason": ""}
+
+
+@router.get("/{app_id}/status")
+def app_status(app_id: int, db: Session = Depends(get_db),
+               current_user: schemas.User = Depends(get_current_admin_user)):
+    """Live Dokploy state for a mapped app: {mapped, state, detail}. Unmapped or
+    unconfigured -> mapped:false/state:"unknown" (never an error)."""
+    from .infra import get_app_status
+    db_app = db.query(models.Application).filter(models.Application.id == app_id).first()
+    if not db_app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    return get_app_status(db, db_app)
+
+
+@router.post("/{app_id}/power")
+def app_power(app_id: int, body: schemas.PowerAction, request: Request,
+              db: Session = Depends(get_db),
+              current_user: schemas.User = Depends(get_current_admin_user)):
+    """Run start/stop/restart/redeploy on the app's mapped Dokploy service.
+    400 for caller mistakes (unmapped/unconfigured/self-power/compose-restart);
+    502 with ok:false when Dokploy itself fails."""
+    from .infra import perform_power, own_host_of, DokployError
+    db_app = db.query(models.Application).filter(models.Application.id == app_id).first()
+    if not db_app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    try:
+        return perform_power(db, db_app, body.action, own_host_of(request), current_user.email)
+    except DokployError as e:
+        return JSONResponse(status_code=502, content={"ok": False, "message": str(e)})
 
 
 @router.delete("/{app_id}")

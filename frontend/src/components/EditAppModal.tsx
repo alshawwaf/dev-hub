@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Upload, Image as ImageIcon, Type, Tag, AlignLeft, ExternalLink, Github } from 'lucide-react';
+import { X, Save, Upload, Image as ImageIcon, Type, Tag, AlignLeft, ExternalLink, Github, Rocket } from 'lucide-react';
 import api from '../services/api';
 import AppGlyph from '../os/AppGlyph';
 import { fileToIconDataUrl } from './iconUpload';
@@ -15,7 +15,14 @@ interface App {
   is_live: boolean;
   embeddable?: boolean;
   proxy_embed?: boolean;
+  deploy_kind?: 'application' | 'compose' | null;
+  deploy_id?: string | null;
 }
+
+interface DokployTarget { kind: 'application' | 'compose'; id: string; name: string; project: string; }
+
+// <select> option value for a target — kind + id packed into one string ('' = not linked).
+const targetValue = (kind: string, id: string) => `${kind}|${id}`;
 
 interface EditAppModalProps {
   isOpen: boolean;
@@ -37,6 +44,11 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
   // back if the admin actually edits it (so a failed prefetch can't wipe it).
   const [embedUrl, setEmbedUrl] = useState('');
   const [embedDirty, setEmbedDirty] = useState(false);
+  // Dokploy deployment mapping: the picker only appears when Dokploy is connected
+  // (null = still checking); targets come from the admin-only listing endpoint.
+  const [dokployConfigured, setDokployConfigured] = useState<boolean | null>(null);
+  const [deployTargets, setDeployTargets] = useState<DokployTarget[]>([]);
+  const [deploySel, setDeploySel] = useState('');
 
   useEffect(() => {
     if (app) {
@@ -48,6 +60,19 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
       setEmbedUrl('');
       setEmbedDirty(false);
       api.get(`apps/${app.id}/embed`).then(r => setEmbedUrl(r.data?.embed_url || '')).catch(() => {});
+      setDeploySel(app.deploy_kind && app.deploy_id ? targetValue(app.deploy_kind, app.deploy_id) : '');
+      setDokployConfigured(null);
+      setDeployTargets([]);
+      api.get('infra/dokploy')
+        .then(r => {
+          setDokployConfigured(!!r.data?.configured);
+          if (r.data?.configured) {
+            api.get('infra/dokploy/targets')
+              .then(t => setDeployTargets(Array.isArray(t.data) ? t.data : []))
+              .catch(() => setDeployTargets([]));
+          }
+        })
+        .catch(() => setDokployConfigured(false));
     }
   }, [app]);
 
@@ -62,6 +87,10 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
       const token = localStorage.getItem('token');
       const payload: Record<string, unknown> = { ...formData };
       if (embedDirty) payload.embed_url = embedUrl;
+      // Deployment mapping rides along on every save ('' = unlink → nulls).
+      const sep = deploySel.indexOf('|');
+      payload.deploy_kind = sep > 0 ? deploySel.slice(0, sep) : null;
+      payload.deploy_id = sep > 0 ? deploySel.slice(sep + 1) : null;
       await api.put(`apps/${app.id}`, payload, { headers: { Authorization: `Bearer ${token}` } });
       onAppUpdated();
       onClose();
@@ -222,6 +251,46 @@ const EditAppModal: React.FC<EditAppModalProps> = ({ isOpen, app, onClose, onApp
               <span style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', marginTop: '5px' }}>
                 Stored encrypted; framed instead of the app URL when set (e.g. an OpenClaw tokenized dashboard URL).
               </span>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={labelStyle}><Rocket size={13} /> Deployment (Dokploy)</label>
+              {dokployConfigured ? (
+                <>
+                  <select
+                    value={deploySel}
+                    onChange={e => setDeploySel(e.target.value)}
+                    onFocus={() => setFocusedField('deploy')}
+                    onBlur={() => setFocusedField(null)}
+                    style={{ ...getInputStyle('deploy'), cursor: 'pointer' }}
+                  >
+                    <option value="">Not linked</option>
+                    {deploySel && !deployTargets.some(t => targetValue(t.kind, t.id) === deploySel) && (
+                      <option value={deploySel}>Currently linked ({deploySel.replace('|', ' ')}) — not in Dokploy list</option>
+                    )}
+                    {(['application', 'compose'] as const).map(kind => {
+                      const group = deployTargets.filter(t => t.kind === kind);
+                      if (!group.length) return null;
+                      return (
+                        <optgroup key={kind} label={kind === 'application' ? 'Applications' : 'Compose'}>
+                          {group.map(t => (
+                            <option key={targetValue(t.kind, t.id)} value={targetValue(t.kind, t.id)}>
+                              {t.name} — {t.project}
+                            </option>
+                          ))}
+                        </optgroup>
+                      );
+                    })}
+                  </select>
+                  <span style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', marginTop: '5px' }}>
+                    Linking enables Start / Stop / Restart / Redeploy in the Admin window.
+                  </span>
+                </>
+              ) : (
+                <span style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', padding: '9px 12px', borderRadius: '10px', background: 'rgba(45, 50, 70, 0.9)', border: '1px solid rgba(148, 163, 184, 0.3)' }}>
+                  {dokployConfigured === null ? 'Checking Dokploy…' : 'Connect Dokploy in Settings → Integrations to link this app to a deployment.'}
+                </span>
+              )}
             </div>
 
             <button type="submit" disabled={loading} style={{

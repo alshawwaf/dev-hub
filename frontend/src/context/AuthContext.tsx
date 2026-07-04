@@ -4,6 +4,8 @@ interface User {
   id: number;
   email: string;
   is_admin: boolean;
+  /** present when the backend includes it in the login payload */
+  created_at?: string;
 }
 
 interface AuthContextType {
