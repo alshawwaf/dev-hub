@@ -103,7 +103,7 @@ const AddAppModal: React.FC<AddAppModalProps> = ({ isOpen, onClose, onAppAdded }
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: "rgba(0, 0, 0, 0.85)", backdropFilter: "blur(12px)" }}
+      style={{ backgroundColor: "rgba(8, 10, 20, 0.34)", backdropFilter: "blur(3px)" }}
       onClick={onClose}
     >
       <div
