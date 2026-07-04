@@ -219,7 +219,7 @@ const EditAppForm: React.FC = () => {
                     );
                   })}
                 </select>
-                <span className="os-form-hint">Linking enables Start / Stop / Restart / Redeploy in the Admin window.</span>
+                <span className="os-form-hint">Only services deployed through Dokploy are listed here — standalone containers won’t appear. Linking enables Start / Stop / Restart / Redeploy in the Admin window.</span>
               </>
             ) : (
               <span className="os-form-note">
