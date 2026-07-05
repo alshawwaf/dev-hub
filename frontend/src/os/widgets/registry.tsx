@@ -4,20 +4,16 @@ import type { WidgetData, WidgetId } from '../types';
 // Order the rail renders enabled widgets in, and the order shown in the
 // customize checklist.
 export const WIDGET_ORDER: WidgetId[] = [
-  'clock', 'system', 'apps', 'activity', 'errors', 'latency', 'recent', 'notifications', 'lastapp', 'quick',
+  'system', 'health', 'activity', 'errors', 'recent',
 ];
 
 export const WIDGET_LABEL: Record<WidgetId, string> = {
-  clock: 'Clock',
   system: 'System',
+  health: 'App health',
   apps: 'Applications',
   activity: 'API activity',
   errors: 'Errors today',
-  latency: 'Avg latency',
   recent: 'Recent activity',
-  notifications: 'Notifications',
-  lastapp: 'Last added app',
-  quick: 'Quick actions',
 };
 
 const ago = (iso: string | null): string => {
@@ -76,19 +72,10 @@ const Meter: React.FC<{ label: string; pct: number }> = ({ label, pct }) => {
 interface WidgetDef {
   label: string;
   open?: string;   // system app key / 'launchpad' to open when the card is clicked
-  render: (d: WidgetData | null, now: Date, onOpen: (key: string) => void) => React.ReactNode;
+  render: (d: WidgetData | null, onOpen: (key: string) => void) => React.ReactNode;
 }
 
 export const WIDGETS: Record<WidgetId, WidgetDef> = {
-  clock: {
-    label: WIDGET_LABEL.clock,
-    render: (_d, now) => (
-      <div className="os-pw-clock">
-        <div className="t">{now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
-        <div className="d">{now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</div>
-      </div>
-    ),
-  },
   apps: {
     label: WIDGET_LABEL.apps,
     open: 'launchpad',
@@ -125,17 +112,6 @@ export const WIDGETS: Record<WidgetId, WidgetDef> = {
       </>
     ),
   },
-  latency: {
-    label: WIDGET_LABEL.latency,
-    open: 'logs',
-    render: (d) => !d ? dim() : (
-      <>
-        <div className="os-pw-h">Avg latency</div>
-        <div className="os-pw-big">{d.latency.avg}<small>ms</small></div>
-        <div className="os-pw-bar"><span style={{ width: `${Math.min(100, d.latency.avg / 5)}%` }} /></div>
-      </>
-    ),
-  },
   recent: {
     label: WIDGET_LABEL.recent,
     open: 'logs',
@@ -155,26 +131,32 @@ export const WIDGETS: Record<WidgetId, WidgetDef> = {
       </>
     ),
   },
-  notifications: {
-    label: WIDGET_LABEL.notifications,
-    render: (d) => !d ? dim() : (
-      <>
-        <div className="os-pw-h">Notifications</div>
-        <div className="os-pw-big">{d.notifications.unread}<small>unread</small></div>
-        {d.notifications.latest && <div className="os-pw-sub">{d.notifications.latest.text}</div>}
-      </>
-    ),
-  },
-  lastapp: {
-    label: WIDGET_LABEL.lastapp,
+  health: {
+    label: WIDGET_LABEL.health,
     open: 'launchpad',
-    render: (d) => !d ? dim() : !d.last_app ? <div className="os-pw-dim">No apps yet.</div> : (
-      <>
-        <div className="os-pw-h">Last added app</div>
-        <div className="os-pw-name">{d.last_app.name}</div>
-        <div className="os-pw-meta"><span className={`os-pw-dot ${d.last_app.is_live ? 'on' : ''}`} />{d.last_app.category || '—'}</div>
-      </>
-    ),
+    render: (d) => {
+      const h = d?.health;
+      if (!h) return dim();
+      if (h.total === 0) return (
+        <>
+          <div className="os-pw-h">App health</div>
+          <div className="os-pw-dim">No apps to check.</div>
+        </>
+      );
+      return (
+        <>
+          <div className="os-pw-h">App health</div>
+          <div className="os-pw-big" style={{ color: h.down ? 'var(--error)' : 'var(--success)' }}>
+            {h.up}<small>/ {h.total} up</small>
+          </div>
+          <div className="os-pw-health">
+            {h.items.map(it => (
+              <span key={it.id} className={`os-pw-hdot ${it.state}`} title={`${it.name} — ${it.state}`} />
+            ))}
+          </div>
+        </>
+      );
+    },
   },
   system: {
     label: WIDGET_LABEL.system,
@@ -197,18 +179,5 @@ export const WIDGETS: Record<WidgetId, WidgetDef> = {
         </>
       );
     },
-  },
-  quick: {
-    label: WIDGET_LABEL.quick,
-    render: (_d, _now, onOpen) => (
-      <>
-        <div className="os-pw-h">Quick actions</div>
-        <div className="os-pw-pills">
-          <button onClick={() => onOpen('launchpad')}>Launchpad</button>
-          <button onClick={() => onOpen('logs')}>Activity</button>
-          <button onClick={() => onOpen('guide')}>Guide</button>
-        </div>
-      </>
-    ),
   },
 };

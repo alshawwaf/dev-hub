@@ -5,35 +5,46 @@ layered on top of the admin-set baseline (the Application.placement column).
 import os
 import re
 import time
+import threading
 from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from db import models
-from db.database import get_db
+from db.database import get_db, SessionLocal
 import schemas
 from .auth import read_users_me, get_current_admin_user
 
 router = APIRouter()
 
-# Backend start (for the System widget's uptime).
+# Backend start (for the System widget's uptime fallback when /proc/uptime is absent).
 _STARTED = time.monotonic()
 
 VALID = {"desktop", "dock", "both", "hidden"}
 # Widget ids the desktop rail knows how to render (see frontend os/widgets/registry).
-VALID_WIDGETS = {"clock", "apps", "activity", "errors", "latency", "recent", "notifications", "lastapp", "quick", "system"}
+VALID_WIDGETS = {"apps", "activity", "errors", "recent", "system", "health"}
 # Icon/folder color values accepted from the client: a macOS-tag palette key or a raw hex.
 FOLDER_COLOR_KEYS = {"blue", "purple", "pink", "red", "orange", "green", "graphite"}
 _HEX_COLOR_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 
 
+def _host_uptime_seconds() -> int:
+    """Seconds since host boot (first field of /proc/uptime on Linux). Falls back
+    to this process's uptime when /proc/uptime can't be read (e.g. macOS dev)."""
+    try:
+        with open("/proc/uptime") as f:
+            return int(float(f.read().split()[0]))
+    except Exception:
+        return int(time.monotonic() - _STARTED)
+
+
 def _system_stats() -> dict:
-    """Host/app utilization via stdlib only (no psutil): app uptime, load average,
+    """Host/app utilization via stdlib only (no psutil): host uptime, load average,
     memory (from /proc/meminfo on Linux), and disk usage of /. Each piece degrades
     to None if unavailable so the widget stays resilient across platforms."""
-    stats: dict = {"uptime_seconds": int(time.monotonic() - _STARTED), "cpus": os.cpu_count() or 1}
+    stats: dict = {"uptime_seconds": _host_uptime_seconds(), "cpus": os.cpu_count() or 1}
     try:
         stats["load"] = [round(x, 2) for x in os.getloadavg()]
     except (OSError, AttributeError):
@@ -59,6 +70,90 @@ def _system_stats() -> dict:
     except Exception:
         stats["disk"] = None
     return stats
+
+
+# ---- App-health board (background-refreshed, served from cache) -----------
+# The /widgets endpoint is polled by every client every ~20s, so probing each
+# app on-request would hammer the targets. Instead a daemon thread (started from
+# main.py's startup hook) refreshes this cache every 60s; /widgets just reads it.
+_HEALTH_INTERVAL = 60          # seconds between background refreshes
+_HEALTH_PROBE_TIMEOUT = 4.0    # per-app reachability probe budget (seconds)
+_health_lock = threading.Lock()
+_health_cache: dict = {"items": [], "up": 0, "down": 0, "unknown": 0, "total": 0, "at": 0}
+# down first, then unknown, then up — so problems surface at the front of the row.
+_HEALTH_RANK = {"down": 0, "stopped": 1, "unknown": 2, "up": 3}
+
+
+def _app_health_state(db: Session, app) -> str:
+    """One app's coarse health: 'up' | 'down' | 'stopped' | 'unknown'. Prefers the
+    Dokploy lifecycle state when the app is mapped and Dokploy is configured, else
+    falls back to a reachability probe of its URL. Never raises."""
+    from . import infra, apps as apps_router
+    try:
+        kind, dep_id = getattr(app, "deploy_kind", None), getattr(app, "deploy_id", None)
+        if kind in ("application", "compose") and dep_id:
+            url, token = infra._config(db)
+            if url and token:
+                st = infra.get_app_status(db, app)
+                return {"running": "up", "stopped": "stopped",
+                        "error": "down"}.get(st.get("state"), "unknown")
+        if not app.url:
+            return "unknown"
+        res = apps_router._probe_reachability(app, timeout=_HEALTH_PROBE_TIMEOUT)
+        cat = res.get("category")
+        if cat in ("ok", "blocked"):   # blocked = reachable but blocks framing; still up
+            return "up"
+        if cat in ("offline", "notfound", "error"):
+            return "down"
+        return "unknown"
+    except Exception:
+        return "unknown"
+
+
+def _refresh_health() -> None:
+    """Recompute the app-health board and store it in the module cache. Opens its
+    own session (runs off-request on the background thread). Fully guarded."""
+    db = SessionLocal()
+    try:
+        rows = db.query(models.Application).filter(models.Application.id > 0).all()
+        items = [{"id": a.id, "name": a.name, "state": _app_health_state(db, a)} for a in rows]
+        items.sort(key=lambda it: (_HEALTH_RANK.get(it["state"], 2), it["name"].lower()))
+        up = sum(1 for it in items if it["state"] == "up")
+        down = sum(1 for it in items if it["state"] in ("down", "stopped"))
+        unknown = sum(1 for it in items if it["state"] == "unknown")
+        snapshot = {"items": items, "up": up, "down": down, "unknown": unknown,
+                    "total": len(items), "at": int(time.time())}
+    except Exception as e:
+        print(f"health refresh failed: {e}")
+        return
+    finally:
+        db.close()
+    with _health_lock:
+        _health_cache.update(snapshot)
+
+
+def _health_loop() -> None:
+    """Background daemon loop: refresh the app-health cache every _HEALTH_INTERVAL."""
+    while True:
+        _refresh_health()
+        time.sleep(_HEALTH_INTERVAL)
+
+
+def start_health_refresher() -> None:
+    """Kick off the background health refresher once (idempotent, guarded). Called
+    from main.py's startup hook alongside the threadpool tuner."""
+    try:
+        t = threading.Thread(target=_health_loop, name="app-health-refresher", daemon=True)
+        t.start()
+    except Exception as e:
+        print(f"health refresher not started: {e}")
+
+
+def _health_snapshot() -> dict:
+    """The current cached board (a copy), served instantly to /widgets. Zeros/empty
+    until the first background refresh completes."""
+    with _health_lock:
+        return dict(_health_cache)
 
 
 class PrefsIn(BaseModel):
@@ -268,15 +363,15 @@ def set_default(body: DefaultIn, db: Session = Depends(get_db), admin: schemas.U
 
 @router.get("/widgets")
 def widgets_data(db: Session = Depends(get_db), user: schemas.User = Depends(read_users_me)):
-    """Live data for the desktop widget rail (re-domained from PolicyPilot's
-    policy metrics to dev-hub: apps, activity pulse, errors, latency, recent,
-    notifications, last-added app). Auth-gated for any signed-in user."""
+    """Live data for the desktop widget rail: apps counts, activity pulse, errors,
+    recent requests, host/system stats, and the app-health board (served from the
+    background-refreshed cache). Auth-gated for any signed-in user."""
     now = datetime.now(timezone.utc)
     today = now.replace(hour=0, minute=0, second=0, microsecond=0)
     win_start = now - timedelta(minutes=20)
     one_min_ago = now - timedelta(minutes=1)
 
-    A, L, N = models.Application, models.ActivityLog, models.Notification
+    A, L = models.Application, models.ActivityLog
 
     apps_total = db.query(func.count(A.id)).scalar() or 0
     apps_live = db.query(func.count(A.id)).filter(A.is_live == True).scalar() or 0      # noqa: E712
@@ -297,7 +392,6 @@ def widgets_data(db: Session = Depends(get_db), user: schemas.User = Depends(rea
     err_total = db.query(func.count(L.id)).filter(L.at >= today).scalar() or 0
     err_count = db.query(func.count(L.id)).filter(L.at >= today, L.status >= 400).scalar() or 0
     err_pct = round(100 * err_count / err_total, 1) if err_total else 0.0
-    avg = db.query(func.avg(L.duration_ms)).filter(L.at >= today).scalar()
 
     recent = [
         {"method": r.method, "path": r.path, "status": r.status, "kind": r.kind,
@@ -305,21 +399,11 @@ def widgets_data(db: Session = Depends(get_db), user: schemas.User = Depends(rea
         for r in db.query(L).order_by(L.id.desc()).limit(6).all()
     ]
 
-    unread = db.query(func.count(N.id)).filter(N.read == False).scalar() or 0  # noqa: E712
-    ln = db.query(N).order_by(N.id.desc()).first()
-    latest = ({"text": ln.text, "kind": ln.kind,
-               "created_at": ln.created_at.isoformat() if ln.created_at else None} if ln else None)
-
-    la = db.query(A).order_by(A.id.desc()).first()
-    last_app = ({"name": la.name, "category": la.category, "is_live": la.is_live} if la else None)
-
     return {
         "apps": {"total": apps_total, "live": apps_live, "embeddable": apps_embed},
         "activity": {"rate": rate, "spark": spark},
         "errors": {"total": err_total, "err": err_count, "pct": err_pct},
-        "latency": {"avg": int(avg) if avg is not None else 0},
         "recent": recent,
-        "notifications": {"unread": unread, "latest": latest},
-        "last_app": last_app,
         "system": _system_stats(),
+        "health": _health_snapshot(),
     }

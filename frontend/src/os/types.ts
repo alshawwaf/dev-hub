@@ -45,16 +45,13 @@ export interface FolderInfo {
   color?: string;
 }
 
-export type WidgetId = 'clock' | 'apps' | 'activity' | 'errors' | 'latency' | 'recent' | 'notifications' | 'lastapp' | 'quick' | 'system';
+export type WidgetId = 'apps' | 'activity' | 'errors' | 'recent' | 'system' | 'health';
 
 export interface WidgetData {
   apps: { total: number; live: number; embeddable: number };
   activity: { rate: number; spark: number[] };
   errors: { total: number; err: number; pct: number };
-  latency: { avg: number };
   recent: { method: string; path: string; status: number; kind: string; at: string | null }[];
-  notifications: { unread: number; latest: { text: string; kind: string; created_at: string | null } | null };
-  last_app: { name: string; category: string; is_live: boolean } | null;
   system?: {
     uptime_seconds: number;
     cpus: number;
@@ -62,6 +59,7 @@ export interface WidgetData {
     mem: { used_pct: number | null; total_mb: number } | null;
     disk: { used_pct: number | null; total_gb: number } | null;
   };
+  health?: { items: { id: number; name: string; state: string }[]; up: number; down: number; unknown: number; total: number };
 }
 
 export interface WindowState {

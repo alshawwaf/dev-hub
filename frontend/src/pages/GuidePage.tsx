@@ -126,7 +126,7 @@ const GuidePage: React.FC = () => {
               <Feature icon={<Command size={18} />} title={<>Spotlight <Kbd>⌘K</Kbd></>}>Press <Kbd>⌘K</Kbd> (or <Kbd>Ctrl K</Kbd>) for a command palette — type to filter, <Kbd>↑</Kbd>/<Kbd>↓</Kbd> to move, <Kbd>Enter</Kbd> to launch.</Feature>
               <Feature icon={<FolderClosed size={18} />} title="Folders">Right-click the desktop → New Folder (name it inline), drag apps in, give it a color, and open a Launchpad-style panel.</Feature>
               <Feature icon={<LayoutGrid size={18} />} title="Dock & icons">Pin favorites to the dock, drag icons to arrange them, and right-click anything for its actions (open, pin, source on GitHub, …).</Feature>
-              <Feature icon={<Gauge size={18} />} title="Widgets">A live rail with clock, system, activity, errors, latency and more — toggle and arrange it to taste.</Feature>
+              <Feature icon={<Gauge size={18} />} title="Widgets">A live rail with system stats, app health, API activity, errors and more — toggle and arrange it to taste.</Feature>
               <Feature icon={<SunMoon size={18} />} title="Themes">Dark, light, or <strong>Auto</strong> (follows your OS appearance) — set it in Settings; it follows you across devices.</Feature>
             </div>
             <Callout kind="tip">Your entire layout — icon positions, folders, dock/desktop placement, widgets, and theme — is saved per user and follows you to any device you sign in from.</Callout>
