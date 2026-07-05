@@ -162,7 +162,7 @@ const AppWindow: React.FC<{ win: WindowState }> = ({ win }) => {
     zIndex: win.z,
     // Keep minimized windows MOUNTED but hidden so their iframe (and the running app)
     // survives — restoring is instant with no reload. Matters for heavy apps that are
-    // slow to boot (e.g. the Lakera demo). Closing (not minimizing) still unmounts.
+    // slow to boot (e.g. the AI Guardrails demo). Closing (not minimizing) still unmounts.
     ...(win.minimized ? { display: 'none' } : null),
   };
 

@@ -41,12 +41,12 @@ def seed():
         print("Syncing applications...")
         apps = [
                 models.Application(
-                    name="Lakera Guard Demo",
+                    name="AI Guardrails Demo",
                     description="AI security guardrails",
-                    url=f"https://lakera.{DOMAIN}",
-                    github_url="https://github.com/alshawwaf/Lakera-Demo",
+                    url=f"https://guardrails.{DOMAIN}",
+                    github_url="https://github.com/alshawwaf/ai-guardrails-demo",
                     category="AI Security",
-                    icon="/logos/lakera.png",
+                    icon="/logos/guardrails.png",
                     is_live=True
                 ),
                 models.Application(
@@ -188,7 +188,7 @@ def seed():
             "SAML IDP Simulator": "lucide:KeyRound",
             "Training Portal": "lucide:GraduationCap",
             "AI Basic Training": "lucide:Sparkles",
-            "Lakera Guard Demo": "lucide:ShieldCheck",
+            "AI Guardrails Demo": "lucide:ShieldCheck",
         }
         changed = 0
         for app_name, new_icon in bespoke_icons.items():
@@ -215,7 +215,7 @@ def seed():
         # path for ALL apps.
         embed_direct = {
             "Docs to Swagger", "Open WebUI", "Flowise",
-            "Training Portal", "IDP Simulator", "Lakera Guard Demo",
+            "Training Portal", "IDP Simulator", "AI Guardrails Demo",
             "n8n Workflow", "Langflow", "OpenClaw",
             "AI Basic Training", "Threat Prevention Server", "Script Builder",
             "Drawbridge", "Policy Pilot",
