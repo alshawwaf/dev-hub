@@ -122,6 +122,12 @@ async def _tune_threadpool():
         anyio.to_thread.current_default_thread_limiter().total_tokens = 40
     except Exception as e:
         print(f"threadpool tune skipped: {e}")
+    # Start the desktop App-health board's background refresher (probes each app
+    # off-request every 60s and caches the result; guarded, never crashes boot).
+    try:
+        desktop.start_health_refresher()
+    except Exception as e:
+        print(f"health refresher start skipped: {e}")
 
 
 @app.get("/")

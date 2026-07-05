@@ -15,28 +15,18 @@ const Widgets: React.FC<{ onOpenLaunchpad: () => void }> = ({ onOpenLaunchpad })
   const { openApp } = useWindows();
   const { openAt } = useContextMenu();
   const [data, setData] = useState<WidgetData | null>(null);
-  const [now, setNow] = useState(() => new Date());
 
   const enabled = WIDGET_ORDER.filter(id => widgets.includes(id));
-  const needsData = enabled.some(id => id !== 'clock');
-  const hasClock = widgets.includes('clock');
 
-  // Poll live data while any data-backed widget is shown.
+  // Poll live data while any widget is shown (all remaining widgets are data-backed).
   useEffect(() => {
-    if (!needsData) { setData(null); return; }
+    if (enabled.length === 0) { setData(null); return; }
     let cancelled = false;
     const load = () => api.get('desktop/widgets').then(r => { if (!cancelled) setData(r.data); }).catch(() => {});
     load();
     const t = window.setInterval(load, 20_000);
     return () => { cancelled = true; window.clearInterval(t); };
-  }, [needsData]);
-
-  // Clock tick (only while the clock widget is enabled).
-  useEffect(() => {
-    if (!hasClock) return;
-    const t = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(t);
-  }, [hasClock]);
+  }, [enabled.length]);
 
   const onOpen = useCallback((key: string) => {
     if (key === 'launchpad') { onOpenLaunchpad(); return; }
@@ -59,7 +49,7 @@ const Widgets: React.FC<{ onOpenLaunchpad: () => void }> = ({ onOpenLaunchpad })
         <button className="os-pw-empty" onClick={openCustomize}>
           <LayoutGrid size={20} />
           <span>Add widgets</span>
-          <small>Clock, activity, apps &amp; more</small>
+          <small>System, app health, activity &amp; more</small>
         </button>
       </div>
     );
@@ -79,7 +69,7 @@ const Widgets: React.FC<{ onOpenLaunchpad: () => void }> = ({ onOpenLaunchpad })
             onClick={clickable ? () => onOpen(def.open!) : undefined}
             onKeyDown={clickable ? (e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(def.open!); } }) : undefined}
           >
-            {def.render(data, now, onOpen)}
+            {def.render(data, onOpen)}
           </div>
         );
       })}

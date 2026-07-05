@@ -112,7 +112,15 @@ def probe_app(app_id: int, request: Request, db: Session = Depends(get_db),
     db_app = db.query(models.Application).filter(models.Application.id == app_id).first()
     if not db_app:
         raise HTTPException(status_code=404, detail="Application not found")
+    return _probe_reachability(db_app, origin=_probe_origin(request))
 
+
+def _probe_reachability(db_app, origin: str = "", timeout: float = 6.0) -> dict:
+    """The reachability + framing verdict for one app (no request/auth deps), so it
+    can be reused off-request by the desktop's background health refresher. Returns
+    {ok, category in ok|blocked|offline|notfound|error, status, reason}. When origin
+    is "" the framing check is biased toward 'ok' (the health board treats blocked as
+    up anyway). Upstream TLS is always verified; only the admin-registered URL is hit."""
     target = crypto.decrypt(getattr(db_app, "embed_url", None)) or db_app.url
     if not target or not (target.startswith("http://") or target.startswith("https://")):
         return {"ok": False, "category": "error", "status": None,
@@ -126,7 +134,7 @@ def probe_app(app_id: int, request: Request, db: Session = Depends(get_db),
         # address. An off-host redirect means the app answered, so report it
         # reachable rather than chasing the Location.
         with httpx.Client(verify=True, follow_redirects=False,
-                          timeout=httpx.Timeout(6.0, connect=3.0)) as client:
+                          timeout=httpx.Timeout(timeout, connect=min(3.0, timeout))) as client:
             resp = client.send(client.build_request("GET", target, headers=probe_headers), stream=True)
             hops = 0
             while resp.status_code in (301, 302, 303, 307, 308) and hops < 4:
@@ -157,7 +165,6 @@ def probe_app(app_id: int, request: Request, db: Session = Depends(get_db),
 
     # Reachable (2xx/3xx, or a 4xx that isn't 404 — e.g. an auth wall). Will the
     # browser let the hub frame it?
-    origin = _probe_origin(request)
     xfo = (headers.get("x-frame-options") or "").lower()
     csp = (headers.get("content-security-policy") or "").lower()
     blocked = "deny" in xfo or "sameorigin" in xfo

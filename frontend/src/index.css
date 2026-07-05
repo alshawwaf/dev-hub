@@ -1763,6 +1763,14 @@ svg {
 .os-pw-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim); flex-shrink: 0; }
 .os-pw-dot.on { background: var(--success); box-shadow: 0 0 8px var(--success); }
 
+/* App-health board: a wrapped grid of one small colored dot per app. */
+.os-pw-health { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.os-pw-hdot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-dim); flex-shrink: 0; cursor: default; }
+.os-pw-hdot.up { background: var(--success); }
+.os-pw-hdot.down { background: var(--error); }
+.os-pw-hdot.stopped { background: var(--warning); }
+.os-pw-hdot.unknown { background: var(--text-dim); opacity: 0.55; }
+
 .os-pw-pills { display: flex; flex-wrap: wrap; gap: 6px; }
 .os-pw-pills button { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-secondary); font-size: 0.75rem; cursor: pointer; transition: var(--transition-fast); }
 .os-pw-pills button:hover { background: var(--primary); color: #fff; border-color: transparent; }

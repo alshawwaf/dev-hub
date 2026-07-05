@@ -17,8 +17,8 @@ type Theme = 'dark' | 'light' | 'auto';   // 'auto' follows the OS appearance
 const prefersDark = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
 const resolveTheme = (t: Theme): 'dark' | 'light' => (t === 'auto' ? (prefersDark() ? 'dark' : 'light') : t);
 
-const DEFAULT_WIDGETS: WidgetId[] = ['clock', 'activity'];
-const VALID_WIDGETS: string[] = ['clock', 'apps', 'activity', 'errors', 'latency', 'recent', 'notifications', 'lastapp', 'quick', 'system'];
+const DEFAULT_WIDGETS: WidgetId[] = ['system', 'health', 'recent'];
+const VALID_WIDGETS: string[] = ['apps', 'activity', 'errors', 'recent', 'system', 'health'];
 
 type Overrides = Record<number, Placement>;
 // Per-app icon color override: appId → a FOLDER_COLORS key or a raw hex ("#rrggbb").
