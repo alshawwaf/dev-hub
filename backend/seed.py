@@ -142,7 +142,7 @@ def seed():
                 models.Application(
                     name="Threat Prevention Server",
                     description="Threat prevention demo - test IPS, malware emulation, and network security controls",
-                    url=f"https://demo.{DOMAIN}",
+                    url=f"https://threat.{DOMAIN}",
                     github_url="https://github.com/alshawwaf/cp_demo_server",
                     category="Security Demo",
                     icon="lucide:Server",
