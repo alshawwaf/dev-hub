@@ -162,7 +162,7 @@ def seed():
                 ),
                 models.Application(
                     name="IDP Simulator",
-                    description="Identity Provider emulator for SAML SSO testing and security POCs",
+                    description="Full Identity Provider simulator — SAML SSO, SCIM provisioning, security POCs",
                     url=f"https://idp.{DOMAIN}",
                     github_url="https://github.com/alshawwaf/SAML_IDP_Simulator",
                     category="Security Demo",
@@ -215,7 +215,7 @@ def seed():
         bespoke_icons = {
             "Demo Server": "lucide:Server",
             "Script Builder": "lucide:Terminal",
-            "SAML IDP Simulator": "lucide:KeyRound",
+            "KhalIDP": "lucide:KeyRound",
             "Training Portal": "lucide:GraduationCap",
             "AI Basic Training": "lucide:Sparkles",
             "AI Guardrails Playground": "lucide:ShieldCheck",
