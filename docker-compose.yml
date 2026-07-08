@@ -24,6 +24,10 @@ services:
       - DOMAIN=${DOMAIN:-ai.alshawwaf.ca}
       - SUPERADMIN_EMAIL=${SUPERADMIN_EMAIL:-admin@ai.alshawwaf.ca}
       - SUPERADMIN_PASSWORD=${SUPERADMIN_PASSWORD:-ChangeThisPassword123!}
+      # Optional: seed a read+write API key equal to this token so /api/mcp
+      # accepts `Bearer $DEVHUB_MCP_TOKEN` on a fresh deploy (matches the token
+      # provisioned into the n8n DevHub agent). Empty = no-op (mint keys in the UI).
+      - DEVHUB_MCP_TOKEN=${DEVHUB_MCP_TOKEN:-}
     depends_on:
       - dev-hub-db-service
     networks:

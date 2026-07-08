@@ -2,6 +2,7 @@ from db.database import SessionLocal
 from db import models
 from migrate import init_db
 from passlib.context import CryptContext
+import hashlib
 import os
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -35,6 +36,35 @@ def seed():
             print("Superadmin seeded successfully.")
         else:
             print("Superadmin already exists.")
+
+        # Seed the MCP bootstrap API key from the environment so /api/mcp accepts
+        # `Authorization: Bearer $DEVHUB_MCP_TOKEN` on a fresh deploy without an
+        # admin minting a key by hand (the n8n DevHub agent's bearer credential is
+        # provisioned from the same env var). No-op when the var is absent, which
+        # preserves the manual-key behavior. Idempotent (keyed on the sha256 hash)
+        # and the raw token is never printed.
+        mcp_token = (os.getenv("DEVHUB_MCP_TOKEN") or "").strip()
+        if mcp_token:
+            key_hash = hashlib.sha256(mcp_token.encode("utf-8")).hexdigest()
+            existing_key = db.query(models.ApiKey).filter(
+                models.ApiKey.key_hash == key_hash
+            ).first()
+            owner = db.query(models.User).filter(models.User.email == admin_email).first()
+            if existing_key:
+                print("MCP bootstrap API key already present.")
+            elif owner is None:
+                print("WARNING: cannot seed MCP API key — admin user missing.")
+            else:
+                db.add(models.ApiKey(
+                    owner_id=owner.id,
+                    name="MCP bootstrap key",
+                    prefix=mcp_token[:12],
+                    key_hash=key_hash,
+                    scopes=["read", "write"],
+                    revoked=False,
+                ))
+                db.commit()
+                print("Seeded MCP bootstrap API key from DEVHUB_MCP_TOKEN.")
 
         # Seed/upsert applications — adds any missing by name,
         # leaves existing rows untouched so admin edits survive redeploys.
