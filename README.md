@@ -62,6 +62,11 @@ Set via environment (see `docker-compose.yml`):
 - `SECRET_KEY` — JWT signing key (pin it so sessions and encrypted embed URLs survive redeploys).
 - `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD` — the first admin, created on seed.
 - `DOMAIN` — used to derive the default app URLs when seeding.
+- `DEVHUB_MCP_TOKEN` — Bearer token for the MCP server. On seed, `backend/seed.py` provisions an active read+write API key (SHA-256-hashed) whose secret is this token, so the n8n DevHub agent authenticates without an admin minting a key by hand. Idempotent; a no-op when unset (manual-key behavior preserved).
+
+## MCP server & n8n agent
+
+DevHub exposes an MCP server at `/api/mcp` so an LLM agent can drive the hub (list, add, place apps, etc.) programmatically. A ready-to-import n8n workflow ships at [`docs/devhub-agent.json`](docs/devhub-agent.json) — an LLM agent that calls the DevHub MCP tools. It authenticates with a Bearer credential whose token is the `DEVHUB_MCP_TOKEN` set in the deploy environment (see [Configuration](#configuration)), so the agent works on a fresh deploy without a human minting an API key first.
 
 ## Security
 
