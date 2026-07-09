@@ -215,7 +215,7 @@ def seed():
         bespoke_icons = {
             "Demo Server": "lucide:Server",
             "Script Builder": "lucide:Terminal",
-            "KhalIDP": "lucide:KeyRound",
+            "Identity Provider (IdP)": "lucide:KeyRound",
             "Training Portal": "lucide:GraduationCap",
             "AI Basic Training": "lucide:Sparkles",
             "AI Guardrails Playground": "lucide:ShieldCheck",
