@@ -161,7 +161,7 @@ def seed():
                     is_live=True
                 ),
                 models.Application(
-                    name="IDP Simulator",
+                    name="Identity Provider (IdP)",
                     description="Full Identity Provider simulator — SAML SSO, SCIM provisioning, security POCs",
                     url=f"https://idp.{DOMAIN}",
                     github_url="https://github.com/alshawwaf/SAML_IDP_Simulator",
@@ -188,7 +188,7 @@ def seed():
                     is_live=True
                 ),
                 models.Application(
-                    name="Policy Pilot",
+                    name="PolicyPilot",
                     description="Access automation — turns a ticket into the right Check Point policy change (split out of Drawbridge)",
                     url=f"https://policypilot.{DOMAIN}",
                     github_url="https://github.com/alshawwaf/PolicyPilot",
@@ -213,7 +213,7 @@ def seed():
         # (Previously this also overwrote any "/logos/…" value, which silently undid
         # admin icon edits every deploy.)
         bespoke_icons = {
-            "Demo Server": "lucide:Server",
+            "Threat Prevention Server": "lucide:Server",
             "Script Builder": "lucide:Terminal",
             "Identity Provider (IdP)": "lucide:KeyRound",
             "Training Portal": "lucide:GraduationCap",
@@ -245,10 +245,10 @@ def seed():
         # path for ALL apps.
         embed_direct = {
             "Docs to Swagger", "Open WebUI", "Flowise",
-            "Training Portal", "IDP Simulator", "AI Guardrails Playground",
+            "Training Portal", "Identity Provider (IdP)", "AI Guardrails Playground",
             "n8n Workflow", "Langflow", "OpenClaw",
             "AI Basic Training", "Threat Prevention Server", "Script Builder",
-            "Drawbridge", "Policy Pilot",
+            "Drawbridge", "PolicyPilot",
         }
         embed_proxy = set()  # retired — see note above
         changed_embed = 0
@@ -320,6 +320,30 @@ def seed():
             owui.proxy_embed = False
             db.commit()
             print("Open WebUI restored to direct embed (same-site frame shares its storage).")
+
+        # Name-consistency migration: converge existing board rows onto the
+        # canonical display names (idempotent — only renames when the old name
+        # exists and the new one doesn't, so it never clobbers or duplicates).
+        renames = [
+            ("SAML IDP Simulator", "Identity Provider (IdP)"),
+            ("IDP Simulator", "Identity Provider (IdP)"),
+            ("KhalIDP", "Identity Provider (IdP)"),
+            ("Policy Pilot", "PolicyPilot"),
+            ("Demo Server", "Threat Prevention Server"),
+            ("CP Demo Server", "Threat Prevention Server"),
+            ("CP Script Builder", "Script Builder"),
+            ("Docs-to-Swagger", "Docs to Swagger"),
+        ]
+        renamed = 0
+        for old, new in renames:
+            old_row = db.query(models.Application).filter(models.Application.name == old).first()
+            new_row = db.query(models.Application).filter(models.Application.name == new).first()
+            if old_row and not new_row:
+                old_row.name = new
+                renamed += 1
+        if renamed:
+            db.commit()
+            print(f"Name-consistency migration renamed {renamed} app(s).")
 
     finally:
         db.close()
