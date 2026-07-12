@@ -1,0 +1,62 @@
+# Dokploy pure-git deploy for dev-hub.
+#
+# Dokploy clones this repo, builds ./backend and ./frontend from source, and
+# injects a rendered .env supplying the secrets below. There is NO bundled
+# reverse proxy and NO host port publishing here — Dokploy's create_domain wires
+# Traefik to route hub.<domain> to the frontend service's internal port 80. The
+# frontend's nginx (frontend/nginx.conf) reverse-proxies /api/ and /embed/ to
+# the backend on port 8000, so the app is served same-origin.
+#
+# Service names are deliberately dev_hub_db / dev_hub_backend: nginx.conf proxies
+# to host `dev_hub_backend:8000` and the backend's DATABASE_URL targets host
+# `dev_hub_db`, and those hostnames resolve via the compose service-name network
+# aliases. container_name is intentionally omitted (Dokploy randomizes it).
+#
+# Required .env keys (installer-supplied): DOMAIN, DEV_HUB_DB_PASSWORD,
+# DEV_HUB_SECRET_KEY, DEV_HUB_SUPERADMIN_PASSWORD, DEVHUB_MCP_TOKEN.
+# Optional: SUPERADMIN_EMAIL (defaults to admin@${DOMAIN}).
+
+services:
+  dev_hub_db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=${DEV_HUB_DB_PASSWORD}
+      - POSTGRES_DB=dev_hub
+    volumes:
+      - dev_hub_db_data:/var/lib/postgresql/data
+    networks:
+      - dev-hub-net
+
+  dev_hub_backend:
+    build: ./backend
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://admin:${DEV_HUB_DB_PASSWORD}@dev_hub_db:5432/dev_hub
+      - SECRET_KEY=${DEV_HUB_SECRET_KEY}
+      - DOMAIN=${DOMAIN}
+      - SUPERADMIN_EMAIL=${SUPERADMIN_EMAIL:-admin@${DOMAIN}}
+      - SUPERADMIN_PASSWORD=${DEV_HUB_SUPERADMIN_PASSWORD}
+      # Seeds a read+write API key equal to this token so /api/mcp accepts
+      # `Bearer $DEVHUB_MCP_TOKEN` on a fresh deploy. Empty = no-op.
+      - DEVHUB_MCP_TOKEN=${DEVHUB_MCP_TOKEN:-}
+    depends_on:
+      - dev_hub_db
+    networks:
+      - dev-hub-net
+
+  dev_hub_frontend:
+    build: ./frontend
+    restart: always
+    depends_on:
+      - dev_hub_backend
+    networks:
+      - dev-hub-net
+
+networks:
+  dev-hub-net:
+    driver: bridge
+
+volumes:
+  dev_hub_db_data:
