@@ -1,7 +1,8 @@
 # Dokploy pure-git deploy for dev-hub.
 #
-# Dokploy clones this repo, builds ./backend and ./frontend from source, and
-# injects a rendered .env supplying the secrets below. There is NO bundled
+# Dokploy clones this repo, pulls the prebuilt GHCR images for ./backend and
+# ./frontend (the commented build: blocks rebuild from source), and injects a
+# rendered .env supplying the secrets below. There is NO bundled
 # reverse proxy and NO host port publishing here — Dokploy's create_domain wires
 # Traefik to route hub.<domain> to the frontend service's internal port 80. The
 # frontend's nginx (frontend/nginx.conf) reverse-proxies /api/ and /embed/ to
@@ -30,7 +31,10 @@ services:
       - dev-hub-net
 
   dev_hub_backend:
-    build: ./backend
+    image: ghcr.io/alshawwaf/dev-hub-backend:latest
+    pull_policy: always
+    # build disabled: prebuilt + published by .github/workflows/publish-image.yml; uncomment to build locally.
+    # build: ./backend
     restart: always
     environment:
       - DATABASE_URL=postgresql://admin:${DEV_HUB_DB_PASSWORD}@dev_hub_db:5432/dev_hub
@@ -47,7 +51,10 @@ services:
       - dev-hub-net
 
   dev_hub_frontend:
-    build: ./frontend
+    image: ghcr.io/alshawwaf/dev-hub-frontend:latest
+    pull_policy: always
+    # build disabled: prebuilt + published by .github/workflows/publish-image.yml; uncomment to build locally.
+    # build: ./frontend
     restart: always
     depends_on:
       - dev_hub_backend
