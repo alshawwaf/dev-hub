@@ -27,6 +27,13 @@ services:
       - POSTGRES_DB=dev_hub
     volumes:
       - dev_hub_db_data:/var/lib/postgresql/data
+    # The backend seeds tables + superadmin once at startup and never retries,
+    # so it must not start until Postgres actually accepts connections.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d dev_hub"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
     networks:
       - dev-hub-net
 
@@ -46,7 +53,8 @@ services:
       # `Bearer $DEVHUB_MCP_TOKEN` on a fresh deploy. Empty = no-op.
       - DEVHUB_MCP_TOKEN=${DEVHUB_MCP_TOKEN:-}
     depends_on:
-      - dev_hub_db
+      dev_hub_db:
+        condition: service_healthy
     networks:
       - dev-hub-net
 
